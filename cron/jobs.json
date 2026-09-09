@@ -69,15 +69,15 @@
       "schedule_display": "every 60m",
       "repeat": {
         "times": null,
-        "completed": 3
+        "completed": 4
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T10:16:51.219491+07:00",
-      "next_run_at": "2026-09-09T15:20:00.935140+07:00",
-      "last_run_at": "2026-09-09T13:19:01.870505+07:00",
+      "next_run_at": "2026-09-09T16:20:47.768447+07:00",
+      "last_run_at": "2026-09-09T14:20:09.875169+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -88,14 +88,14 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-09T14:19:01.870505+07:00",
-        "dispatched_at": "2026-09-09T14:20:00.918759+07:00",
-        "lateness_seconds": 59.0,
+        "scheduled_at": "2026-09-09T15:20:09.875169+07:00",
+        "dispatched_at": "2026-09-09T15:20:47.755891+07:00",
+        "lateness_seconds": 37.9,
         "kind": "on_time"
       },
       "fire_claim": {
-        "at": "2026-09-09T14:20:01.147871+07:00",
-        "by": "hoangnlv:140167:f8c64261797542b3a4770c04fabaea28"
+        "at": "2026-09-09T15:20:47.942565+07:00",
+        "by": "hoangnlv:251205:7eb2f95bee1c4a33bf134a3c60ae931d"
       }
     },
     {
@@ -123,15 +123,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 42
+        "completed": 62
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:13:22.454824+07:00",
-      "next_run_at": "2026-09-09T14:21:01.165190+07:00",
-      "last_run_at": "2026-09-09T14:19:01.165190+07:00",
+      "next_run_at": "2026-09-09T15:20:47.857266+07:00",
+      "last_run_at": "2026-09-09T15:18:47.857266+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -143,9 +143,9 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-09T14:18:01.094639+07:00",
-        "dispatched_at": "2026-09-09T14:19:00.894722+07:00",
-        "lateness_seconds": 59.8,
+        "scheduled_at": "2026-09-09T15:17:47.651033+07:00",
+        "dispatched_at": "2026-09-09T15:18:47.627075+07:00",
+        "lateness_seconds": 60.0,
         "kind": "on_time"
       },
       "fire_claim": null
@@ -175,15 +175,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 29
+        "completed": 50
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:13.990487+07:00",
-      "next_run_at": "2026-09-09T14:22:00.941074+07:00",
-      "last_run_at": "2026-09-09T14:17:44.877687+07:00",
+      "next_run_at": "2026-09-09T15:22:29.295540+07:00",
+      "last_run_at": "2026-09-09T15:20:29.295540+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -195,15 +195,12 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-09T14:19:44.877687+07:00",
-        "dispatched_at": "2026-09-09T14:20:00.918759+07:00",
-        "lateness_seconds": 16.0,
+        "scheduled_at": "2026-09-09T15:19:31.513488+07:00",
+        "dispatched_at": "2026-09-09T15:19:47.693385+07:00",
+        "lateness_seconds": 16.2,
         "kind": "on_time"
       },
-      "fire_claim": {
-        "at": "2026-09-09T14:20:01.138083+07:00",
-        "by": "hoangnlv:140167:ae9ab260f8294f8893889ceb4613d820"
-      }
+      "fire_claim": null
     },
     {
       "id": "5fc5e2166c3a",
@@ -230,15 +227,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 27
+        "completed": 48
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:14.008122+07:00",
-      "next_run_at": "2026-09-09T14:22:00.946033+07:00",
-      "last_run_at": "2026-09-09T14:17:11.540085+07:00",
+      "next_run_at": "2026-09-09T15:21:58.345105+07:00",
+      "last_run_at": "2026-09-09T15:19:58.345105+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -252,17 +249,61 @@
       ],
       "workdir": null,
       "failure_deliver": "local",
-      "fire_claim": {
-        "at": "2026-09-09T14:20:00.946033+07:00",
-        "by": "hoangnlv:140167:3f0e86478cb7446f809c09c824f52475"
-      },
+      "fire_claim": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-09T14:19:11.540085+07:00",
-        "dispatched_at": "2026-09-09T14:20:00.918759+07:00",
-        "lateness_seconds": 49.4,
+        "scheduled_at": "2026-09-09T15:18:51.423381+07:00",
+        "dispatched_at": "2026-09-09T15:19:47.693385+07:00",
+        "lateness_seconds": 56.3,
         "kind": "on_time"
       }
+    },
+    {
+      "id": "6fc578ec1e6e",
+      "name": "jira-morning-reminder",
+      "prompt": "Bạn là Ultron, trợ lý của Hoàng. Nhiệm vụ buổi sáng: tổng hợp task Jira CHƯA LÀM của Hoàng và gửi nhắc nhở.\n\nMỖI LẦN CHẠY:\n1. Nạp skill jira-daily-tasks nếu cần, rồi gọi tool `mcp__atlassian__jira_search` với:\n   jql = \"assignee = currentUser() AND statusCategory != Done ORDER BY priority DESC, updated DESC\"\n   fields = \"key,summary,status,priority,issuetype,updated,duedate\"\n   limit = 50\n2. Gom nhóm kết quả theo status: Đang làm (In Progress) -> Chờ review (In Review) -> Cần làm (To Do / Need To Do).\n3. Format tiếng Việt, dùng CÚ PHÁP LINK GOOGLE CHAT (KHÔNG dùng markdown [text](url), KHÔNG dùng **bold**):\n   - Dòng đầu: \"📋 Task Jira hôm nay — N task chưa xong\" (N là tổng số)\n   - Mỗi nhóm là một dòng tiêu đề kèm số lượng, vd \"Đang làm (2)\"\n   - Mỗi task một dòng, KEY là link bấm mở trực tiếp:\n     • <https://jr.servicehub.vn/browse/KEY|KEY>  <tóm tắt>\n   - Nếu có task trì hoãn lâu (updated cũ hơn 2 tuần) thì thêm 1 dòng cảnh báo cuối.\n4. Nếu JQL trả về 0 task: báo \"Hôm nay không có task Jira nào chưa làm 🎉\".\n5. Chỉ ĐỌC, không sửa/tạo/chuyển trạng thái task.\n\nTrả lời bằng tiếng Việt. Nội dung cuối cùng chính là tin nhắn gửi cho Hoàng. Không dùng ** hoặc markdown link — dùng <url|text>.",
+      "skills": [
+        "jira-daily-tasks"
+      ],
+      "skill": "jira-daily-tasks",
+      "model": null,
+      "provider": null,
+      "provider_snapshot": "custom",
+      "model_snapshot": "deepseek-v4-pro",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "monitor_script": null,
+      "monitor_url": null,
+      "monitor_state": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9 * * *",
+        "display": "every day at 9am"
+      },
+      "schedule_display": "every day at 9am",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-09-09T14:21:33.722471+07:00",
+      "next_run_at": "2026-09-10T09:00:00+07:00",
+      "last_run_at": "2026-09-09T14:25:05.547029+07:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "last_delivery_unverified": null,
+      "failure_streak": 0,
+      "deliver": "google_chat:spaces/AAQAZxc2km8",
+      "origin": null,
+      "enabled_toolsets": null,
+      "workdir": null,
+      "fire_claim": null
     }
   ],
-  "updated_at": "2026-09-09T14:20:01.148042+07:00"
+  "updated_at": "2026-09-09T15:20:47.942715+07:00"
 }
