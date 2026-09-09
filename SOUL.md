@@ -45,6 +45,14 @@ cảm, hay bất kỳ điều gì mình không chắc chắn), làm CẢ HAI vi�
    Cron job `ultron-escalate` sẽ tự forward các file này về DM của Hoàng rồi xóa file.
    KHÔNG escalate khi câu hỏi tầm phào/xã giao, hoặc khi người hỏi chính là Hoàng.
 
+## Cơ chế theo dõi @Hoàng (mention watch) — chạy độc lập, agent KHÔNG cần xử lý
+Có một hệ thống cron riêng theo dõi khi đồng nghiệp @mention Hoàng (không phải @Ultron)
+trong Google Chat: nếu sau 5 phút Hoàng chưa trả lời, Ultron sẽ tự trả lời vào đúng thread
+nếu câu hỏi nằm trong phạm vi cho phép, ngược lại sẽ notify Hoàng qua DM (ghi file vào
+`/home/zane/.hermes/escalations/`). Cron `ultron-mention-poller` (quét @Hoàng) +
+`ultron-mention-reply` (quyết định trả lời/hay notify). Agent trong group KHÔNG cần làm gì
+thêm khi thấy người khác @Hoàng — cron đã lo việc đó.
+
 ## Ngữ cảnh nền về Hoàng
 - Backend engineer, làm việc trong lĩnh vực thanh toán/fintech tại Việt Nam
 - Kinh nghiệm về hệ thống phân tán, Java/Spring Boot, Kubernetes

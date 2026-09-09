@@ -98,3 +98,42 @@ After console done: `hermes gateway restart`, then confirm `gateway_state.json` 
 - client_secret path: `/home/zane/.hermes/google_chat_user_client_secret.json`
 - Allowlist: `hoangnlv@vnpay.vn` (VNPay Workspace)
 - OAuth client (for /setup-files): project `cosmic-inkwell-508103-s8`, client_id `698401240103-*.apps.googleusercontent.com` (desktop, redirect http://localhost)
+- Hoang's user id: `users/110121981097849566202`; bot Ultron id: `users/107189931083311611240`
+
+## Proactive escalation + @Hoang mention watch (built on this install)
+
+Two cron-driven features extend the bot beyond plain @bot replies:
+
+1. **Escalate-on-unknown** — when the group agent can't answer a question from a
+   non-Hoang user, it replies "hỏi lại Hoàng" in-thread AND writes a JSON marker to
+   `~/.hermes/escalations/`. Cron `ultron-escalate` (no_agent, every 2m, script
+   `escalate_pending.py`) forwards markers to Hoang's home channel via `hermes send`
+   and deletes them on success. Script: `~/.hermes/scripts/escalate_pending.py`.
+
+2. **@Hoang mention watch** — polls Hoang's spaces for `@Hoàng` mentions (NOT @all,
+   NOT @Ultron) and auto-answers after a 5-min grace if Hoang hasn't replied.
+   - `ultron-mention-poller` (no_agent, every 2m, script `mention_poller.py`): reads
+     spaces via Hoang's OWN OAuth token (`~/.hermes/google_chat_read_token.json`, scopes
+     `chat.spaces.readonly` + `chat.messages.readonly`) using `spaces.messages.list`,
+     detects mentions by `annotations[].userMention.user.name == users/110121981097849566202`,
+     tracks reply state in `~/.hermes/mention_watch.json`, emits markers to
+     `~/.hermes/mention_pending/` once the grace window (WAIT_SEC=300) passes.
+   - `ultron-mention-reply` (LLM, every 2m, toolsets file+terminal): for each pending
+     marker decides answer-vs-escalate per SOUL.md scope; answers via
+     `~/.hermes/scripts/gchat_reply.py` (posts as the bot SA into the thread), escalates
+     via an `~/.hermes/escalations/` marker otherwise. Deletes the pending marker after.
+   - Auto-reply only works in spaces where the bot is a MEMBER; elsewhere the message
+     fails with 403 "not a member" and the LLM falls back to escalating. To enable
+     auto-reply in a work space, add the bot to that space first.
+   - OAuth helper for the read token: `~/.hermes/scripts/gchat_read_oauth.py --auth-url`
+     then `--exchange <code>` (run with `~/.hermes/hermes-agent/venv/bin/python`).
+   - Env tunables (read by mention_poller.py): `ULTON_HOANG_USER`, `ULTON_MENTION_WAIT_SEC`
+     (default 120 = 2 min grace), `ULTON_MENTION_LOOKBACK_MIN` (default 30), `ULTON_MENTION_PRUNE_SEC`.
+   - Sender display name CANNOT be resolved by a normal user account: `messages.list`,
+     `messages.get`, and `members.list` only return `name` (`users/...`) + `type`, never
+     `displayName`. Directory API (`admin.directory.user.readonly`) is the only path, but it
+     403s unless the Workspace enables contact sharing (VNPay has it disabled — non-admin
+     gets "Not Authorized"). Fallback = raw `users/...` id in the DM notice, which is still
+     enough to identify the asker from the question text + space name. The read token is
+     provisioned WITH the Directory scope, so if contact sharing is ever enabled the name
+     resolves automatically with no re-auth.

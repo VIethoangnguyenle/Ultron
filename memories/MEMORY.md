@@ -5,3 +5,5 @@ When the user switches machines (clones Ultron + runs restore.sh), remind them t
 Ultron bot's messaging surface is Google Chat on VNPay's corporate Workspace (GCP project cosmic-inkwell-508103-s8; bot allowlisted to hoangnlv@vnpay.vn). Publishing a Chat app there may require Workspace admin rights, not just GCP project access.
 §
 Google Chat bot "Ultron" is live and connected (GCP project cosmic-inkwell-508103-s8, VNPay Workspace, allowlist hoangnlv@vnpay.vn, fail-closed). Setup/runbook lives in skill google-chat-setup.
+§
+Google Chat: Hoàng's user resource id = users/110121981097849566202 (email hoangnlv@vnpay.vn, displayName 'Hoàng, Nguyễn Lê Việt'). Bot Ultron's own id = users/107189931083311611240. @all mention = annotations[].userMention.user == {} (empty); a specific user mention = userMention.user.name == 'users/...'. Detect via spaces.messages().list with user OAuth (chat.messages.readonly).
