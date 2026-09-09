@@ -71,9 +71,9 @@ assignee = currentUser() AND updated >= -7d ORDER BY updated DESC
 
 ## Fields nên lấy khi liệt kê
 
-`key,summary,status,priority,issuetype,updated,duedate` — đủ để hiển thị gọn
-một dòng mỗi task mà không phình context. Chỉ gọi `jira_get_issue` khi cần
-chi tiết mô tả/comment của một task cụ thể.
+`key,summary,status,priority,issuetype,updated,duedate,project` — thêm `project`
+để lấy key + tên đầy đủ dự án (dùng phân nhóm theo Section dự án). Chỉ gọi
+`jira_get_issue` khi cần chi tiết mô tả/comment của một task cụ thể.
 
 ## Format link cho task (BẮT BUỘC)
 
@@ -87,27 +87,27 @@ Mỗi task một dòng, KEY là link:
 Tránh: dấu `**` (Google Chat dùng `*` nếu cần bold, nhưng tốt nhất là không),
 markdown link `[text](url)` (hiện nguyên văn, không click được).
 
-Template gọn gàng (gom nhóm theo status, kèm số lượng):
+Template gọn gàng (PHÂN THEO SECTION DỰ ÁN — mỗi project là một mục, kèm tên
+đầy đủ dự án + key; trong mỗi project, mỗi task kèm trạng thái ngắn trong ngoặc):
 ```
 📋 Task Jira hôm nay — 6 task chưa xong
 
-Đang làm (1)
-• <url|KEY>  tóm tắt
+📍 Vietbank SME Omni nội bộ (VSONB) — 4 task
+• <url|VSONB-5098>  Mở khóa người dùng - Duyệt lệnh  (Need To Do)
+• <url|VSONB-5025>  Dev Server - cắt chuỗi text  (To Do)
 
-Chờ review (1)
-• <url|KEY>  tóm tắt
-
-Cần làm (4)
-• <url|KEY>  tóm tắt
+📍 Nam Á Bank SME (NABSME) — 2 task
+• <url|NABSME-773>  Luồng chuyển khoản  (To Do)
 ```
 
 ## Quy trình báo cáo buổi sáng
 
 1. Gọi `jira_search` với JQL `assignee = currentUser() AND statusCategory != Done
-   ORDER BY priority DESC, updated DESC`, `limit=50`.
-2. Gom nhóm theo `status`: In Progress → In Review → Need To Do/To Do.
-3. Format tiếng Việt, ngắn gọn, mỗi task một dòng DẠNG LINK bấm mở trực tiếp:
-   `[KEY — tóm tắt](https://jr.servicehub.vn/browse/KEY)` (kèm trạng thái).
+   ORDER BY priority DESC, updated DESC`, `limit=50`, và `fields` có kèm `project`.
+2. Gom nhóm theo PROJECT (Section dự án): mỗi dự án là một mục tiêu đề
+   `📍 <tên dự án> (<project key>) — N task`. Sắp xếp dự án theo số task giảm dần.
+3. Trong mỗi dự án, mỗi task một dòng DẠNG LINK `<url|KEY>` kèm trạng thái ngắn
+   trong ngoặc: `• <url|KEY>  tóm tắt  (trạng thái)`.
 4. Nêu rõ tổng số task chưa làm ở đầu, và nhấn task nào đang bị trì hoãn lâu
    (dựa `updated` cũ) nếu có — cũng để dạng link.
 5. KHÔNG tự chuyển trạng thái / sửa / tạo / xóa task hay thay đổi gì trên Jira
