@@ -76,7 +76,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T10:16:51.219491+07:00",
-      "next_run_at": "2026-09-09T11:16:51.221611+07:00",
+      "next_run_at": "2026-09-09T12:17:23.896794+07:00",
       "last_run_at": null,
       "last_status": null,
       "last_error": null,
@@ -86,8 +86,18 @@
       "deliver": "local",
       "origin": null,
       "enabled_toolsets": null,
-      "workdir": null
+      "workdir": null,
+      "last_dispatch": {
+        "scheduled_at": "2026-09-09T11:16:51.221611+07:00",
+        "dispatched_at": "2026-09-09T11:17:23.881615+07:00",
+        "lateness_seconds": 32.7,
+        "kind": "on_time"
+      },
+      "fire_claim": {
+        "at": "2026-09-09T11:17:24.144187+07:00",
+        "by": "hoangnlv:22220:6dde9462a8f644c9b7cb02a391e02684"
+      }
     }
   ],
-  "updated_at": "2026-09-09T10:16:51.222345+07:00"
+  "updated_at": "2026-09-09T11:17:24.144355+07:00"
 }
