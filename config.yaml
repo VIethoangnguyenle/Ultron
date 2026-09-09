@@ -230,3 +230,6 @@ command_allowlist:
   - curl *10.22.17.219*
 approvals:
   mode: 'off'
+platforms:
+  google_chat:
+    typing_status_text: Ultron đang nghĩ đã… 🤖💭
