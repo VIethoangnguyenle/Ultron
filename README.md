@@ -28,6 +28,11 @@ git clone git@github.com:VIethoangnguyenle/Ultron.git ~/Ultron
 bash ~/Ultron/restore.sh        # copies state back into ~/.hermes
 ```
 
+⚠ **Re-provide your credentials after cloning.** `.env` (API keys) and
+`auth.json` (OAuth tokens) are secrets and are NEVER committed to git. After
+`restore.sh`, run `hermes setup` (or copy your own `.env` / `auth.json`
+backups into `~/.hermes/`) — everything else comes back automatically.
+
 ## Keeping it fresh
 
 `sync.sh` runs automatically via a Hermes cron job (or run it by hand):

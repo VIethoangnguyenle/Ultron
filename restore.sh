@@ -17,3 +17,18 @@ for f in SOUL.md config.yaml; do
 done
 
 echo "Restored into $HERMES_HOME"
+
+cat <<'EOF'
+
+  ⚠  CREDENTIALS ARE NOT SYNCED (by design).
+
+  .env (API keys) and auth.json (OAuth tokens) were NOT restored from git —
+  they are secrets and never leave this machine.
+
+  To finish setup on this machine:
+    hermes setup            # re-link providers / re-enter API keys
+    # or manually restore:
+    #   cp <backup>/.env "$HERMES_HOME/.env"
+    #   cp <backup>/auth.json "$HERMES_HOME/auth.json"
+
+EOF

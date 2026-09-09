@@ -52,3 +52,7 @@ on a cadence.
 - Cron jobs do NOT fire unless the Hermes gateway is running. After creating a
   job, check `hermes gateway status`; if off, `hermes gateway install` enables
   a user service + systemd linger, then `hermes gateway start`.
+- The cron `script` field is a filename resolved under `~/.hermes/scripts/` at
+  fire time — deleting or renaming the script silently breaks the job on its
+  next run. Keep the script file in place; if you rewrite it under a new name,
+  update the job's `script` field in the same step.
