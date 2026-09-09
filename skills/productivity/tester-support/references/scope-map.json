@@ -14,6 +14,7 @@
         "db": "VBSMEONL",
         "table": "AD_MESSAGE"
       },
+      "error_log_map": "/home/zane/Desktop/work/vietbank/vietbank-sme/docs/qa/2026-09-09-ma-loi-ad-message-tra-cuu-log.md",
       "db_source": {
         "env": "SIT",
         "databases": [

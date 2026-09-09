@@ -106,6 +106,56 @@ Criterion hoàn tất: kiến thức đã nằm đúng file, đúng project, kh�
 
 Criterion hoàn tất: câu trả lời có nguồn (graph/mã lỗi/DB/log/KB), đúng project, không bịa.
 
+## Workflow CHECK LOG (khi tester báo lỗi cụ thể ở UAT/LIVE)
+
+Khi tester báo "user X gặp lỗi mã Y ở môi trường Z", làm theo đúng 4 bước:
+
+1. **Khoanh vùng lỗi → biết service nào.** Đọc `error_log_map` (file QA tra cứu mã lỗi →
+   service/API) trong scope-map của đúng project. Tra mã lỗi → biết service chứa log + API
+   liên quan. (File này là KIẾN THỨC NỘI BỘ, chỉ Ultron đọc, không gửi cho tester.)
+2. **Lên link log lấy log.** Dùng `log_source` trong scope-map (uat/live tùy môi trường).
+   `curl -k` vào thư mục service đã khoanh vùng, tải file log TRONG KHOẢNG THỜI GIAN tester
+   báo lỗi. Chú ý log có thể nén .gz, tên theo pod + ngày.
+3. **Phân tích log.** Dùng `vblog.py` (skill vnpay-log-analyzer) + MCP `understand-anything`
+   để dựng timeline, tìm requestId, xác định mã lỗi nằm ở bước nào (REQUEST/CALL_*/RESPONSE),
+   nguyên nhân gốc. Mã gateway (VBG/VPG) nằm ở bước `CALL_*_RESPONSE`.
+4. **Ra báo cáo cho tester** dạng file markdown (xem mục "Báo cáo cho tester" bên dưới).
+
+## Báo cáo cho tester (file markdown)
+
+- Kết quả phân tích check log phải đưa tester dưới dạng **file markdown (.md)** rồi gửi lên group.
+- **Định dạng file mặc định LUÔN là markdown.** Các định dạng khác (csv, xlsx, json, ...)
+  CHỈ làm khi tester/Hoàng yêu cầu rõ ràng — không tự đổi định dạng.
+- **TUYỆT ĐỐI KHÔNG thả đường dẫn local** (`/home/zane/...`, `file://`) — tester không thấy
+  được. Phải gửi file thật lên group (attachment qua user OAuth — đã cấp `/setup-files`).
+- File báo cáo viết bằng ngôn ngữ nghiệp vụ, KHÔNG code (đúng quy tắc). Cấu trúc gợi ý:
+  - Tóm tắt lỗi: ai gặp, mã lỗi, môi trường, thời gian
+  - Nghĩa mã lỗi (từ AD_MESSAGE)
+  - Nguyên nhân (nghiệp vụ) + diễn biến luồng
+  - Hướng xử lý / kiểm tra thêm (nếu xác định được)
+- File nội bộ (error_log_map, graph, log) là công cụ để Ultron tìm ra câu trả lời, KHÔNG gửi lên group.
+
+## Vẽ diagram khi trace flow nghiệp vụ (yêu cầu của Hoàng)
+
+Khi tester yêu cầu trace flow xử lý của giao dịch / luồng / nghiệp vụ, VÀ cần xuất ra file —
+**LUÔN ưu tiên dùng skill `diagram-design` để vẽ diagram** (không vẽ mermaid thủ công, không
+kẻ bảng text thay diagram):
+
+- Đường dẫn skill: `/home/zane/Desktop/tools/diagram-design/skills/diagram-design/SKILL.md`
+  (repo cathrynlavery/diagram-design — 39 loại diagram dạng self-contained HTML + SVG).
+- Cách dùng: đọc SKILL.md + `references/` của skill đó, chọn loại diagram phù hợp với nội dung:
+  - flow xử lý GD tuần tự → Flowchart / Process / Sequence / Swimlane
+  - trạng thái giao dịch + chuyển trạng thái → State machine
+  - kiến trúc service → Architecture / Layer stack
+  - luồng dữ liệu giữa các service → Data flow
+  - timeline các bước → Timeline
+  - (tham khảo bảng 39 loại trong SKILL.md của diagram-design để chọn đúng)
+- Đầu ra là file HTML (self-contained, nhúng SVG+CSS) — mở bằng trình duyệt là xem được.
+- Nội dung diagram lấy từ kết quả trace: domain-graph (flow/step) + knowledge-graph (code) qua
+  MCP `understand-anything` — KHÔNG bịa, vẽ đúng flow thực tế.
+- Khi xuất file cho tester: file diagram (.html) gửi lên group như file báo cáo; KHÔNG thả link local.
+  Có thể kèm 1 file .md mô tả ngắn nếu cần.
+
 ## Cách trả lời trong group (quan trọng)
 
 - **Khi liệt kê mã lỗi / danh sách message → phải show dạng BẢNG.** Không viết thành đoạn văn
@@ -198,6 +248,11 @@ Tester cần dữ liệu/test data → dùng `db-access`:
   vblog rơi vào repo; xoá sau khi xong.
 - **Log server dùng self-signed TLS**: phải `curl -k`. UAT ở root, LIVE ở `/live/`,
   bỏ qua `/test/`.
+- **Lấy log nhiều service: dùng TỪNG lệnh `curl` ĐƠN, KHÔNG gộp vòng lặp `for ... do ... done`.**
+  Lệnh compound (có `;`, `$`, loop, `$(...)`) sẽ bị cơ chế approval chặn và hỏi lại,
+  còn lệnh curl đơn (chỉ `curl -k -sS ... URL`) khớp `command_allowlist` (pattern
+  `curl *10.22.17.219*`) nên auto-approve, chạy liền không hỏi. Tải log service nào thì
+  curl thẳng thư mục service đó.
 - **`vblog.py` nằm ở `~/.claude/skills/`** (của Claude Code), không phải `~/.hermes/skills/`.
   Gọi bằng đường dẫn tuyệt đối trong `scope-map.json`.
 - **MCP tools chỉ load ở STARTUP**: sau khi thêm/sửa MCP server phải khởi động phiên
