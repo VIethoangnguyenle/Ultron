@@ -47,7 +47,7 @@ cảm, hay bất kỳ điều gì mình không chắc chắn), làm CẢ HAI vi�
 
 ## Cơ chế theo dõi @Hoàng (mention watch) — chạy độc lập, agent KHÔNG cần xử lý
 Có một hệ thống cron riêng theo dõi khi đồng nghiệp @mention Hoàng (không phải @Ultron)
-trong Google Chat: nếu sau 5 phút Hoàng chưa trả lời, Ultron sẽ tự trả lời vào đúng thread
+trong Google Chat: nếu sau 2 phút Hoàng chưa trả lời, Ultron sẽ tự trả lời vào đúng thread
 nếu câu hỏi nằm trong phạm vi cho phép, ngược lại sẽ notify Hoàng qua DM (ghi file vào
 `/home/zane/.hermes/escalations/`). Cron `ultron-mention-poller` (quét @Hoàng) +
 `ultron-mention-reply` (quyết định trả lời/hay notify). Agent trong group KHÔNG cần làm gì

@@ -69,15 +69,15 @@
       "schedule_display": "every 60m",
       "repeat": {
         "times": null,
-        "completed": 2
+        "completed": 3
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T10:16:51.219491+07:00",
-      "next_run_at": "2026-09-09T14:18:52.972751+07:00",
-      "last_run_at": "2026-09-09T12:18:27.786219+07:00",
+      "next_run_at": "2026-09-09T15:20:00.935140+07:00",
+      "last_run_at": "2026-09-09T13:19:01.870505+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -88,14 +88,14 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-09T13:18:27.786219+07:00",
-        "dispatched_at": "2026-09-09T13:18:52.961283+07:00",
-        "lateness_seconds": 25.2,
+        "scheduled_at": "2026-09-09T14:19:01.870505+07:00",
+        "dispatched_at": "2026-09-09T14:20:00.918759+07:00",
+        "lateness_seconds": 59.0,
         "kind": "on_time"
       },
       "fire_claim": {
-        "at": "2026-09-09T13:18:53.173162+07:00",
-        "by": "hoangnlv:140167:70e16d3f3a5d4c28baca1a43b2503623"
+        "at": "2026-09-09T14:20:01.147871+07:00",
+        "by": "hoangnlv:140167:f8c64261797542b3a4770c04fabaea28"
       }
     },
     {
@@ -123,15 +123,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 21
+        "completed": 42
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:13:22.454824+07:00",
-      "next_run_at": "2026-09-09T13:20:52.978487+07:00",
-      "last_run_at": "2026-09-09T13:15:52.918424+07:00",
+      "next_run_at": "2026-09-09T14:21:01.165190+07:00",
+      "last_run_at": "2026-09-09T14:19:01.165190+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -143,15 +143,12 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-09T13:17:52.918424+07:00",
-        "dispatched_at": "2026-09-09T13:18:52.961283+07:00",
-        "lateness_seconds": 60.0,
+        "scheduled_at": "2026-09-09T14:18:01.094639+07:00",
+        "dispatched_at": "2026-09-09T14:19:00.894722+07:00",
+        "lateness_seconds": 59.8,
         "kind": "on_time"
       },
-      "fire_claim": {
-        "at": "2026-09-09T13:18:53.179183+07:00",
-        "by": "hoangnlv:140167:47137a4986ef42669d568185bf48a3ca"
-      }
+      "fire_claim": null
     },
     {
       "id": "aa62c22f290e",
@@ -178,15 +175,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 10
+        "completed": 29
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:13.990487+07:00",
-      "next_run_at": "2026-09-09T13:20:35.641153+07:00",
-      "last_run_at": "2026-09-09T13:18:35.641153+07:00",
+      "next_run_at": "2026-09-09T14:22:00.941074+07:00",
+      "last_run_at": "2026-09-09T14:17:44.877687+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -198,17 +195,20 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-09T13:17:33.335339+07:00",
-        "dispatched_at": "2026-09-09T13:17:52.751780+07:00",
-        "lateness_seconds": 19.4,
+        "scheduled_at": "2026-09-09T14:19:44.877687+07:00",
+        "dispatched_at": "2026-09-09T14:20:00.918759+07:00",
+        "lateness_seconds": 16.0,
         "kind": "on_time"
       },
-      "fire_claim": null
+      "fire_claim": {
+        "at": "2026-09-09T14:20:01.138083+07:00",
+        "by": "hoangnlv:140167:ae9ab260f8294f8893889ceb4613d820"
+      }
     },
     {
       "id": "5fc5e2166c3a",
       "name": "ultron-mention-reply",
-      "prompt": "Bạn là Ultron, trợ lý của Hoàng (backend engineer, thanh toán/fintech VN). Nhiệm vụ định kỳ: xử lý các câu hỏi mà đồng nghiệp @mention Hoàng trong Google Chat nhưng Hoàng chưa trả lời sau 5 phút.\n\nMỖI LẦN CHẠY:\n1. Chạy `ls ~/.hermes/mention_pending/ 2>/dev/null`. Nếu thư mục không tồn tại hoặc trống → KHÔNG làm gì thêm, trả lời ngắn gọn 'không có gì cần xử lý' rồi kết thúc.\n2. Với MỖI file *.json trong đó: đọc nội dung (các trường: space, space_name, thread, text, sender, sender_name, created_at, waited_sec).\n\n3. Quyết định bạn (Ultron) có tự trả lời được câu hỏi (trường text) không, dựa theo phạm vi trong ~/.hermes/SOUL.md:\n   - ĐƯỢC trả lời: câu hỏi kỹ thuật phổ thông bạn thực sự biết (hệ phân tán, Java/Spring Boot, Kubernetes, kiến thức fintech chung), xã giao, thông tin chung không nhạy cảm.\n   - KHÔNG được (phải escalate cho Hoàng): deadline, số liệu/cụ thể, quyết định kiến trúc/kỹ thuật, thông tin nội bộ/nhạy cảm/compliance/khách hàng, cam kết hợp đồng, hoặc bất cứ gì bạn không chắc chắn.\n\n4. NẾU trả lời được:\n   a. Viết câu trả lời tiếng Việt ngắn gọn, thân thiện (với tư cách Ultron, trợ lý Hoàng) vào file /tmp/mention_reply.txt. Không mạo nhận là Hoàng, không bịa số liệu/sự thật.\n   b. Đăng vào đúng thread bằng lệnh:\n      ~/.hermes/hermes-agent/venv/bin/python ~/.hermes/scripts/gchat_reply.py --space \"<space>\" --thread \"<thread>\" --file /tmp/mention_reply.txt\n      (nếu trường thread rỗng/null thì BỎ hẳn --thread)\n   c. Nếu kết quả bắt đầu bằng 'OK' → xóa file marker đó (rm file). Nếu bắt đầu bằng 'ERROR' (vd bot không phải thành viên space / 403) → KHÔNG xóa, chuyển sang bước 5.\n\n5. NẾU không trả lời được (hoặc reply lỗi): ghi một file escalate vào ~/.hermes/escalations/ để Hoàng được nhắn tin. Tên file bất kỳ duy nhất đuôi .json (dùng timestamp epoch). Nội dung:\n   {\"from\": \"<sender_name nếu có, còn không thì sender>\", \"space\": \"<space_name>\", \"question\": \"<text>\", \"reason\": \"<lý do ngắn>\"}\n   Rồi xóa file marker trong mention_pending.\n\n6. Kết thúc bằng một dòng tóm tắt ngắn những gì đã làm (để ghi log).\n\nNguyên tắc: thận trọng — khi không chắc thì escalate chứ đừng trả lời bừa. Trả lời bằng tiếng Việt.",
+      "prompt": "Bạn là Ultron, trợ lý của Hoàng (backend engineer, thanh toán/fintech VN). Nhiệm vụ định kỳ: xử lý các câu hỏi mà đồng nghiệp @mention Hoàng trong Google Chat nhưng Hoàng chưa trả lời sau 2 phút.\n\nMỖI LẦN CHẠY:\n1. Chạy `ls ~/.hermes/mention_pending/ 2>/dev/null`. Nếu thư mục không tồn tại hoặc trống → KHÔNG làm gì thêm, trả lời ngắn gọn 'không có gì cần xử lý' rồi kết thúc.\n2. Với MỖI file *.json trong đó: đọc nội dung (các trường: space, space_name, thread, text, sender, sender_name, created_at, waited_sec).\n\n3. Quyết định bạn (Ultron) có tự trả lời được câu hỏi (trường text) không, dựa theo phạm vi trong ~/.hermes/SOUL.md:\n   - ĐƯỢC trả lời: câu hỏi kỹ thuật phổ thông bạn thực sự biết (hệ phân tán, Java/Spring Boot, Kubernetes, kiến thức fintech chung), xã giao, thông tin chung không nhạy cảm.\n   - KHÔNG được (phải escalate cho Hoàng): deadline, số liệu/cụ thể, quyết định kiến trúc/kỹ thuật, thông tin nội bộ/nhạy cảm/compliance/khách hàng, cam kết hợp đồng, hoặc bất cứ gì bạn không chắc chắn.\n\n4. NẾU trả lời được:\n   a. Viết câu trả lời tiếng Việt ngắn gọn, thân thiện (với tư cách Ultron, trợ lý Hoàng) vào file /tmp/mention_reply.txt. Không mạo nhận là Hoàng, không bịa số liệu/sự thật.\n   b. Đăng vào đúng thread bằng lệnh:\n      ~/.hermes/hermes-agent/venv/bin/python ~/.hermes/scripts/gchat_reply.py --space \"<space>\" --thread \"<thread>\" --file /tmp/mention_reply.txt\n      (nếu trường thread rỗng/null thì BỎ hẳn --thread)\n   c. Nếu kết quả bắt đầu bằng 'OK' → xóa file marker đó (rm file). Nếu bắt đầu bằng 'ERROR' (vd bot không phải thành viên space / 403) → KHÔNG xóa, chuyển sang bước 5.\n\n5. NẾU không trả lời được (hoặc reply lỗi): ghi một file escalate vào ~/.hermes/escalations/ để Hoàng được nhắn tin. Tên file bất kỳ duy nhất đuôi .json (dùng timestamp epoch). Nội dung:\n   {\"from\": \"<sender_name nếu có, còn không thì sender>\", \"space\": \"<space_name>\", \"question\": \"<text>\", \"reason\": \"<lý do ngắn>\"}\n   Rồi xóa file marker trong mention_pending.\n\n6. Kết thúc bằng một dòng tóm tắt ngắn những gì đã làm (để ghi log).\n\nNguyên tắc: thận trọng — khi không chắc thì escalate chứ đừng trả lời bừa. Trả lời bằng tiếng Việt.",
       "skills": [],
       "skill": null,
       "model": null,
@@ -230,15 +230,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 10
+        "completed": 27
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:14.008122+07:00",
-      "next_run_at": "2026-09-09T13:20:52.981861+07:00",
-      "last_run_at": "2026-09-09T13:15:55.881082+07:00",
+      "next_run_at": "2026-09-09T14:22:00.946033+07:00",
+      "last_run_at": "2026-09-09T14:17:11.540085+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -253,16 +253,16 @@
       "workdir": null,
       "failure_deliver": "local",
       "fire_claim": {
-        "at": "2026-09-09T13:18:53.189526+07:00",
-        "by": "hoangnlv:140167:1b0c738419df40baa91a5eb7f79c46e7"
+        "at": "2026-09-09T14:20:00.946033+07:00",
+        "by": "hoangnlv:140167:3f0e86478cb7446f809c09c824f52475"
       },
       "last_dispatch": {
-        "scheduled_at": "2026-09-09T13:17:55.881082+07:00",
-        "dispatched_at": "2026-09-09T13:18:52.961283+07:00",
-        "lateness_seconds": 57.1,
+        "scheduled_at": "2026-09-09T14:19:11.540085+07:00",
+        "dispatched_at": "2026-09-09T14:20:00.918759+07:00",
+        "lateness_seconds": 49.4,
         "kind": "on_time"
       }
     }
   ],
-  "updated_at": "2026-09-09T13:18:53.189699+07:00"
+  "updated_at": "2026-09-09T14:20:01.148042+07:00"
 }

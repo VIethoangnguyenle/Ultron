@@ -178,3 +178,39 @@ onboarding:
   seen:
     busy_input_prompt: true
     tool_progress_prompt: true
+mcp_servers:
+  db-access:
+    url: http://127.0.0.1:8443/mcp
+    headers:
+      x-api-key: ${MCP_DB_ACCESS_API_KEY}
+  atlassian:
+    command: uvx
+    args:
+      - --python=3.12
+      - mcp-atlassian
+    env:
+      CONFLUENCE_URL: https://wiki.servicehub.vn
+      CONFLUENCE_USERNAME: hoangnlv@vnpay.vn
+      CONFLUENCE_PERSONAL_TOKEN: ${MCP_ATLASSIAN_CONFLUENCE_TOKEN}
+      JIRA_URL: https://jr.servicehub.vn/
+      JIRA_USERNAME: hoangnlv@vnpay.vn
+      JIRA_PERSONAL_TOKEN: ${MCP_ATLASSIAN_JIRA_TOKEN}
+    tools:
+      exclude:
+        - confluence_add_label
+        - confluence_create_page
+        - confluence_update_page
+        - confluence_delete_page
+        - confluence_move_page
+        - confluence_add_comment
+        - confluence_get_page_history
+        - confluence_search_user
+        - confluence_upload_attachment
+        - confluence_upload_attachments
+        - confluence_get_attachments
+        - confluence_download_attachment
+        - confluence_download_content_attachments
+        - confluence_get_page_images
+        - confluence_delete_attachment
+        - confluence_reply_to_comment
+        - confluence_get_labels
