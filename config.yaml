@@ -214,3 +214,12 @@ mcp_servers:
         - confluence_delete_attachment
         - confluence_reply_to_comment
         - confluence_get_labels
+  understand-anything:
+    command: uv
+    args:
+      - --directory
+      - /home/zane/Desktop/tools/mcp/Understand-Anything-MCP
+      - run
+      - server.py
+    env:
+      PROJECT_ROOTS: /home/zane/Desktop/work/vietbank/vietbank-sme,/home/zane/Desktop/work/dvnh-common
