@@ -1,0 +1,12 @@
+# Safety net — nothing sensitive should ever land in this repo.
+.env
+auth.json
+*.db
+*.db-wal
+*.db-shm
+*.sock
+*.pid
+*.lock
+node_modules/
+__pycache__/
+.DS_Store
