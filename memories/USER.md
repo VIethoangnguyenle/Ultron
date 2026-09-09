@@ -1,0 +1,1 @@
+Hoang Nguyen — GitHub: VIethoangnguyenle, work email hoangnlv@vnpay.vn (VNPay). Speaks Vietnamese. Wants his Hermes agent's state portable: synced to git so any machine can clone and resume seamlessly.
