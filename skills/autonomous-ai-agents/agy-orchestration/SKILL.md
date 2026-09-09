@@ -27,6 +27,19 @@ Run `agy` for high-token source-code reasoning (domain-graph enrichment via Unde
 3. **Default `--print-timeout` is 5m — far too short for understand-domain.**
    Domain analysis is a heavy multi-turn task (reads many files / a ~17MB graph). Use `--print-timeout 25m` (Go duration, accepts `25m`/`1800s`).
 
+## CRITICAL: /understand-domain OVERWRITES domain-graph.json (does not merge)
+
+Each `/understand-domain` run **replaces** `domain-graph.json` with ONLY the domains it analysed. Run several domains naively and the last run silently deletes the earlier domains.
+
+Safe workflow — one domain at a time:
+1. `cp .ua/domain-graph.json .ua/domain-graph.json.master` (keep the accumulated master).
+2. Run agy for the NEXT domain (it writes a fresh `domain-graph.json`).
+3. Merge: `python scripts/merge_domain_graphs.py .ua/domain-graph.json .ua/domain-graph.json.master .ua/domain-graph.json` — wait, order matters: pass the JUST-RUN output + the master, write back to a fresh file, then `cp` over `.ua/domain-graph.json`.
+   Correct sequence: `python scripts/merge_domain_graphs.py .ua/_tmp.json .ua/domain-graph.json.master .ua/domain-graph.json && mv .ua/_tmp.json .ua/domain-graph.json && cp .ua/domain-graph.json .ua/domain-graph.json.master`.
+4. Verify count went UP (python: count `type=='domain'` nodes). If it dropped, the merge order was wrong or the run overwrote without producing the expected domains — inspect before continuing.
+
+Merge script lives in this skill: `scripts/merge_domain_graphs.py` (dedupe by node id + edge (source,target,type)).
+
 ## Working invocation
 
 ```bash
