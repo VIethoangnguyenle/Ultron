@@ -1,0 +1,33 @@
+{
+  "projects": {
+    "vietbanksme": {
+      "spaces": [
+        "AAAADv4ib6s"
+      ],
+      "graph_source": "/home/zane/Desktop/work/vietbank/vietbank-sme/.ua",
+      "log_source": {
+        "uat": "https://10.22.17.219:10443/omni-sme/",
+        "live": "https://10.22.17.219:10443/omni-sme/live/"
+      },
+      "log_analyzer": "/home/zane/.claude/skills/vnpay-log-analyzer/vblog.py",
+      "error_code_source": {
+        "db": "VBSMEONL",
+        "table": "AD_MESSAGE"
+      },
+      "db_source": {
+        "env": "SIT",
+        "databases": [
+          "VBSMEONL",
+          "VBSMEOFF",
+          "VBSMERLE",
+          "VBSMESOTP",
+          "VBSMEFACE",
+          "VBSMELOGS",
+          "VBEKYCSTORAGE",
+          "VBSMEEKYC"
+        ]
+      },
+      "kb_dir": "references/knowledge/vietbanksme/"
+    }
+  }
+}

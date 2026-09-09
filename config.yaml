@@ -76,6 +76,9 @@ display:
   cleanup_progress: false
   long_running_notifications: true
   busy_ack_detail: true
+  platforms:
+    google_chat:
+      tool_progress: false
 stt:
   enabled: true
   language: en

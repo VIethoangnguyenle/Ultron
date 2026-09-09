@@ -1,0 +1,211 @@
+---
+name: tester-support
+description: "Answer tester questions in group chats, scoped per project."
+version: 0.1.0
+author: Hoang Nguyen (VIethoangnguyenle), Ultron
+license: MIT
+platforms: [linux, macos]
+metadata:
+  hermes:
+    tags: [tester-support, google-chat, knowledge-graph, scope-isolation, log-analysis]
+    related_skills: [google-chat-setup, hermes-mcp-config]
+---
+
+# Tester Support
+
+Ultron trả lời câu hỏi của tester trong các group Google Chat, CHỈ trong phạm vi
+(scope) dự án của group đó. Kiến thức để trả lời đến từ **4 nguồn tri thức** của
+mỗi dự án (graph + mã lỗi + DB + log + KB bổ sung), không bao giờ tự bịa hoặc trôi
+sang dự án khác.
+
+## Khi dùng (When to Use)
+
+- Bị tester @mention trong group hỏi về nghiệp vụ, flow, mã lỗi, môi trường test,
+  bug của dự án.
+- Hoàng dạy kiến thức dự án (LEARN flow) để Ultron ghi vào KB bổ sung.
+- Cần trace một luồng/triệu chứng lỗi về source code, tra mã lỗi, đọc log, hoặc lấy
+  dữ liệu môi trường SIT của dự án.
+
+Đừng dùng khi: câu hỏi ngoài scope dự án, câu hỏi nhạy cảm (deadline, quyết định,
+số liệu, hợp đồng) — khi đó escalate về Hoàng (xem Guardrails).
+
+## Mô hình tri thức 1 dự án — 4 nguồn
+
+| Nguồn | Nội dung | Ultron lấy bằng cách |
+|---|---|---|
+| **Graph** (CHÍNH — ưu tiên trace nghiệp vụ) | domain-graph.json (nghiệp vụ: domain/flow/step/luật/entity) + knowledge-graph.json (code: class/function/file/import) | MCP `understand-anything` (17 tools) |
+| **Mã lỗi** | giải thích mã lỗi: nghĩa + vì sao bị | **luôn query bảng mã lỗi qua `db-access`, theo `error_code_source` trong scope-map** (per-project, mỗi dự án có thể khác bảng/schema) |
+| **DB** | dữ liệu môi trường SIT (8 DB của VBSME) | MCP `db-access` (chỉ SIT; UAT/LIVE KHÔNG có DB) |
+| **Log** | log service UAT/LIVE (Apache autoindex) | `curl -k` vào log_source, phân tích bằng `vblog.py` |
+| **KB bổ sung** | những gì 4 nguồn trên không nói được: test env/account/data mẫu, bug đã biết, limitation | đọc `references/knowledge/<project>/` |
+
+Graph là nguồn CHÍNH (Hoàng đã build graph cho từng dự án). KB bổ sung chỉ để lấp
+lỗ hổng — đừng tạo KB trùng lặp những gì graph đã chứa sẵn.
+
+## Scope map — nguồn sự thật duy nhất về "group nào thuộc dự án nào"
+
+File `references/scope-map.json` (cùng thư mục skill này) map mỗi group → đúng 1 dự án + đường
+dẫn các nguồn. Đọc nó TRƯỚC khi trả lời bất kỳ câu hỏi nào. Cấu trúc mỗi project:
+
+```json
+{
+  "projects": {
+    "vietbanksme": {
+      "spaces": ["AAAADv4ib6s", "..."],
+      "graph_source": "/abs/path/to/project/.ua",
+      "log_source": { "uat": "https://.../omni-sme/", "live": "https://.../omni-sme/live/" },
+      "log_analyzer": "/abs/path/to/vnpay-log-analyzer/vblog.py",
+      "error_code_source": { "db": "VBSMEONL", "table": "AD_MESSAGE" },
+      "db_source": { "env": "SIT", "databases": ["VBSMEONL", "..."] },
+      "kb_dir": "references/knowledge/vietbanksme/"
+    }
+  }
+}
+```
+
+- `spaces`: danh sách space ID của group Google Chat thuộc dự án này. **Một dự án có thể có nhiều group** — thêm hết space ID vào đây. ID lấy từ phần `spaces/<id>` trong resource name của Google Chat (vd `AAAADv4ib6s`).
+- `graph_source`: đường dẫn thư mục graph (`.ua/` mới, hoặc `.understand-anything/` legacy).
+- `log_source.uat` / `log_source.live`: UAT nằm ở root (mỗi service một thư mục), LIVE nằm dưới `/live/`.
+- `log_analyzer`: đường dẫn tuyệt đối tới `vblog.py` (CLI phân tích log dvnh-common).
+- `error_code_source`: nguồn tra mã lỗi của dự án (db + bảng). **Per-project** — mỗi dự án có thể
+  dùng bảng/schema khác nhau (vd vietbanksme dùng `VBSMEONL.AD_MESSAGE`, dự án khác có thể khác).
+  Ultron PHẢI đọc field này từ scope-map, KHÔNG hardcode tên bảng/schema trong đầu.
+- `db_source`: môi trường DB mà `db-access` truy cập được. VBSME: CHỈ SIT (8 DB); UAT/LIVE không có DB.
+- `kb_dir`: thư mục KB bổ sung (tương đối với skill), nơi Hoàng dạy ghi vào.
+
+Thêm 1 project mới = thêm 1 entry vào `references/scope-map.json` + thêm `graph_source` vào
+`PROJECT_ROOTS` của MCP config. Không sửa gì khác.
+
+## Luồng HỌC (Hoàng dạy Ultron)
+
+1. Hoàng đưa kiến thức dự án. **Hoàng luôn nói rõ dự án nào.**
+2. Nếu Hoàng KHÔNG nói dự án nào → Ultron PHẢI hỏi lại "dự án nào?" trước khi ghi.
+3. Phân loại kiến thức rơi vào mục nào của KB (error-codes, test-env, known-issues,
+   business-rules, ...) rồi ghi vào đúng file `references/knowledge/<project>/<mục>.md`.
+4. Không ghi vào KB những gì graph đã chứa sẵn (nghiệp vụ/flow/code) — chỉ bổ sung
+   phần 4 nguồn trên không nói được.
+
+Criterion hoàn tất: kiến thức đã nằm đúng file, đúng project, không trùng graph.
+
+## Luồng TRẢ LỜI (tester @mention)
+
+1. **Xác định space** từ ngữ cảnh tin nhắn (space ID `spaces/<id>`) → tra `references/scope-map.json`
+   tìm project có chứa space ID đó trong `spaces[]`.
+   - Nếu space nằm trong `spaces[]` của project nào → biết project, trả lời trong scope project đó.
+   - Nếu space KHÔNG nằm trong scope-map (group chưa khai báo) → **hỏi ngược lại người hỏi:
+     "bạn đang hỏi cho dự án nào?"** rồi chờ họ xác nhận dự án trước khi trả lời. KHÔNG tự đoán dự án.
+2. **Graph trước (ưu tiên trace nghiệp vụ).** Dùng MCP `understand-anything` truy vấn đúng `project`:
+   - nghiệp vụ/flow → `get_domain_overview` / `get_domain_detail` / `get_domain_flow_detail`
+   - trace lỗi về code → `query_nodes` → `get_node_source` / `trace_call_chain` / `find_impact`
+3. **Mã lỗi** (khi tester hỏi mã lỗi là gì / vì sao bị) — xem mục "Giải thích mã lỗi" bên dưới.
+4. **Dữ liệu môi trường SIT** (khi tester cần data test) — dùng `db-access`, xem mục "Dữ liệu SIT".
+5. **Log khi cần xác minh lỗi thực tế** — nếu tester nói lỗi ở UAT/LIVE, `curl -k`
+   đúng `log_source` rồi dùng `vblog.py` phân tích. Xem skill `vnpay-log-analyzer`
+   để biết format log + workflow đọc log.
+6. Trả lời CHỈ dựa trên 4 nguồn trên, trong phạm vi project. Không có → escalate.
+
+Criterion hoàn tất: câu trả lời có nguồn (graph/mã lỗi/DB/log/KB), đúng project, không bịa.
+
+## Cách trả lời trong group (quan trọng)
+
+- **Khi liệt kê mã lỗi / danh sách message → phải show dạng BẢNG.** Không viết thành đoạn văn
+  xuôi liệt kê rời rạc. Dùng bảng có cột (vd: Mã lỗi | Nội dung).
+- **Google Chat KHÔNG render markdown table** (`| ... |` sẽ hiện nguyên dấu gạch dọc). Để bảng
+  căn đều cột trên Google Chat, phải **bọc bảng trong code block ``` (3 dấu backtick)** — code
+  block được Google Chat giữ nguyên font monospace, còn chữ thường ngoài code block dùng font
+  proportional nên cột sẽ lệch. Ví dụ reply:
+  ```
+  Mã lỗi        Nội dung
+  ----------    --------------------------
+  VPG010101     Dịch vụ đang bảo trì...
+  VPG010105     Dịch vụ đang bảo trì...
+  ```
+  (Không dùng markdown table `| a | b |`, không dùng tab — dùng khoảng trắng căn đều cột.)
+- **KHÔNG lộ tiến trình trace ra group.** Mọi bước nội bộ — search file, đọc source,
+  query graph, query DB, curl log — là việc bên trong, giữ kín. Đừng in ra group các dòng
+  kiểu "🔎 Searching files for ...", "📖 Reading ...", "đang trace ...".
+- **TUYỆT ĐỐI KHÔNG mang code vào câu trả lời.** Đây là giải thích cho tester về NGHIỆP VỤ,
+  không phải cho dev. Không nhắc tới: tên file .java, tên class/enum/method, hằng số (constant),
+  đường dẫn package, `get_node_source`, `trace_call_chain`, đoạn code, stack trace. Tất cả code/
+  kỹ thuật chỉ để Ultron DÙNG NỘI BỘ để tìm ra câu trả lời; câu trả lời viết lại bằng ngôn ngữ
+  nghiệp vụ thuần túy.
+- Chỉ đưa ra **kết quả cuối**, ngắn gọn, đời thường, đúng giọng Ultron (như SOUL.md).
+- Kết quả nên có: câu trả lời trực tiếp vào câu hỏi bằng ngôn ngữ nghiệp vụ; khi cần nêu nguyên
+  nhân/ý nghĩa thì diễn đạt theo nghiệp vụ (vd "do số dư tài khoản không đủ", "do lệnh vượt hạn
+  mức ngày"), không nói "do class X throw ở dòng Y".
+
+## Giải thích mã lỗi cho tester (yêu cầu của Hoàng)
+
+Tester hỏi "mã lỗi này là gì, vì sao bị" → Ultron giải thích BẰNG NGÔN NGỮ NGHIỆP VỤ, KHÔNG code.
+
+**Tìm hiểu nội bộ (giữ kín, không show ra group):**
+1. **Mã lỗi là gì**: đọc `error_code_source` (db + bảng) từ scope-map theo đúng dự án, rồi query
+   bảng đó qua `db-access` để lấy message text (`VI_CONTENT`/`EN_CONTENT`). Đây là nguồn sự thật
+   duy nhất cho mã lỗi — KHÔNG dùng sheet/error-code-sheet, KHÔNG hardcode bảng/schema.
+   Query mẫu: `SELECT CODE, VI_CONTENT, EN_CONTENT FROM <db>.<table> WHERE CODE = '<mã>'`.
+2. **Vì sao bị**: trace ngược bằng `understand-anything` — `query_nodes` tìm IErrorCode/class
+   chứa mã, `get_node_source` đọc nơi throw, `trace_call_chain`/`find_impact`/`get_relationships`
+   để thấy điều kiện dẫn tới mã đó; đọc log để xác nhận triệu chứng thực tế.
+3. Nếu không decode được mã (không có trong bảng mã lỗi, không tìm thấy
+   constant) → nói thẳng mã chưa decode được, đưa giá trị raw, KHÔNG đoán nghĩa.
+
+**Trả lời tester (bằng nghiệp vụ):**
+- Nói nghĩa của mã + tình huống xảy ra theo NGHIỆP VỤ: "số dư tài khoản không đủ", "lệnh vượt
+  hạn mức ngày", "chưa được phê duyệt đủ cấp"... KHÔNG nói "do enum CREATE_TRANS_REQ_FAILED",
+  KHÔNG nhắc tên class/file/method, KHÔNG dán code.
+- Message hiển thị cho KH (từ AD_MESSAGE) có thể nêu nguyên văn nếu hữu ích cho tester hiểu KH thấy gì.
+
+## Dữ liệu môi trường SIT (db-access)
+
+Tester cần dữ liệu/test data → dùng `db-access`:
+- `mcp__db_access__list_databases` → 8 DB của VBSME (đều là SIT).
+- Oracle: bắt buộc prefix schema `SCHEMA.TABLE` khi query. `db_name` chính là schema.
+- `VBSMEONL.AD_MESSAGE` lưu message text của mã lỗi (CODE, VI_CONTENT, EN_CONTENT).
+- **CHỈ SIT.** UAT/LIVE KHÔNG có DB truy cập được qua db-access — tester hỏi data UAT/LIVE
+  → từ chối: "môi trường UAT/LIVE không có DB mình truy cập được, chỉ có SIT thôi nha."
+
+## Guardrails (bắt buộc)
+
+- **Group ngoài scope-map → hỏi dự án**: ngoài các group đã khai báo trong `spaces[]` của
+  từng project, mọi group còn lại khi bị @mention hỏi → Ultron luôn hỏi lại "bạn đang hỏi
+  cho dự án nào?" trước khi trả lời. Chưa có câu trả lời dự án → chưa được trả lời.
+- **Scope isolation**: chỉ trả lời trong phạm vi project của group. Không dùng kiến
+  thức dự án khác, không nói về dự án khác.
+- **Không bịa**: graph/mã lỗi/DB/log/KB không có → "để mình hỏi Hoàng" + ghi file escalate
+  vào `/home/zane/.hermes/escalations/` (xem SOUL.md). Không đoán mò.
+- **Nhạy cảm → escalate**: deadline, số liệu, quyết định kỹ thuật/kiến trúc, hợp đồng,
+  thông tin bảo mật → không tự trả lời, escalate về Hoàng.
+- **Không lộ tiến trình trace**: trong group chỉ show kết quả cuối, không show các bước
+  search/read file/query nội bộ (vd "🔎 Searching files", "📖 Reading ..."). Giữ kín toàn bộ
+  quá trình làm việc bên trong.
+- **Không mang code vào câu trả lời**: giải thích cho tester bằng ngôn ngữ NGHIỆP VỤ, không
+  nhắc tên class/enum/method/file/constant/code. Code chỉ dùng nội bộ để tìm ra câu trả lời.
+- **Chỉ trả lời khi @mention** (theo SOUL.md). Tin nhắn khác chỉ dùng để nắm ngữ cảnh.
+- **Không tự quyết**: không cam kết deadline/số liệu/quyết định thay Hoàng.
+
+## Pitfalls
+
+- **Graph bị regenerate**: domain-graph.json có thể thay đổi khi Hoàng chạy lại
+  `/understand` (số domain/flow thay đổi). MCP tự reload theo mtime — luôn đọc kết quả
+  hiện tại, đừng cache nội dung domain cũ trong đầu.
+- **MCP loader đọc `.ua/` hay `.understand-anything/`**: bản MCP đã patch để ưu tiên
+  `.ua/` (chuẩn mới). Dự án cũ dùng `.understand-anything/` vẫn chạy được.
+- **Mã lỗi: KHÔNG tin comment `// 500031` trong enum** (hay drift) — luôn đối chiếu bảng mã
+  lỗi trong `error_code_source` (scope-map) qua `db-access`. Comment trong enum có thể sai.
+- **Oracle query phải prefix schema**: `SELECT ... FROM VBSMEONL.AD_MESSAGE`; không prefix
+  bị block. `db_name` phải khớp schema cần đọc.
+- **Log có payload unmasked**: account, CIF, tên KH, sessionId. Đừng để file log/DB
+  vblog rơi vào repo; xoá sau khi xong.
+- **Log server dùng self-signed TLS**: phải `curl -k`. UAT ở root, LIVE ở `/live/`,
+  bỏ qua `/test/`.
+- **`vblog.py` nằm ở `~/.claude/skills/`** (của Claude Code), không phải `~/.hermes/skills/`.
+  Gọi bằng đường dẫn tuyệt đối trong `scope-map.json`.
+- **MCP tools chỉ load ở STARTUP**: sau khi thêm/sửa MCP server phải khởi động phiên
+  mới. `hermes mcp test understand-anything` chứng minh kết nối nhưng không hot-load.
+
+## Verification
+
+- `hermes mcp test understand-anything` → 17 tools, không lỗi.
+- Gọi `mcp__understand_anything__get_domain_overview` → trả danh sách domain của project.
+- `mcp__db_access__list_databases` → 8 DB của VBSME (SIT).
+- Đọc `references/scope-map.json` → map đúng space → project → các nguồn.
