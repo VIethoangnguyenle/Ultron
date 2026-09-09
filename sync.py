@@ -37,20 +37,23 @@ def read_bundled_skills() -> set:
     return bundled
 
 
+def _transient(name: str) -> bool:
+    return name.endswith((".lock", ".tmp", ".swp", "~"))
+
+
 def mirror_dir(src: Path, dst: Path, skip=frozenset()) -> None:
     """Copy src/* into dst/ exactly (delete stale entries in dst)."""
     if not src.is_dir():
         return
     dst.mkdir(parents=True, exist_ok=True)
+    # Remove anything in dst that isn't meant to be there (stale + transient).
     for child in dst.iterdir():
-        if child.name in skip:
-            continue
         if child.is_dir():
             shutil.rmtree(child)
         else:
             child.unlink()
     for child in src.iterdir():
-        if child.name in skip:
+        if child.name in skip or _transient(child.name):
             continue
         if child.is_dir():
             shutil.copytree(child, dst / child.name)
