@@ -57,10 +57,11 @@ Note: the wizard writes these as COMMENTED template lines (`# GOOGLE_CHAT_PROJEC
    - https://console.cloud.google.com/apis/library/pubsub.googleapis.com?project=<proj>
 2. Pub/Sub > create TOPIC id `hermes-chat-events`.
 3. Inside that topic > create PULL subscription id `hermes-chat-events-sub`, retention 7 days.
-4. IAM binding — THE step everyone gets wrong (two separate grants):
-   - On the SUBSCRIPTION: add principal `<sa-email>` with role "Pub/Sub Subscriber".
-   - On the TOPIC: add principal `chat-api-push@system.gserviceaccount.com` with role "Pub/Sub Publisher".
-   - Do NOT swap these. Subscriber goes on the subscription for YOUR SA; Publisher goes on the topic for Google's pusher.
+4. IAM binding — THE step everyone gets wrong (TWO service accounts to grant):
+   - On the SUBSCRIPTION: add principal `<your-sa-email>` (the SA whose JSON you downloaded) with role "Pub/Sub Subscriber".
+   - On the TOPIC: add the Chat app's OWN push service account with role "Pub/Sub Publisher". Find it in the Chat API Configuration page under "Connection settings" → a read-only "Service Account Email" field shaped like `service-<project-number>@gcp-sa-gsuiteaddons.iam.gserviceaccount.com`. THIS is the account that pushes events into the topic. Copy it exactly.
+   - `chat-api-push@system.gserviceaccount.com` is the LEGACY pusher (older docs) — keep it only if already present; the gsuiteaddons account is the one that actually works for new apps.
+   - Do NOT swap these. Subscriber on subscription = YOUR SA; Publisher on topic = the gsuiteaddons service account (NOT your SA).
 5. Google Chat API > Configuration: connection = Cloud Pub/Sub, point at TOPIC full name `projects/<proj>/topics/hermes-chat-events` (NOT the subscription, NOT the short id). Enable DM + group. Set app status LIVE.
 6. Add the bot to a space (search by app name). ADDED_TO_SPACE resolves the bot user_id.
 
@@ -89,7 +90,8 @@ After console done: `hermes gateway restart`, then confirm `gateway_state.json` 
 ## Machine-specific values (Hoang / this install)
 
 - GCP project: `cosmic-inkwell-508103-s8`
-- Service account email: `ultron-tr-l-ho-ngnlv@cosmic-inkwell-508103-s8.iam.gserviceaccount.com`
+- Service account email (Hermes): `ultron-tr-l-ho-ngnlv@cosmic-inkwell-508103-s8.iam.gserviceaccount.com`
+- Chat app pusher SA (grant Publisher on TOPIC): `service-698401240103@gcp-sa-gsuiteaddons.iam.gserviceaccount.com`
 - Topic: `projects/cosmic-inkwell-508103-s8/topics/hermes-chat-events`
 - Subscription: `projects/cosmic-inkwell-508103-s8/subscriptions/hermes-chat-events-sub`
 - SA key path: `/home/zane/.hermes/google-chat-sa.json`
