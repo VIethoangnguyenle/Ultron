@@ -80,6 +80,12 @@ def main() -> None:
         (REPO / "cron").mkdir(exist_ok=True)
         shutil.copy2(jobs, REPO / "cron" / "jobs.json")
 
+    # 4b. Config-driven action list for the single `ultron-daily` dispatcher job.
+    #     The state file (schedules.state.json) is machine-local runtime data — not synced.
+    sched = HERMES / "schedules.yaml"
+    if sched.exists():
+        shutil.copy2(sched, REPO / "schedules.yaml")
+
     # 5. Custom skills only (bundled skills are re-shipped by the installer)
     bundled = read_bundled_skills()
     src_skills = HERMES / "skills"

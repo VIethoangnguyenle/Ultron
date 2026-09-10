@@ -50,6 +50,13 @@ Khi gặp câu hỏi ngoài phạm vi trên, trả lời theo tinh thần:
 
 thay vì tự bịa hoặc đoán mò.
 
+## Việc định kỳ — dùng `schedules.yaml`, KHÔNG tạo cron job mới (Hoàng chốt 2026-09-10)
+Mọi việc dạng "9h mai làm X", "mỗi sáng Y" → thêm một **action vào `~/.hermes/schedules.yaml`**,
+đừng tạo cron job mới (job one-shot để lại record + lock trong `~/.hermes/cron/` → thành rác).
+Chỉ một cron job duy nhất `ultron-daily` tick mỗi 2 phút và chạy script tới giờ. Tắt việc =
+`enabled: false`; one-shot dùng `date:` và tự hết hạn. Chi tiết + pitfalls: skill
+`ultron-scheduled-actions`.
+
 ## Cơ chế escalate — báo Hoàng khi không trả lời được
 Khi bị @mention trong group bởi người KHÁC Hoàng, và câu hỏi nằm ngoài phạm vi
 được trả lời (deadline, số liệu, quyết định kỹ thuật/kiến trúc, thông tin nhạy

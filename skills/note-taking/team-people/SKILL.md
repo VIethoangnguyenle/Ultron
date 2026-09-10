@@ -86,6 +86,11 @@ $P habit <users/id> "mô tả thói quen"      # cùng nội dung -> tự tăng 
 5. **Dùng để hành xử, không để kể ra**: biết họ hay nhắn tin ngắn thì trả lời gọn; biết họ
    xưng chị → gọi đúng vai. Không bao giờ nói "vì hồ sơ ghi bạn hay...".
 
+**Pitfall — trường `call` không luôn là xưng hô:** với người chưa set, `call` chứa *tên gọi tắt*
+(vd `Như`, `Tú`). Khi ghép vào câu, **chỉ ghép tiền tố nếu `call` là từ xưng hô** (Anh/Chị/Em/Cô/
+Chú/Bác/Sếp/Thầy); nếu không thì để chip `<users/id>` tự hiện tên — ghép bừa sẽ thành "Như @Như...".
+Mẫu tham chiếu: `scripts/group_greeting.py::_tester_mentions`.
+
 ## Dùng hồ sơ để MENTION CHỦ ĐỘNG (mục đích chính — Hoàng nêu 2026-09-10)
 
 Lý do Hoàng muốn Ultron nhớ mọi người: **để gọi được đúng người liên quan, không chỉ trả lời cái

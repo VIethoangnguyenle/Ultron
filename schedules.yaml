@@ -1,0 +1,28 @@
+# Lịch chạy định kỳ của Ultron.
+#
+# Sửa FILE NÀY thay vì tạo cron job mới. Dispatcher `daily_dispatch.py` tự tick mỗi 2 phút
+# (cron job duy nhất: `ultron-daily`) và chỉ chạy đúng việc tới giờ.
+#
+# Trường dùng được cho mỗi action:
+#   id        (bắt buộc)  tên duy nhất
+#   when      "HH:MM"     giờ chạy trong ngày
+#   script                tên script trong ~/.hermes/scripts/ (hoặc đường dẫn tuyệt đối)
+#   args      [..]        tham số truyền cho script
+#   enabled   true/false  tắt tạm mà không cần xoá
+#   days      [mon,tue,..] chỉ chạy những thứ này (bỏ trống = mỗi ngày)
+#   date      "YYYY-MM-DD"  one-shot: CHỈ chạy đúng ngày này (tự hết hạn, không thành rác)
+#   until     "YYYY-MM-DD"  tự hết hạn sau ngày này
+#   retry     N           số lần thử lại trong ngày nếu lỗi (mặc định 1); lỗi chỉ báo 1 lần/ngày
+#   catch_up_minutes  N   nếu gateway down lúc tới giờ, còn trong N phút thì vẫn chạy (mặc định 120)
+#
+# Xem lịch:      venv/bin/python ~/.hermes/scripts/daily_dispatch.py --list
+# Chạy thử:      ... daily_dispatch.py --dry-run
+# Chạy ngay 1:   ... daily_dispatch.py --run <id>
+
+actions:
+  # Chào team 1 lần lúc 9h ngày 11/09/2026 (Hoàng nghỉ) — one-shot, tự hết hạn sau ngày đó.
+  - id: morning-greeting
+    when: "09:00"
+    date: "2026-09-11"
+    script: group_greeting.py
+    args: ["--space", "spaces/AAAADv4ib6s"]
