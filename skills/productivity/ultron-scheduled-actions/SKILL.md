@@ -49,5 +49,8 @@ $P ~/.hermes/scripts/daily_dispatch.py --prune     # liệt kê action hết h�
   không ghi escalation thật về DM Hoàng.
 - **`no_agent` + stdout:** stdout rỗng = không gửi gì; có stdout = gửi tới `deliver`. Dispatcher
   cố tình im lặng khi không có việc — giữ đúng kiểu watchdog.
+- **Quyết định phải dựa trên 'ngày đang xét', không phải `date.today()`.** Hàm xét state mà gọi
+  `date.today()` bên trong sẽ bất đồng với `now` truyền vào → khi mô phỏng ngày khác, action *đã
+  chạy* vẫn báo "tới giờ" (test giả xanh, đã dính). Truyền `today` vào thay vì đọc đồng hồ hệ thống.
 - **Đổi máy:** `schedules.yaml` đã được thêm vào `~/Ultron/sync.py`, nếu tạo file config mới ở
   cấp thư mục `~/.hermes/` thì kiểm tra lại sync, không là mất khi restore.

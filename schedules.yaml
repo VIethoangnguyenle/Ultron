@@ -18,6 +18,9 @@
 # Xem lịch:      venv/bin/python ~/.hermes/scripts/daily_dispatch.py --list
 # Chạy thử:      ... daily_dispatch.py --dry-run
 # Chạy ngay 1:   ... daily_dispatch.py --run <id>
+#
+# LƯU Ý: chỉ chuyển được việc thuần script vào đây. Việc cần session LLM (đọc/nghĩ/sinh nội dung,
+# vd nhắc task Jira) vẫn phải là cron job thật vì dispatcher không chạy được LLM.
 
 actions:
   # Chào team 1 lần lúc 9h ngày 11/09/2026 (Hoàng nghỉ) — one-shot, tự hết hạn sau ngày đó.
@@ -26,3 +29,8 @@ actions:
     date: "2026-09-11"
     script: group_greeting.py
     args: ["--space", "spaces/AAAADv4ib6s"]
+
+  # Snapshot tài nguyên máy mỗi sáng (chuyển từ cron job `daily-resource-check`, 2026-09-10).
+  - id: resource-check
+    when: "09:00"
+    script: resource_snapshot.py

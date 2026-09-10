@@ -78,13 +78,19 @@ def save_state(state: dict) -> None:
     tmp.replace(STATE)
 
 
-def _st(state: dict, aid: str) -> dict:
-    """Today's record for one action: {date, tries, ok, alerted}."""
+def _st(state: dict, aid: str, today: str = None) -> dict:
+    """That day's record for one action: {date, tries, ok, alerted}.
+
+    ``today`` is passed in so the decision depends on the clock being evaluated, not on
+    ``date.today()`` — otherwise ``is_due`` disagrees with any non-current ``now`` (seen when
+    simulating other days: an action already run that day still reported "tới giờ").
+    """
+    day = today or date.today().isoformat()
     cur = state.get(aid)
     if not isinstance(cur, dict):
         cur = {}
-    if cur.get("date") != date.today().isoformat():
-        cur = {"date": date.today().isoformat(), "tries": 0, "ok": None, "alerted": None}
+    if cur.get("date") != day:
+        cur = {"date": day, "tries": 0, "ok": None, "alerted": None}
     return cur
 
 
@@ -114,7 +120,7 @@ def is_due(action: dict, now: datetime, state: dict) -> tuple:
         if WEEKDAYS[today.weekday()] not in allowed:
             return False, f"không thuộc {sorted(allowed)}"
 
-    st = _st(state, aid)
+    st = _st(state, aid, today.isoformat())
     max_tries = max(1, int(action.get("retry", 1)))
     if st.get("date") == today.isoformat():
         if st.get("ok"):
@@ -197,7 +203,7 @@ def cmd_tick(actions: list, state: dict, dry_run: bool) -> int:
             fired.append(f"{aid}: {output.splitlines()[0][:120] if output else 'ok'}")
             log(f"FIRED {aid} -> {output[:200]!r}")
             if not dry_run:
-                st = _st(state, aid)
+                st = _st(state, aid, now.date().isoformat())
                 st.update({"tries": st.get("tries", 0) + 1, "ok": True})
                 state[aid] = st
                 save_state(state)
