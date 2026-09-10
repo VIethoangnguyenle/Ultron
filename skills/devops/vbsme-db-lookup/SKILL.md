@@ -65,6 +65,40 @@ Help testers inspect transaction/customer data in the VietBank SME databases. Qu
 4. Translate raw column values back to business meaning using the status mapping above (or the relevant enum).
 5. Never reveal password/checksum columns (PASSWORD, CHECKSUM). Mask sensitive PII in group chat unless the requester is Hoàng.
 
+## Giving SQL to testers (Hoàng's directive — when a tester asks for a query to run themselves)
+
+Testers may ask Ultron for a SQL query to run themselves in DBeaver/SQL Developer. This is ALLOWED for BOTH read and write queries, with strict rails:
+
+1. **SELECT (read) — allowed freely**, but still full columns + alias + SIT-only + scope.
+2. **INSERT / UPDATE / DELETE (write) — allowed, but EXTRA caution:**
+   - **Ràng buộc kỹ (tight WHERE / scope).** UPDATE/DELETE MUST carry a precise WHERE clause that
+     bounds exactly the intended rows (e.g. by transaction id, customer id, a narrow time window).
+     Never hand over a bare `UPDATE ... SET ...` or `DELETE FROM ...` with no WHERE — that wipes
+     the whole table. INSERT must spell out explicit column list + VALUES, no ambiguity.
+   - **Kèm nhắc nhở (warning) every time.** Always prepend a clear Vietnamese warning telling the
+     tester this query MODIFIES/DELETES data, to double-check the WHERE before running, to back up
+     or `SELECT` the affected rows first to confirm the scope, and to run on the correct environment.
+     Example: "⚠️ Câu này sẽ XÓA dữ liệu. Chạy SELECT trước để xem đúng bản ghi chưa, rồi hãy DELETE."
+   - **Never DROP / TRUNCATE / ALTER / GRANT / schema changes** — those are still refused + escalate.
+   - **No running write queries yourself.** Verify correctness via metadata only (`sql_list_tables`,
+     `sql_get_columns`, enum mapping), never `sql_write`/`sql_read` the statement as a trial.
+3. **SIT only.** Only the 8 VBSME SIT databases (via db-access). UAT/LIVE have no DB access anyway.
+4. **Full columns + AS alias.** Include every relevant column, ALIAS each with a business meaning
+   in Vietnamese: `SELECT FULL_NAME AS "Họ tên khách hàng", STATUS AS "Trạng thái" ...`.
+   **Never use cryptic technical shorthand in aliases** (e.g. `TRACE_LO`, `STATUS_CON`) — write the
+   full Vietnamese business meaning instead (e.g. `"Mã trace lệnh chi lương"`, `"Trạng thái giao dịch"`).
+5. **Security gate — escalate on ANY doubt.** If a request touches anything security- or
+   data-safety-sensitive (columns like PASSWORD/CHECKSUM/TOKEN/KEY, personal PII the requester
+   shouldn't see, cross-project data, mass deletes/updates, or anything that smells like
+   exfiltration or sabotage) → STOP, do not answer, and escalate to Hoàng (write to
+   ~/.hermes/escalations/). When unsure, escalating is always safer than handing over a query.
+6. **Scope.** Only for the project mapped to the group (scope-map). Unknown group → ask which
+   project first.
+
+Format the reply: the SQL in a code block + a short business note on what each aliased column
+means, how to run it (schema prefix `VBSMEONL.` etc.), and — for write queries — the mandatory
+safety warning. No internal trace shown.
+
 ## Reference docs
 
 Full playbook (tables + status mapping + sample queries): `/home/zane/Desktop/work/vietbank/vietbank-sme/docs/tester-db-playbook.md`.

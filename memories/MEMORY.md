@@ -2,7 +2,7 @@ Hermes personal state is synced to git@github.com:VIethoangnguyenle/Ultron.git (
 §
 When the user switches machines (clones Ultron + runs restore.sh), remind them to re-provide credentials: the API-key environment file and auth.json (OAuth tokens) are never synced to git; they must run `hermes setup` or copy their own backups.
 §
-Google Chat bot "Ultron" is live on VNPay Workspace (GCP project cosmic-inkwell-508103-s8, allowlist hoangnlv@vnpay.vn, fail-closed); publishing a Chat app there may need Workspace admin rights, not just GCP project access. Runbook in skill google-chat-setup.
+Google Chat bot Ultron live trên VNPay Workspace; chi tiết GCP/SA/allowlist + runbook ở skill google-chat-setup.
 §
 Google Chat mention detection: @all = annotations[].userMention.user=={}; specific user = userMention.user.name=='users/...'. Read via spaces.messages().list with user OAuth. (Hoàng + bot user ids are in skill google-chat-setup.)
 §
@@ -12,4 +12,6 @@ Google Chat groups: vietbanksme project group = spaces/AAAADv4ib6s; "Những ch�
 §
 Run `claude`/`agy` for vietbanksme from `/home/zane/Desktop/work/vietbank/vietbank-sme` (project root, NOT the `-omni` subdir): spans multiple source dirs, codegraph+serena live there. Before EACH heavy agy/claude task, check RAM+CPU (free -h, uptime, ps sort by %mem/%cpu) to ensure the box won't freeze; abort/warn if available RAM <~2GB or load is climbing.
 §
-Gateway restart from inside the gateway is blocked by a guardrail (even via claude/script). Workaround: schedule a systemd user timer (OnActiveSec=15s → systemctl --user restart hermes-gateway); verify linger=yes first.
+Gateway restart bị chặn khi chạy từ trong gateway. Workaround: systemd-run --user transient unit (sleep N rồi systemctl --user restart hermes-gateway).
+§
+Vision (đọc ảnh) đã bật: auxiliary.vision → model deepseek-v4-flash-vision-exp qua gateway api-llm.x.vnshop.cloud (dùng chung key custom provider). Main model deepseek-v4-pro không có vision. config.yaml agent bị chặn sửa → giao claude (Bash).

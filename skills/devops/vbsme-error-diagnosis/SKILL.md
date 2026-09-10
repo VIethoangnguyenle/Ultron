@@ -99,6 +99,20 @@ Many behaviours are NOT in code — they read the `AD_CONFIG` table (key→value
 - Log analysis skill (decode format, rebuild timeline, trace to source): `/home/zane/.claude/skills/vnpay-log-analyzer/` (script `vblog.py index|show|trace|user|session ...`).
 - Error→service/API mapping: `/home/zane/Desktop/work/vietbank/vietbank-sme/docs/qa/2026-09-09-ma-loi-ad-message-tra-cuu-log.md`.
 
+## Log retention — monthly zip (do NOT conclude "log đã bị xóa")
+
+UAT logs are **archived into a zip PER MONTH**. Old logs are NOT gone — they live inside that
+month's archive under the service folder. Example: `https://10.22.17.219:10443/omni-sme/auth-service/2026-08/`
+holds the August archive; a specific day's log (e.g. 28/08) that looks "missing" from a flat
+listing is inside the month zip. `.gz` files may also be present.
+
+- **Never conclude a log was deleted / missing from the portal** just because the flat listing
+  doesn't show that exact day. First check for the month-level `.zip` (and `.gz`) and extract it.
+- When tracing an old date (e.g. 26/06), look for `.../<service>/2026-06/` and unzip it — the
+  per-day files are inside.
+- If a date genuinely isn't in the month archive either, THEN fall back to: DB (e.g.
+  `OMNI_TRANSACTION` in UAT) or asking Hoàng / core-banking for the log.
+
 ## Root-cause tracing (a user's full journey — NOT just the code name)
 
 When someone asks "user X bị lỗi gì?", they want the **root cause of the customer's whole operation journey**, not just the error-code name.
