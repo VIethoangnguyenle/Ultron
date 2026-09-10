@@ -30,7 +30,7 @@ Call `mcp__db_access__list_databases` first. All `VBSME*`, Oracle + Mongo:
 - `VBSMELOGS` — Mongo (read).
 
 Oracle rules (these waste real time when forgotten):
-- Every table reference MUST carry a schema prefix (`VBSMEONL.AD_MESSAGE`, not `AD_MESSAGE`). Data-dictionary views too: `VBSMEONL.all_tables` / `VBSMEONL.user_tables` — bare `all_tables` is rejected with "missing a schema prefix".
+- Every TABLE reference MUST carry a schema prefix (`VBSMEONL.AD_MESSAGE`, not `AD_MESSAGE`) — bare table names are rejected with "missing a schema prefix". But SYS dictionary views (`all_tables`/`user_tables`) are NOT owned by the business schema: prefixing them (`VBSMEONL.all_tables`, `VBSMEONL.user_tables`) throws ORA-00942, not a clean result. To discover tables/columns, use the `sql_list_tables` / `sql_get_columns` MCP tools instead of hand-writing dictionary-view queries.
 - Each `db_name` is a SEPARATE connection with its OWN user, NOT a schema switch. To read a table in `VBSMEOFF` you pass `db_name=VBSMEOFF` — never `VBSMEONL` with a `VBSMEOFF.` prefix in the SQL. Tables are not shared across DBs: `AD_MESSAGE` (holds the VPG error catalog) exists in `VBSMEONL` only; `VBSMEOFF.AD_MESSAGE` throws ORA-00942. Run `sql_list_tables` before assuming a table exists in a given DB.
 
 ## Error codes
@@ -40,6 +40,10 @@ Oracle rules (these waste real time when forgotten):
 - Code shape in source: `PREFIX_GATEWAY_ERROR="VPG"` + action prefix + responseCode. Prefixes: billing `01`, topup `02` (`Constants.java` → `BILLING_PREFIX_ERROR`, `TOPUP_PREFIX_ERROR`). `VnpayPaymentCheckerUtil.formatErrorCode` builds `VPG + action.getPrefixErrorCode() + responseCode`.
 - `VNPAY_NOT_REVERT_ERROR_CODES = ["08","90"]` — codes that must NOT trigger a revert (transaction → PENDING, not FAILED).
 - AD_MESSAGE text has data-entry typos (e.g. "nhà cung cấ" missing the "p") — preserve verbatim, don't silently correct.
+
+## Caching (ETag)
+
+List endpoints (banks, branches, cities/districts/wards, billing templates, promotions, home screen, banners, payment groups, savings products/groups, services, favorite icons, backgrounds) use an app-level versioned cache, NOT HTTP `If-None-Match`. Each list type has an `ETagType` (enum 0-18), keyed by `(type, customerId, channel)`, persisted to `OMNI_ETAG` (cached 7 days). Client sends its stored etag; server returns `data=null` when unchanged (client reuses local cache), else new data + `newEtag`. Any create/update/delete must call `generateEtag` to rotate the tag so stale clients refetch — a handler that forgets this leaves clients stuck on old data. Core code: `common/base/.../etag/` + `common/data/.../ETagType` + `BaseGetDataByETagHandler`. Full flow doc: `docs/flows/etag-flow.md`.
 
 ## Source-understanding tooling
 

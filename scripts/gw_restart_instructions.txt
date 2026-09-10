@@ -1,0 +1,13 @@
+# Hermes gateway restart — detached & safe
+# The gateway runs as a user systemd service "hermes-gateway".
+# You (claude) are running as a child of that gateway's process tree, so a
+# FOREGROUND restart would kill you before you can report back.
+#
+# Step 1 — schedule a detached restart 45 seconds from now (lives in its own
+# cgroup under the user systemd manager, survives gateway shutdown).
+systemd-run --user --unit=ultron-gw-restart --collect /bin/sh -c 'sleep 45; systemctl --user restart hermes-gateway'
+
+# Step 2 — verify the unit got scheduled:
+systemctl --user list-units --all --no-pager | grep -i ultron-gw-restart
+
+# Do NOT run any other commands. Report the exact output of both.
