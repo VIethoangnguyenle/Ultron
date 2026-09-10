@@ -4,7 +4,7 @@ When the user switches machines (clones Ultron + runs restore.sh), remind them t
 §
 Google Chat bot Ultron live trên VNPay Workspace; chi tiết GCP/SA/allowlist + runbook ở skill google-chat-setup.
 §
-Google Chat mention detection: @all = annotations[].userMention.user=={}; specific user = userMention.user.name=='users/...'. Read via spaces.messages().list with user OAuth. (Hoàng + bot user ids are in skill google-chat-setup.)
+Google Chat mention: @all=annotations[].userMention.user=={}; user=userMention.user.name=='users/...'. Read qua spaces.messages().list (user OAuth). Hoàng+bot ids ở skill google-chat-setup.
 §
 Google Chat: `hermes send`/cron gửi text thô, không render markdown — dùng cú pháp native <url|text> cho link (markdown chỉ chạy cho phản hồi agent trong group).
 §
@@ -14,4 +14,6 @@ Run `claude`/`agy` for vietbanksme from `/home/zane/Desktop/work/vietbank/vietba
 §
 Gateway restart bị chặn khi chạy từ trong gateway. Workaround: systemd-run --user transient unit (sleep N rồi systemctl --user restart hermes-gateway).
 §
-Vision (đọc ảnh) đã bật: auxiliary.vision → model deepseek-v4-flash-vision-exp qua gateway api-llm.x.vnshop.cloud (dùng chung key custom provider). Main model deepseek-v4-pro không có vision. config.yaml agent bị chặn sửa → giao claude (Bash).
+Vision đã bật: auxiliary.vision → deepseek-v4-flash-vision-exp (key custom provider chung). Main deepseek-v4-pro không vision. config.yaml agent bị chặn sửa → giao claude (Bash).
+§
+agentmemory đã cài (systemd `agentmemory`, MCP 54 tool); lessons migrate từ skill pitfalls; EMBEDDING_PROVIDER=local bật (semantic on-device). Xem skill agentmemory.

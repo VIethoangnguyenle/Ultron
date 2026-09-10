@@ -79,13 +79,15 @@ NOT hot-load tools into the current session.
 
 ## Modes & pitfalls
 
-- Default = KEYLESS: no API key, no cloud, vectors DISABLED. `memory_recall`/search
-  uses BM25 keyword; semantic queries can return zero. This is the safe fintech mode.
-- On-device semantic search: add `EMBEDDING_PROVIDER=local` to `~/.agentmemory/.env`,
-  restart, first request downloads `Xenova/all-MiniLM-L6-v2`. The global npm install
-  skipped native postinstall scripts (onnxruntime-node, sharp, protobufjs) — if
-  local embeddings/vision are needed, reinstall with
-  `npm install -g --allow-scripts=onnxruntime-node,sharp,protobufjs @agentmemory/agentmemory`.
+- ACTIVE config (this install): KEYLESS (no LLM key, no cloud) + `EMBEDDING_PROVIDER=local`
+  set in `~/.agentmemory/.env`. Local embeddings use `@huggingface/transformers` +
+  onnxruntime-node (native binaries already bundled, linux/x64 works). Semantic search
+  is ON, fully on-device — verify with `config/flags` → `embeddingProvider: embeddings`.
+  First embedding request downloads the model (~90MB) once; startup after restart is
+  slower while the model loads. NO LLM provider is configured, so CONSOLIDATION/
+  AUTO_COMPRESS/graph remain OFF (they need an LLM key).
+- If vectors were disabled again: `EMBEDDING_PROVIDER` unset in `.env` → BM25 keyword
+  only, semantic queries return zero.
 - REST is open on localhost by default; set `AGENTMEMORY_SECRET` to require
   `Authorization: Bearer <secret>` on protected endpoints.
 - Only 7 tools visible in the agent = MCP shim fell back to local because it could
@@ -94,11 +96,19 @@ NOT hot-load tools into the current session.
 - `--data-dir <abs>` / `AGENTMEMORY_DATA_DIR` overrides storage; reuse the same value
   on every restart or you get a fresh store.
 
-## Compliance note (fintech)
+## Compliance note (fintech) — CURRENT STATE (Hoàng approved 2026-09-10)
 
-The DEEP integration is NOT enabled by default and must be a deliberate decision by
-Hoàng: (1) `memory.provider: agentmemory` in config switches Hermes's native memory
-backend; (2) copying `integrations/hermes` → `~/.hermes/plugins/agentmemory` installs
-a 6-hook plugin that auto-captures EVERY turn + injects context pre-LLM. Both create
-a second local copy of potentially sensitive conversation data — enable only after
-explicit sign-off. Current state: MCP tools only (manual, no auto-capture).
+Auto-capture is ON (deliberate, Hoàng-approved, local-only — no LLM, no cloud).
+- `memory.provider: agentmemory` is set in config.yaml (additive — built-in MEMORY.md/
+  USER.md still run unchanged).
+- Plugin lives at `~/.hermes/plugins/agentmemory/` (`__init__.py` + `plugin.yaml`, from
+  repo `integrations/hermes/`). It registers `AgentMemoryProvider` implementing the
+  MemoryProvider ABC; `sync_turn` POSTs each turn (user[:500] + assistant[:2000]) to
+  `/agentmemory/observe`, `on_memory_write` mirrors built-in writes, `on_session_end`
+  closes the session. Every turn is now captured to the LOCAL store as an observation
+  (episodic), NOT auto-distilled to fact (distill needs LLM, which is off).
+- Verify: `hermes memory status` → agentmemory "available" + "← active"; sessions show
+  up via `GET /agentmemory/sessions`. Restart gateway after enabling (`systemctl --user
+  restart hermes-gateway`).
+- TO REVERT: `hermes config set memory.provider ''` + `rm -rf ~/.hermes/plugins/agentmemory`
+  + restart gateway.

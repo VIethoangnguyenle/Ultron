@@ -93,6 +93,7 @@ memory:
   memory_char_limit: 2200
   user_char_limit: 1375
   nudge_interval: 10
+  provider: agentmemory
 delegation:
   max_iterations: 250
 skills:

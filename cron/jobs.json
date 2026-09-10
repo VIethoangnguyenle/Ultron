@@ -76,33 +76,33 @@
       "schedule_display": "every 60m",
       "repeat": {
         "times": null,
-        "completed": 26
+        "completed": 27
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T10:16:51.219491+07:00",
-      "next_run_at": "2026-09-10T14:42:16.711303+07:00",
-      "last_run_at": "2026-09-10T12:41:16.676294+07:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-09-10T15:43:06.741656+07:00",
+      "last_run_at": "2026-09-10T13:42:21.492288+07:00",
+      "last_status": "error",
+      "last_error": "Script exited with code 128\nstderr:\ngit@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\nstdout:\nsynced: /home/zane/.hermes -> /home/zane/Ultron\n[main 93a82ab] sync: 2026-09-10T06:42:16Z\n 10 files changed, 150 insertions(+), 114 deletions(-)\n create mode 100644 skills/devops/agentmemory/SKILL.md",
       "last_delivery_error": null,
       "last_delivery_unverified": null,
-      "failure_streak": 0,
+      "failure_streak": 1,
       "deliver": "local",
       "origin": null,
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-10T13:41:16.676294+07:00",
-        "dispatched_at": "2026-09-10T13:42:16.692295+07:00",
-        "lateness_seconds": 60.0,
+        "scheduled_at": "2026-09-10T14:42:21.492288+07:00",
+        "dispatched_at": "2026-09-10T14:43:06.728246+07:00",
+        "lateness_seconds": 45.2,
         "kind": "on_time"
       },
       "fire_claim": {
-        "at": "2026-09-10T13:42:16.897733+07:00",
-        "by": "hoangnlv:1703:ee8b5e4f42c84bd8ab2ad5e04095b6ab"
+        "at": "2026-09-10T14:43:06.937391+07:00",
+        "by": "hoangnlv:109997:61bb9a72bc0043c2b7c080e47c42f8ec"
       }
     },
     {
@@ -130,15 +130,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 511
+        "completed": 531
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:13:22.454824+07:00",
-      "next_run_at": "2026-09-10T13:42:16.871630+07:00",
-      "last_run_at": "2026-09-10T13:40:16.871630+07:00",
+      "next_run_at": "2026-09-10T14:45:06.747501+07:00",
+      "last_run_at": "2026-09-10T14:40:06.672450+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -150,12 +150,15 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-10T13:39:16.843517+07:00",
-        "dispatched_at": "2026-09-10T13:40:16.655574+07:00",
-        "lateness_seconds": 59.8,
+        "scheduled_at": "2026-09-10T14:42:06.672450+07:00",
+        "dispatched_at": "2026-09-10T14:43:06.728246+07:00",
+        "lateness_seconds": 60.1,
         "kind": "on_time"
       },
-      "fire_claim": null
+      "fire_claim": {
+        "at": "2026-09-10T14:43:06.941484+07:00",
+        "by": "hoangnlv:109997:c88fc69b736c4fbd9695e47f5651fea0"
+      }
     },
     {
       "id": "aa62c22f290e",
@@ -182,15 +185,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 491
+        "completed": 512
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:13.990487+07:00",
-      "next_run_at": "2026-09-10T13:44:16.717886+07:00",
-      "last_run_at": "2026-09-10T13:39:56.623990+07:00",
+      "next_run_at": "2026-09-10T14:44:46.120735+07:00",
+      "last_run_at": "2026-09-10T14:42:46.120735+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -202,15 +205,12 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-10T13:41:56.623990+07:00",
-        "dispatched_at": "2026-09-10T13:42:16.692295+07:00",
-        "lateness_seconds": 20.1,
+        "scheduled_at": "2026-09-10T14:41:44.645185+07:00",
+        "dispatched_at": "2026-09-10T14:42:06.631625+07:00",
+        "lateness_seconds": 22.0,
         "kind": "on_time"
       },
-      "fire_claim": {
-        "at": "2026-09-10T13:42:16.899910+07:00",
-        "by": "hoangnlv:1703:9ba32cdbfbff4618a6946b0bd3a91295"
-      }
+      "fire_claim": null
     },
     {
       "id": "5fc5e2166c3a",
@@ -237,15 +237,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 493
+        "completed": 513
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:14.008122+07:00",
-      "next_run_at": "2026-09-10T13:43:23.488446+07:00",
-      "last_run_at": "2026-09-10T13:41:23.488446+07:00",
+      "next_run_at": "2026-09-10T14:43:13.607302+07:00",
+      "last_run_at": "2026-09-10T14:41:13.607302+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -261,9 +261,9 @@
       "failure_deliver": "local",
       "fire_claim": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-10T13:40:24.700542+07:00",
-        "dispatched_at": "2026-09-10T13:41:16.672175+07:00",
-        "lateness_seconds": 52.0,
+        "scheduled_at": "2026-09-10T14:40:13.984586+07:00",
+        "dispatched_at": "2026-09-10T14:41:06.535875+07:00",
+        "lateness_seconds": 52.6,
         "kind": "on_time"
       }
     },
@@ -321,5 +321,5 @@
       }
     }
   ],
-  "updated_at": "2026-09-10T13:42:16.900070+07:00"
+  "updated_at": "2026-09-10T14:43:06.941685+07:00"
 }
