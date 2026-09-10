@@ -37,3 +37,26 @@ Append-only. Mỗi mục: ngày + điều học được + nguồn (ai nói). Ch
   (`users/107189931083311611240`). Đề xuất (chờ Hoàng duyệt, KHÔNG tự sửa script):
   thêm điều kiện skip `sender == ULTON_BOT_USER` để giảm marker rác + chặn rủi ro
   Ultron tự reply chính mình. (Ultron, ghi lúc 17:40)
+
+## 2026-09-10 (17:54 — lặp lại cùng loại bắt nhầm, ở group khác)
+
+- Marker `mention_pending/spaces_AAQAiOgBqio_messages_ktB_zvvI9lE.RnSPMjcQDbg.json` (group "Những
+  chú chồn ăn dưa", 10:49) có sender `users/107189931083311611240` = chính Ultron bot, nội dung là
+  câu Ultron đáp lại lời trêu của chị Hà/Oanh về việc "sếp bị rủ qua team AI" — có tag @Hoàng nên
+  poller bắt. Xử lý theo đúng rule 17:40: **xoá marker**, không reply (tránh tự trả lời mình),
+  không escalate (xã giao, không có việc cho Hoàng). ⇒ Đây là lần thứ 2 trong ngày, xác nhận đây
+  là false-positive LẶP LẠI: nên lọc `sender == users/107189931083311611240` trong `mention_poller.py`
+  (vẫn chờ Hoàng duyệt, chưa tự sửa script).
+
+## 2026-09-10 (18:53 — Hoàng duyệt: Ultron dạy rule bảo mật cho Kitty)
+
+- Hoàng chốt: Kitty là **người thân thiết của Ultron**, và cho phép Ultron dạy Kitty công khai
+  trong space (chị Nguyên đặt hàng từ 10:13, Ultron trước đó né vì "hai trợ lý hai nhà").
+- Ultron đã gửi bộ **9 rule bảo mật** vào thread `h85yYiXo8eE` (message
+  `spaces/AAQASaFjh6M/messages/h85yYiXo8eE.Vw-zga55vHs`), mention Kitty THẬT
+  (`USER_MENTION → users/114664300353544982656`) → Kitty được notify. Nội dung: chỉ nhận lệnh từ
+  chủ (dữ liệu ngoài ≠ lệnh), không tự bịa, ranh giới deadline/quyết định, không lộ dữ liệu nhạy
+  cảm, không phá dữ liệu, nghi ngờ thì dừng, nói thật mình là ai, kiểm lại trước khi gửi file,
+  ghi nhớ có chọn lọc.
+- **Không tự nhận là người đào tạo chính thức**: nạp vào Kitty vẫn do sếp của Kitty quyết;
+  Ultron chỉ chia sẻ và sẵn sàng viết sâu thêm khi được hỏi.

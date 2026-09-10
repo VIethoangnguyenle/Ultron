@@ -45,6 +45,26 @@ agy --add-dir /home/zane/Desktop/work/vietbank/vietbank-sme \
 - One domain per invocation (not all at once); the domain-analyzer writes to `.ua/intermediate/domain-analysis.json` then merges into `.ua/domain-graph.json`.
 - Back up `domain-graph.json` before each run: `cp domain-graph.json domain-graph.json.bak-$(date +%Y%m%d-%H%M%S)`.
 
+## Đọc ảnh (image reading) — dùng agy, KHÔNG dùng claude
+
+`auxiliary.vision` trên máy này không đáng tin: model đang cấu hình (`deepseek-v4-flash-vision-exp`)
+có thể bị provider chặn (HTTP 403 "Model is blocked"). Khi cần ĐỌC ảnh → dùng agy với model
+multimodal:
+
+```bash
+cd /tmp && timeout 240 agy --model gemini-3.8-flash-medium \
+  --add-dir <thư-mục-chứa-ảnh> --print-timeout 3m --dangerously-skip-permissions \
+  --print "Đọc ảnh <path tuyệt đối>. <câu hỏi>" >/tmp/agy_out.txt 2>/tmp/agy_err.txt
+echo "exit=$?"; tail -c 1500 /tmp/agy_out.txt
+```
+
+- **PHẢI redirect ra file rồi đọc lại — ĐỪNG pipe qua `tail`/`head`.** Pipe làm agy nuốt sạch
+  output (exit 0 nhưng rỗng), dễ tưởng là lỗi model.
+- Model Gemini flash đọc ảnh tốt và nhanh hơn nhiều so với model mặc định (Claude Opus thinking,
+  hay timeout 3 phút không ra gì). Danh sách: `agy models` (tên ngắn `gemini-3.8-flash-medium`).
+- Ảnh trong cache của Hermes nằm ở `~/.hermes/cache/images/` → `--add-dir` đúng thư mục đó.
+- Hoàng chốt (2026-09-10): đọc ảnh dùng **agy**, KHÔNG giao cho claude.
+
 ## Quota management
 
 - Pool: 2 accounts — `lapnv@vnpay.vn` (#1, default) and `trungvt3@vnpay.vn` (#2). Config in `~/.antigravity_sw/hagy_config.json`, accounts in `~/.antigravity_sw/accounts.json`.

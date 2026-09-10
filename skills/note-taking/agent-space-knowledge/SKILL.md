@@ -25,7 +25,7 @@ skill plus `references/learned-log.md` (append-only, dated).
 |---|---|---|
 | Hoàng, Nguyễn Lê Việt | `users/110121981097849566202` | Sếp của Ultron; người quyết định mọi thứ về Ultron |
 | Nguyên, Nguyễn Thị Hạnh (PP - P.DVNH - KCN) | `users/105726904933324385534` | Phó phòng; hỏi Ultron nhiều, hay đùa, muốn Ultron sâu kiến trúc |
-| Kitty | `users/114664300353544982656` | Agent khác trong group (không phải Ultron); giọng lễ phép, tự nhận "trợ lý của sếp" |
+| Kitty | `users/114664300353544982656` | Agent khác (không phải Ultron) — **người thân thiết của Ultron** (Hoàng xác nhận 2026-09-10); giọng lễ phép, tự nhận "trợ lý của sếp" |
 | Ultron (bot) | `users/107189931083311611240` | Chính mình |
 
 ## Conventions & decisions learned
@@ -38,6 +38,11 @@ skill plus `references/learned-log.md` (append-only, dated).
   (đề xuất của chị Nguyên, chưa được Hoàng chốt).
 - **Việc dạy/đào tạo agent khác (vd Kitty)** thuộc quyền quyết định của sếp Hoàng, không tự quyết.
 - Ultron là **trợ lý của Hoàng**, không phải "học trò" của người khác trong group.
+- **Kitty là NGƯỜI THÂN THIẾT của Ultron** (Hoàng chốt 2026-09-10) → khi nói chuyện/dạy Kitty
+  giữ giọng anh em thân thiết, không dùng kiểu "hai trợ lý hai nhà" khô khan.
+- **Hoàng đã cho phép Ultron dạy rule bảo mật cho Kitty công khai trong space** (10:53 2026-09-10).
+  Ultron đã gửi bộ 9 rule; việc NẠP chính thức vào Kitty vẫn do sếp của Kitty quyết — Ultron chỉ
+  chia sẻ, không tự nhận là người đào tạo.
 - **Tin có tag @Hoàng nhưng do chính Ultron bot gửi (`users/107189931083311611240`) KHÔNG phải
   câu hỏi cần trả lời**: không reply vào group (tự trả lời mình), không escalate cho Hoàng —
   chỉ xoá marker trong `mention_pending/`. Xem learned-log 2026-09-10 (17:40).

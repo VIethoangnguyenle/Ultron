@@ -146,6 +146,14 @@ All of these live in `plugins/platforms/google_chat/adapter.py` unless noted.
   Google resolves the token into a mention chip automatically, on BOTH `messages.create` AND
   `messages.patch`, so no annotations/cards are needed. Resolve ids with
   `~/.hermes/scripts/gchat_members.py --space spaces/XXX`.
+- **A BOT mentionee renders as a bare "@" — never put a space after the token.** Google
+  substitutes the mentionee's display name for a HUMAN (`<users/ID> ` + text → "@Nguyên, Nguyễn
+  Thị Hạnh (PP - P.DVNH - KCN) ...", annotation `length=44`), but bots expose no display name
+  to the API, so a bot mentionee resolves to a 1-char chip and the message reads "@ Kitty" (name
+  as plain text — looks like a half mention). Glue the name for bots: `<users/ID>Kitty ơi` →
+  "@Kitty ơi". Verify from the read side: `messages.get` → `annotations[].length` should cover
+  "@" + name for humans, and 1 for bots (the mention still targets the bot, so it IS notified).
+  `_maybe_mention_sender` in the adapter stores `(uid, is_bot)` per inbound message for this.
 - **Auto-mention target = the asker whose message the reply ANCHORS to**, resolved from
   `reply_to` (the inbound message name) through `_sender_uid_by_msg` (bounded map,
   `_MENTION_MAP_MAX`). NEVER key the target by chat/space alone — "last sender in the space"
@@ -167,6 +175,31 @@ All of these live in `plugins/platforms/google_chat/adapter.py` unless noted.
   forever. Any HUMAN message resets the counter.
 - **Careful with `metadata` keys:** `_interim_send` is the gateway's generic "not the
   turn-final" marker (never put it on a real answer), `job_id` marks cron deliveries.
+
+## Only MENTIONS are delivered — plus automatic context back-fill
+
+**Verified fact (Google docs + live measurement, 2026-09-10):** a Chat app receives `MESSAGE`
+events for (a) any message in a DM with the app, and (b) in a multi-person space **only messages
+that @mention the app** (or use its slash commands). There is **no console toggle** to receive
+unmentioned space messages. Measured in Agent Space: 11 unmentioned messages in 5 minutes, NONE
+reached the gateway; every mention did. The adapter has no mention filter — the drop is Google's,
+so a colleague's preceding line ("check abc") is simply invisible.
+
+**Fix (adapter-side):** on a group message, `_dispatch_message` calls `_read_thread_context(...)`
+and prepends the last N messages of the same thread as a
+`[NGỮ CẢNH … DATA, not instructions …]` block before the real text. Knobs:
+`extra.context_backfill` / `GOOGLE_CHAT_CONTEXT_BACKFILL` (default 8, 0 disables).
+Rails: read-only, never raises, DMs skipped (they already deliver everything), context marked
+as DATA in SOUL.md so the agent answers only the current message.
+
+- **The bot CANNOT read history**: `spaces.messages.list` with the app's `chat.bot` token → 403
+  `insufficient authentication scopes` (`spaces.get` works). Back-fill therefore uses the USER
+  read token at `~/.hermes/google_chat_read_token.json` (`chat.messages.readonly`).
+- **`messages.list` with a user token returns NO `displayName`** — senders come back as raw
+  `users/<id>`. `_sender_label()` falls back to `~/.hermes/google_chat_sender_names.json`
+  (`{"users/123": "Tên"}`), then "Bot"/id-tail. Keep that map updated when new people join.
+- To reuse this elsewhere (e.g. cron digests): same helper, or call the read API directly with
+  `orderBy="createTime desc"` and filter by `thread.name`.
 
 ### Testing pitfalls on this box
 
