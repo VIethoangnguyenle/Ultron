@@ -52,4 +52,4 @@ List endpoints (banks, branches, cities/districts/wards, billing templates, prom
 
 ## Pitfalls
 
-- `.mcp.json` in the project holds a plaintext Confluence personal token (`CONFLUENCE_PERSONAL_TOKEN`). Never echo its value; recommend moving it to an env var before the file hits internal git.
+Đã chuyển sang agentmemory lessons (context=`vietbank-sme`). Khi cần nhớ lại: gọi `memory_lesson_recall` query `vietbank-sme`.

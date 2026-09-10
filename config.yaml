@@ -226,6 +226,11 @@ mcp_servers:
       - server.py
     env:
       PROJECT_ROOTS: /home/zane/Desktop/work/vietbank/vietbank-sme,/home/zane/Desktop/work/dvnh-common
+  agentmemory:
+    command: npx
+    args:
+      - -y
+      - '@agentmemory/mcp'
 command_allowlist:
   - curl *10.22.17.219*
 approvals:
@@ -233,7 +238,6 @@ approvals:
 platforms:
   google_chat:
     typing_status_text: Ultron đang nghĩ đã… 🤖💭
-
 auxiliary:
   vision:
     provider: custom

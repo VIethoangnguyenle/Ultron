@@ -235,28 +235,7 @@ Tester cần dữ liệu/test data → dùng `db-access`:
 
 ## Pitfalls
 
-- **Graph bị regenerate**: domain-graph.json có thể thay đổi khi Hoàng chạy lại
-  `/understand` (số domain/flow thay đổi). MCP tự reload theo mtime — luôn đọc kết quả
-  hiện tại, đừng cache nội dung domain cũ trong đầu.
-- **MCP loader đọc `.ua/` hay `.understand-anything/`**: bản MCP đã patch để ưu tiên
-  `.ua/` (chuẩn mới). Dự án cũ dùng `.understand-anything/` vẫn chạy được.
-- **Mã lỗi: KHÔNG tin comment `// 500031` trong enum** (hay drift) — luôn đối chiếu bảng mã
-  lỗi trong `error_code_source` (scope-map) qua `db-access`. Comment trong enum có thể sai.
-- **Oracle query phải prefix schema**: `SELECT ... FROM VBSMEONL.AD_MESSAGE`; không prefix
-  bị block. `db_name` phải khớp schema cần đọc.
-- **Log có payload unmasked**: account, CIF, tên KH, sessionId. Đừng để file log/DB
-  vblog rơi vào repo; xoá sau khi xong.
-- **Log server dùng self-signed TLS**: phải `curl -k`. UAT ở root, LIVE ở `/live/`,
-  bỏ qua `/test/`.
-- **Lấy log nhiều service: dùng TỪNG lệnh `curl` ĐƠN, KHÔNG gộp vòng lặp `for ... do ... done`.**
-  Lệnh compound (có `;`, `$`, loop, `$(...)`) sẽ bị cơ chế approval chặn và hỏi lại,
-  còn lệnh curl đơn (chỉ `curl -k -sS ... URL`) khớp `command_allowlist` (pattern
-  `curl *10.22.17.219*`) nên auto-approve, chạy liền không hỏi. Tải log service nào thì
-  curl thẳng thư mục service đó.
-- **`vblog.py` nằm ở `~/.claude/skills/`** (của Claude Code), không phải `~/.hermes/skills/`.
-  Gọi bằng đường dẫn tuyệt đối trong `scope-map.json`.
-- **MCP tools chỉ load ở STARTUP**: sau khi thêm/sửa MCP server phải khởi động phiên
-  mới. `hermes mcp test understand-anything` chứng minh kết nối nhưng không hot-load.
+Đã chuyển sang agentmemory lessons (context=`tester-support`). Khi cần nhớ lại: gọi `memory_lesson_recall` query `tester-support` (hoặc `POST /agentmemory/lessons/search` body `{"query":"tester-support"}`).
 
 ## Verification
 

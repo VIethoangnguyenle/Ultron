@@ -126,11 +126,4 @@ Hoặc gửi tới DM space cụ thể: `hermes send --to google_chat:spaces/AAQ
 
 ## Lưu ý / pitfall
 
-- `jira.servicehub.vn` KHÔNG tồn tại (NXDOMAIN). URL đúng là
-  `https://jr.servicehub.vn/`.
-- Đây là Jira Server/Data Center (không phải Cloud): `currentUser()` hoạt động
-  nhưng không có `accountId`; user key của Hoàng là `JIRAUSER15639`.
-- Token là PAT dạng Bearer, khác với Confluence dùng một token PAT khác
-  (key `MCP_ATLASSIAN_CONFLUENCE_TOKEN`). Đừng nhầm lẫn 2 token.
-- MCP tools chỉ nạp khi agent khởi động; sau khi đổi env Jira phải restart
-  agent/gateway thì `jira_*` tools mới xuất hiện.
+Đã chuyển sang agentmemory lessons (context=`jira-daily-tasks`). Khi cần nhớ lại: gọi `memory_lesson_recall` query `jira-daily-tasks`.

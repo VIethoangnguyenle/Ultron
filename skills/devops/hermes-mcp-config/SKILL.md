@@ -70,9 +70,4 @@ file (`grep MCP_DB_ACCESS_API_KEY ~/.hermes/config.yaml`) — never trust the di
 
 ## Pitfalls
 
-- MCP tools load at agent STARTUP only. After adding/removing a server, start a NEW
-session (or restart the gateway) or the tools will not appear. `hermes mcp test`
-proves the connection but does NOT hot-load tools into the current session.
-- `tools.exclude` is a real registration blacklist (`not (exclude and match)` at
-tool-registration time), so excluded tools are hidden from the LLM — not just
-filtered cosmetically in `mcp list`.
+Đã chuyển sang agentmemory lessons (context=`hermes-mcp-config`). Khi cần nhớ lại: gọi `memory_lesson_recall` query `hermes-mcp-config`.

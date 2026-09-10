@@ -17,15 +17,7 @@ Run `agy` for high-token source-code reasoning (domain-graph enrichment via Unde
 
 ## Three gotchas that WILL break a run
 
-1. **`secretstorage` must be importable by the Python that runs the agy wrapper + `hagy`.**
-   The wrapper (`~/.local/bin/agy`) calls `python3` for keyring sync + quota rotation; `hagy` does too. In the Hermes terminal, `python3` resolves to the Hermes venv (`~/.hermes/hermes-agent/venv/bin/python3`), which does NOT ship `secretstorage`. Symptom: every `agy`/`hagy` call prints `ModuleNotFoundError: No module named 'secretstorage'`, and `hagy who`/`hagy list` report "No accounts" — quota rotation silently dead.
-   Fix: `~/.hermes/bin/uv pip install --python ~/.hermes/hermes-agent/venv/bin/python3 secretstorage` (also pulls jeepney). Verify with `hagy who` → should show an account, not "No accounts".
-
-2. **agy's working directory is NOT the terminal `workdir` — it defaults to `$HOME`.**
-   Symptom: agy reports "Không tìm thấy .ua/knowledge-graph.json" even though it exists, then falls back to a slow full scan and times out. Fix: pass `--add-dir /home/zane/Desktop/work/vietbank/vietbank-sme` AND tell agy in the prompt to `cd` into the project root first.
-
-3. **Default `--print-timeout` is 5m — far too short for understand-domain.**
-   Domain analysis is a heavy multi-turn task (reads many files / a ~17MB graph). Use `--print-timeout 25m` (Go duration, accepts `25m`/`1800s`).
+Đã chuyển sang agentmemory lessons (context=`agy-orchestration`). Khi cần nhớ lại: gọi `memory_lesson_recall` query `agy-orchestration`.
 
 ## CRITICAL: /understand-domain OVERWRITES domain-graph.json (does not merge)
 
