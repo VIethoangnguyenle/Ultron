@@ -50,6 +50,22 @@ List endpoints (banks, branches, cities/districts/wards, billing templates, prom
 - `understand-anything` MCP knowledge graph is already indexed for `vietbank-sme` (8339 nodes, coverage 69%) and `dvnh-common` (2776 nodes). Prefer `list_projects`, `query_nodes`, `trace_call_chain`, `find_impact`, `get_domain_overview` over raw grep — the graph models call chains, layers, domains, and DB tables.
 - Other indexes on disk (for Claude Code; readable via terminal if needed): `.codegraph/codegraph.db` (~360MB), `.serena/`, `.ua/knowledge-graph.json`.
 
+## Trả lời "API nào / cơ chế nào" (trace từ endpoint về core banking)
+
+Khi ai hỏi "API nào để lấy/làm X" hay "có cơ chế nào để lấy Y", trace theo chuỗi sau rồi mới trả lời:
+
+1. Controller interface của feature (`.../controller/<feature>/*Controller.java`): có annotation mapping + `@Operation(summary=...)` mô tả nghiệp vụ. Hằng số đường dẫn ở `constant/EndpointConstants.java`; base URI `APP_URI=/api/v1/app` (app), `WEB_URI=/api/v1/web` (web). App & web controller implement CÙNG interface → mọi API đều có cặp app/web — kiểm tra cả hai trước khi kết luận.
+2. Handler CQRS (`*Handler extends Base*Handler`) → factory (`*ClientFactory`) → interface VBG client (`IVbg*Client`) → impl gọi `callApi(request, new VbgContext(<ACTION>), Resp.class)`.
+3. **Path HTTP KHÔNG nằm trong code.** Enum action chỉ giữ `functionName` + suffix mã lỗi; path thật nằm ở `vietbank-sme-omni/config/application-thirdparty-config.yml` (bản deploy: `config-map-thirdparty-config.yaml`) dưới `common.client.external.vb-gateway.properties.<function-name>`. URL đầy đủ = scope uri + path đó; VBG chỉ dùng POST, header kèm JWS-Signature + basic auth.
+4. Map mã lỗi gateway → service/API: đọc `error_log_map` trong scope-map của skill tester-support (file nội bộ, không gửi ra group).
+
+Bảng VBG path/action/mã lỗi đã trace + ví dụ trọn vẹn (luồng biến động số dư OTT/SMS): `references/vbg-gateway-api-map.md`.
+
+Pitfalls của lớp câu hỏi này:
+- Path trong domain-graph là dạng template `/api/v*` — xác nhận base URI thật từ `EndpointConstants` trước khi trích ra.
+- API trả danh sách thường là **hợp nhất dữ liệu nội bộ + core banking** và có cache ngắn (vài giây): nhiều khi core chỉ được gọi khi admin xem dữ liệu của chính mình. Phải nói điểm này trong câu trả lời — nó giải thích vì sao test "đổi trạng thái xong gọi lại vẫn thấy giá trị cũ".
+- Trả lời cho dev thì nêu được path API; trả lời cho tester/non-dev thì diễn đạt theo màn hình/nghiệp vụ, không dump tên class.
+
 ## Pitfalls
 
 Đã chuyển sang agentmemory lessons (context=`vietbank-sme`). Khi cần nhớ lại: gọi `memory_lesson_recall` query `vietbank-sme`.

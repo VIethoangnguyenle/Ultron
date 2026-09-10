@@ -137,3 +137,45 @@ Two cron-driven features extend the bot beyond plain @bot replies:
      enough to identify the asker from the question text + space name. The read token is
      provisioned WITH the Directory scope, so if contact sharing is ever enabled the name
      resolves automatically with no re-auth.
+
+## @mention + reply threading + loop guards (built on this install)
+
+All of these live in `plugins/platforms/google_chat/adapter.py` unless noted.
+
+- **Mention syntax is `<users/<id>>`** — NOT `@users/<id>` (that renders as literal text).
+  Google resolves the token into a mention chip automatically, on BOTH `messages.create` AND
+  `messages.patch`, so no annotations/cards are needed. Resolve ids with
+  `~/.hermes/scripts/gchat_members.py --space spaces/XXX`.
+- **Auto-mention target = the asker whose message the reply ANCHORS to**, resolved from
+  `reply_to` (the inbound message name) through `_sender_uid_by_msg` (bounded map,
+  `_MENTION_MAP_MAX`). NEVER key the target by chat/space alone — "last sender in the space"
+  mentions the WRONG person when two people post before the reply goes out (real incident:
+  Duong asked, the bot's reply @-mentioned Ánh because Ánh posted last). Unknown anchor →
+  no mention (never guess a person).
+- **Never mention on interim/system notices.** `_maybe_mention_sender` bails when metadata has
+  `job_id` (cron) or `_interim_send`. `gateway/run_busy.py::_send_busy_reply` marks its
+  busy/queue/redirect notices `_interim_send: True` — otherwise a "↪ Redirected current run"
+  notice gets an @-mention tacked on.
+- **Typing-card state is keyed by `(chat_id, thread_id)`** via `_typing_key()` — never the bare
+  space id. The shared space slot let one long thread's "Hermes is thinking…" card swallow a
+  sibling thread's reply. Tests must use `_typing_key(...)` too, and `on_processing_complete`
+  reads `event.source.thread_id`, so test doubles must set it (a bare `MagicMock()` yields a
+  truthy MagicMock thread id and never matches).
+- **Bot-to-bot loop breaker ("break point")**: `_MAX_BOT_STREAK = 3` consecutive inbound
+  messages from BOT senders in one space; past it `_build_message_event` returns None and the
+  adapter drops further bot messages (no LLM call, no reply) so two bots cannot ping-pong
+  forever. Any HUMAN message resets the counter.
+- **Careful with `metadata` keys:** `_interim_send` is the gateway's generic "not the
+  turn-final" marker (never put it on a real answer), `job_id` marks cron deliveries.
+
+### Testing pitfalls on this box
+
+- The hermes venv ships WITHOUT pytest: `scripts/run_tests.sh` aborts, and a bare venv pytest
+  isn't there either. Install once with
+  `~/.hermes/bin/uv pip install --python venv/bin/python pytest pytest-asyncio`. Without
+  `pytest-asyncio` every async test fails with "async def functions are not natively
+  supported" — that is an environment failure, NOT a regression; install the plugin before
+  reading anything into a red run.
+- Running `kill <pid>` (or anything that looks like stopping the gateway) from inside the
+  gateway is BLOCKED by a guard — keep restart logic in `gw_restart_instructions.txt`.
+- Run only the affected file: `cd ~/.hermes/hermes-agent && scripts/run_tests.sh tests/gateway/test_google_chat.py`.

@@ -1,14 +1,12 @@
 Hermes personal state is synced to git@github.com:VIethoangnguyenle/Ultron.git (local checkout ~/Ultron). sync.sh mirrors memory/custom-skills/scripts/config/cron-jobs and pushes; restore.sh restores onto a new machine. Auto-sync runs via cron job 'ultron-sync' (hourly, no_agent). Never commit .env/auth.json/state.db.
 §
-When the user switches machines (clones Ultron + runs restore.sh), remind them to re-provide credentials: the API-key environment file and auth.json (OAuth tokens) are never synced to git; they must run `hermes setup` or copy their own backups.
+Khi chuyển máy (clone Ultron + restore.sh): phải cấp lại credentials — file API-key env và auth.json (OAuth) không sync git, cần chạy `hermes setup` hoặc copy backup riêng.
 §
 Google Chat bot Ultron live trên VNPay Workspace; chi tiết GCP/SA/allowlist + runbook ở skill google-chat-setup.
 §
-Google Chat mention: @all=annotations[].userMention.user=={}; user=userMention.user.name=='users/...'. Read qua spaces.messages().list (user OAuth). Hoàng+bot ids ở skill google-chat-setup.
+Google Chat: send/cron gửi text thô, ko render markdown — link dùng <url|text>. Mention ĐỌC: userMention.user.name=='users/...' (@all=user=={}). Mention GHI: bot tự @người gọi trong group (auto); muốn @ai chủ động thì viết <users/<id>> trong reply (Google tự nhận), tra id bằng scripts/gchat_members.py --space spaces/XXX. Ids ở skill google-chat-setup.
 §
-Google Chat: `hermes send`/cron gửi text thô, không render markdown — dùng cú pháp native <url|text> cho link (markdown chỉ chạy cho phản hồi agent trong group).
-§
-Google Chat groups: vietbanksme project group = spaces/AAAADv4ib6s; "Những chú chồn ăn dưa" (AAQAiOgBqio) là group riêng của Hoàng để test với bạn bè, KHÔNG phải group dự án. Hoàng đã tắt approvals.mode=off để chạy script/curl lấy log không bị hỏi approval.
+Google Chat groups: vietbanksme = spaces/AAAADv4ib6s; "Những chú chồn ăn dưa" (AAQAiOgBqio) là group riêng của Hoàng test với bạn bè, không phải group dự án; "Agent Space" (AAQASaFjh6M) có sếp Nguyên (Nguyễn Thị Hạnh, PP-P.DVNH) + agent Kitty (DVNH) hay hỏi Ultron về giới hạn phạm vi/kiến trúc/train. approvals.mode=off để script/curl lấy log không bị hỏi approval.
 §
 Run `claude`/`agy` for vietbanksme from `/home/zane/Desktop/work/vietbank/vietbank-sme` (project root, NOT the `-omni` subdir): spans multiple source dirs, codegraph+serena live there. Before EACH heavy agy/claude task, check RAM+CPU (free -h, uptime, ps sort by %mem/%cpu) to ensure the box won't freeze; abort/warn if available RAM <~2GB or load is climbing.
 §
