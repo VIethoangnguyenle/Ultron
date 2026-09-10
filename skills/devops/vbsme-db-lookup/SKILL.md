@@ -80,8 +80,8 @@ Testers may ask Ultron for a SQL query to run themselves in DBeaver/SQL Develope
      or `SELECT` the affected rows first to confirm the scope, and to run on the correct environment.
      Example: "⚠️ Câu này sẽ XÓA dữ liệu. Chạy SELECT trước để xem đúng bản ghi chưa, rồi hãy DELETE."
    - **Never DROP / TRUNCATE / ALTER / GRANT / schema changes** — those are still refused + escalate.
-   - **No running write queries yourself.** Verify correctness via metadata only (`sql_list_tables`,
-     `sql_get_columns`, enum mapping), never `sql_write`/`sql_read` the statement as a trial.
+   - **Ultron MAY execute the write ITSELF** (Hoàng approved 2026-09-10) — but ONLY through the
+     `sql_write` preview→confirm flow below, never blind, never without the requester's explicit ok.
 3. **SIT only.** Only the 8 VBSME SIT databases (via db-access). UAT/LIVE have no DB access anyway.
 4. **Full columns + AS alias.** Include every relevant column, ALIAS each with a business meaning
    in Vietnamese: `SELECT FULL_NAME AS "Họ tên khách hàng", STATUS AS "Trạng thái" ...`.
@@ -98,6 +98,44 @@ Testers may ask Ultron for a SQL query to run themselves in DBeaver/SQL Develope
 Format the reply: the SQL in a code block + a short business note on what each aliased column
 means, how to run it (schema prefix `VBSMEONL.` etc.), and — for write queries — the mandatory
 safety warning. No internal trace shown.
+
+## Ultron tự chạy ghi DB (`sql_write`) — quy trình bắt buộc
+
+**A. TỰ TEST TOOL (không ai nhờ) — luật nghiêm (Hoàng chốt 2026-09-10):**
+- Chỉ **INSERT MỘT bản ghi mới**, rồi **chỉ UPDATE/DELETE chính bản ghi đó**.
+- **TUYỆT ĐỐI KHÔNG đụng data cũ** — không sửa/xóa dòng có sẵn, dù chỉ 1 dòng (đây là điều Hoàng
+  lo nhất: test tool mà xóa mất data hiện hữu).
+- Bản ghi mới phải tự nhận diện: chèn kèm dấu duy nhất (vd cột text = `ULTRON_TEST_<timestamp>`)
+  và ghi lại khoá chính ngay sau insert; mọi UPDATE/DELETE sau đó `WHERE ID = <id vừa tạo>`.
+- Dọn dẹp bằng cách xóa chính bản ghi mình vừa tạo. Tốt nhất là hạn chế tự test.
+
+**B. NGƯỜI KHÁC NHỜ ghi/sửa/xóa dữ liệu thật** → quy trình 5 bước bên dưới (đo ảnh hưởng →
+preview → **xin xác nhận rõ ràng** → chạy → verify). Nhánh này *được phép* sửa/xóa dữ liệu hiện
+hữu khi người ra lệnh yêu cầu rõ và đã xác nhận — nhưng phải nêu rõ bảng + số dòng ảnh hưởng,
+cảnh báo không hoàn tác được, và từ chối nếu không có WHERE / ảnh hưởng diện rộng.
+
+`sql_write` has a BUILT-IN two-step gate: call WITHOUT `confirmation_token` → returns
+`shadow_preview` (the rows/data that would change) + a `confirmation_token`; call again WITH the
+token → executes. The tool accepts only INSERT/UPDATE/DELETE (SELECT and DDL are refused), needs
+Oracle schema prefixes, and requires the `write` capability. Capability (verified live 2026-09-10):
+`VBSMEONL` + `VBSMEOFF` have `write`; everything else answers "access denied".
+
+Mandatory order (mirrors SOUL.md):
+1. Identify table + exact WHERE + blast radius. No WHERE / mass change → refuse and escalate.
+2. Preview call (no token) to MEASURE the impact — never guess the row count.
+3. Present it in business language and **ask the requester to confirm explicitly**.
+4. Execute only after that confirmation — same SQL + the token (tokens are single-use).
+5. `sql_read` afterwards to verify, then report the ACTUAL affected-row count.
+
+Never: auto-confirm on silence/ambiguity; use `sql_execute_script` (DDL); DROP/TRUNCATE/ALTER/
+GRANT; touch production (SIT only).
+
+**Widening the capability goes THROUGH HOÀNG (Hoàng's rule, 2026-09-10).** `write` exists only on
+`VBSMEONL` + `VBSMEOFF`. When a tester needs to write on another DB (`VBSMERLE`, `VBSMESOTP`,
+`VBSMEFACE`, `VBSMEEKYC`, `VBEKYCSTORAGE`, ...): say in-group that Hoàng has to approve, write an
+escalation to `~/.hermes/escalations/` naming the tester + DB + table + what they need, and WAIT.
+Never edit `/home/zane/Desktop/tools/mcp/Db-Access/config.yaml`
+(`sources.default_agent.access.<DB>: [read, write]`) or restart `mcp-db-tools` yourself.
 
 ## Reference docs
 

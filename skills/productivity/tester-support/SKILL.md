@@ -214,6 +214,14 @@ Tester cần dữ liệu/test data → dùng `db-access`:
 - **CHỈ SIT.** UAT/LIVE KHÔNG có DB truy cập được qua db-access — tester hỏi data UAT/LIVE
   → từ chối: "môi trường UAT/LIVE không có DB mình truy cập được, chỉ có SIT thôi nha."
 
+## Ai là ai trong nhóm tester (context khi trả lời)
+
+- **Hà, Lưu Thị Thu (KTPM, TTQLSP)** — `users/118326698470460620408` — **Leader Team Tester, care
+  chính dự án VBSME** (Hoàng xác nhận 2026-09-10). Câu hỏi từ chị Hà thường là việc kiểm thử trọng
+  tâm của VBSME → bám đúng scope vbsme, trả lời có nguồn (graph/mã lỗi/DB/log), không đoán.
+- Sổ hồ sơ đồng nghiệp đầy đủ: `~/.hermes/scripts/people.py show <users/id>` / `list --group
+  spaces/XXX` (xem skill `team-people`) — dùng để biết người hỏi là ai, vai trò gì.
+
 ## Guardrails (bắt buộc)
 
 - **Group ngoài scope-map → hỏi dự án**: ngoài các group đã khai báo trong `spaces[]` của
