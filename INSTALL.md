@@ -1,9 +1,10 @@
-# Hướng dẫn cài đặt Ultron (Google Chat bot trợ lý Hoàng)
+# Hướng dẫn cài đặt Ultron (Google Chat bot trợ lý)
 
 > Tài liệu này ghi lại **toàn bộ quá trình cài đặt thực tế** của Ultron, để người
-> khác có thể dựa theo mà tự cài một con tương tự. Các giá trị cụ thể (GCP project,
-> email service account, workspace...) là của Hoàng — **bạn phải thay bằng giá trị
-> của chính mình**.
+> khác có thể dựa theo mà tự cài một con tương tự.
+>
+> ⚠ **Mọi giá trị cụ thể (project, email, ID, URL) đã được thay bằng placeholder**
+> dạng `<CHỮ_IN_HOA>`. Bạn tự thay bằng giá trị của chính mình.
 
 ---
 
@@ -25,8 +26,8 @@
 
 ## 1. Ultron là gì
 
-Ultron = **trợ lý cá nhân của Hoàng**, chạy trên Hermes Agent (Nous Research), kết nối
-vào **Google Chat** trong workspace VNPay. Nó:
+Ultron = **trợ lý cá nhân**, chạy trên Hermes Agent (Nous Research), kết nối vào
+**Google Chat** trong workspace công ty. Nó:
 
 - Trả lời đồng nghiệp (tester/BA/dev) trong group khi được `@mention`.
 - Tra mã lỗi, giải thích nghiệp vụ, truy log, tra dữ liệu DB SIT.
@@ -43,14 +44,14 @@ vào **Google Chat** trong workspace VNPay. Nó:
 
 | Thứ | Yêu cầu | Ghi chú |
 |---|---|---|
-| OS | Linux (Ubuntu/Debian) | Host thực tế: Linux 6.1 |
+| OS | Linux (Ubuntu/Debian) | |
 | Python | 3.10+ | Hermes cần |
-| Node.js | 18+ (đang dùng v26) | để cài mermaid-cli / claude-code |
+| Node.js | 18+ | để cài mermaid-cli / claude-code |
 | npm | có | |
 | Chrome | google-chrome (headless) | để render PDF |
 | Google Workspace | có domain công ty | Gmail thường KHÔNG host được Chat app |
 | GCP project | có quyền tạo SA + bật API | |
-| Git + GitHub | có SSH key | để sync repo Ultron |
+| Git + GitHub | có SSH key | để sync repo state |
 
 ---
 
@@ -89,14 +90,14 @@ Mọi thứ bên dưới đều thao tác trên 2 thư mục này.
 3. **Pub/Sub > tạo TOPIC** id `hermes-chat-events`.
 4. **Trong topic > tạo PULL subscription** id `hermes-chat-events-sub`, retention 7 ngày.
 5. **IAM binding — bước hay sai nhất (TWO service accounts):**
-   - Trên **SUBSCRIPTION**: thêm principal `<sa-của-bạn>` với role **Pub/Sub Subscriber**.
+   - Trên **SUBSCRIPTION**: thêm principal `<SA-của-bạn>` với role **Pub/Sub Subscriber**.
    - Trên **TOPIC**: thêm **Chat app's push service account** (tìm trong Google Chat API >
      Configuration > "Service Account Email", dạng `service-<project-number>@gcp-sa-gsuiteaddons.iam.gserviceaccount.com`)
      với role **Pub/Sub Publisher**.
    - ⚠ ĐỪNG tráo 2 cái này. Subscriber trên subscription = SA của bạn; Publisher trên topic
      = SA `gsuiteaddons` (KHÔNG phải SA của bạn).
 6. **Google Chat API > Configuration**: connection = Cloud Pub/Sub, trỏ vào **TOPIC full name**
-   `projects/<proj>/topics/hermes-chat-events` (KHÔNG phải subscription). Bật DM + group.
+   `projects/<PROJECT>/topics/hermes-chat-events` (KHÔNG phải subscription). Bật DM + group.
    Đặt app status **LIVE**.
 7. **Thêm bot vào space** (tìm theo tên app). Sự kiện `ADDED_TO_SPACE` sẽ resolve bot user_id.
 
@@ -132,24 +133,24 @@ File `~/.hermes/config.yaml`. Đây là phần cấu hình "não" của Ultron.
 
 ```yaml
 model:
-  default: deepseek-v4-pro
+  default: <TÊN_MODEL_CHÍNH>              # vd: deepseek-v4-pro
   provider: custom
-  base_url: https://api-llm.x.vnshop.cloud/v1        # gateway LLM nội bộ VNPay
-  api_key: ${HERMES_CUSTOM_API_LLM_X_VNSHOP_CLOUD_API_KEY}
+  base_url: <LLM_GATEWAY_URL>             # gateway LLM nội bộ / OpenAI-compatible
+  api_key: ${TÊN_BIẾN_MÔI_TRƯỜNG_API_KEY}
   api_mode: chat_completions
 ```
 
-### 5.2 Custom provider (đăng ký gateway nội bộ)
+### 5.2 Custom provider (đăng ký gateway LLM)
 
 ```yaml
 custom_providers:
-  - name: VNPay LLM Gateway
-    base_url: https://api-llm.x.vnshop.cloud/v1
-    key_env: HERMES_CUSTOM_API_LLM_X_VNSHOP_CLOUD_API_KEY
-    model: deepseek-v4-pro
+  - name: <TÊN_GATEWAY>
+    base_url: <LLM_GATEWAY_URL>
+    key_env: <TÊN_BIẾN_MÔI_TRƯỜNG_API_KEY>
+    model: <TÊN_MODEL_CHÍNH>
     api_mode: chat_completions
     models:
-      deepseek-v4-pro:
+      <TÊN_MODEL_CHÍNH>:
         context_length: 1000000
 ```
 
@@ -159,9 +160,9 @@ custom_providers:
 auxiliary:
   vision:
     provider: custom
-    model: deepseek-v4-flash-vision-exp              # model vision của gateway nội bộ
-    base_url: https://api-llm.x.vnshop.cloud/v1
-    api_key: ${HERMES_CUSTOM_API_LLM_X_VNSHOP_CLOUD_API_KEY}
+    model: <TÊN_MODEL_VISION>             # model có khả năng đọc ảnh
+    base_url: <LLM_GATEWAY_URL>
+    api_key: ${TÊN_BIẾN_MÔI_TRƯỜNG_API_KEY}
     timeout: 120
 ```
 
@@ -173,31 +174,31 @@ auxiliary:
 
 ```yaml
 mcp_servers:
-  db-access:                                        # tra DB Oracle/Mongo SIT
-    url: http://127.0.0.1:8443/mcp
+  db-access:                                # tra DB Oracle/Mongo SIT
+    url: <DB_ACCESS_MCP_URL>
     headers:
       x-api-key: ${MCP_DB_ACCESS_API_KEY}
-  atlassian:                                        # Jira + Confluence
+  atlassian:                                # Jira + Confluence
     command: uvx
     args: ["--python=3.12", "mcp-atlassian"]
     env:
-      CONFLUENCE_URL: https://wiki.servicehub.vn
-      CONFLUENCE_USERNAME: hoangnlv@vnpay.vn
+      CONFLUENCE_URL: <CONFLUENCE_URL>
+      CONFLUENCE_USERNAME: <EMAIL>
       CONFLUENCE_PERSONAL_TOKEN: ${MCP_ATLASSIAN_CONFLUENCE_TOKEN}
-      JIRA_URL: https://jr.servicehub.vn/
-      JIRA_USERNAME: hoangnlv@vnpay.vn
+      JIRA_URL: <JIRA_URL>
+      JIRA_USERNAME: <EMAIL>
       JIRA_PERSONAL_TOKEN: ${MCP_ATLASSIAN_JIRA_TOKEN}
     tools:
       exclude: [ ...danh sách tool không cần... ]
-  understand-anything:                              # graph reasoning source (agy)
+  understand-anything:                      # graph reasoning source (agy)
     command: uv
     args:
       - --directory
-      - /home/zane/Desktop/tools/mcp/Understand-Anything-MCP
+      - <PATH_TO_UNDERSTAND_ANYTHING_MCP>
       - run
       - server.py
     env:
-      PROJECT_ROOTS: /home/zane/Desktop/work/vietbank/vietbank-sme,/home/zane/Desktop/work/dvnh-common
+      PROJECT_ROOTS: <PATH_DỰ_ÁN_1>,<PATH_DỰ_ÁN_2>
 ```
 
 ### 5.5 Platform Google Chat (typing indicator tuỳ chỉnh)
@@ -205,7 +206,7 @@ mcp_servers:
 ```yaml
 platforms:
   google_chat:
-    typing_status_text: Ultron đang nghĩ đã… 🤖💭
+    typing_status_text: <TEXT_TYPING_INDICATOR>
 ```
 
 ---
@@ -216,14 +217,14 @@ File `~/.hermes/.env` — **CHỈ chứa secret, không bao giờ commit vào gi
 
 ```bash
 # Google Chat bot (bắt buộc)
-GOOGLE_CHAT_SERVICE_ACCOUNT_JSON=/home/zane/.hermes/google-chat-sa.json
-GOOGLE_CHAT_PROJECT_ID=cosmic-inkwell-508103-s8
-GOOGLE_CHAT_SUBSCRIPTION_NAME=projects/cosmic-inkwell-508103-s8/subscriptions/hermes-chat-events-sub
-GOOGLE_CHAT_ALLOWED_USERS=hoangnlv@vnpay.vn          # fail-closed: rỗng = chặn tất cả
-GOOGLE_CHAT_HOME_CHANNEL=spaces/XXXX                  # tuỳ chọn, cho cron delivery
+GOOGLE_CHAT_SERVICE_ACCOUNT_JSON=/home/<user>/.hermes/google-chat-sa.json
+GOOGLE_CHAT_PROJECT_ID=<GCP_PROJECT_ID>
+GOOGLE_CHAT_SUBSCRIPTION_NAME=projects/<GCP_PROJECT_ID>/subscriptions/hermes-chat-events-sub
+GOOGLE_CHAT_ALLOWED_USERS=<email-của-bạn>          # fail-closed: rỗng = chặn tất cả
+GOOGLE_CHAT_HOME_CHANNEL=spaces/<SPACE_ID>           # tuỳ chọn, cho cron delivery
 
-# LLM gateway nội bộ
-HERMES_CUSTOM_API_LLM_X_VNSHOP_CLOUD_API_KEY=...
+# LLM gateway
+<TÊN_BIẾN_MÔI_TRƯỜNG_API_KEY>=...
 
 # MCP
 MCP_DB_ACCESS_API_KEY=...
@@ -274,22 +275,22 @@ cp ~/.local/lib/node_modules/@mermaid-js/mermaid-cli/node_modules/mermaid/dist/m
 | Script | Chức năng |
 |---|---|
 | `md2pdf.py` | Render markdown (+mermaid) → PDF nhanh (offline) |
-| `gchat_reply.py` | Gửi reply vào thread (service account) cho @Hoàng-mention |
-| `mention_poller.py` | Quét @Hoàng mention, theo dõi Hoàng trả lời chưa |
-| `escalate_pending.py` | Forward các file escalate về DM Hoàng |
+| `gchat_reply.py` | Gửi reply vào thread (service account) cho @mention |
+| `mention_poller.py` | Quét @mention, theo dõi chủ nhân trả lời chưa |
+| `escalate_pending.py` | Forward các file escalate về DM chủ nhân |
 | `gchat_read_oauth.py` | Lấy OAuth read-token (chat.spaces/messages.readonly) |
 | `resource_snapshot.py` | Snapshot tài nguyên máy (RAM/CPU/disk) |
-| `ultron-sync.sh` | Sync state → repo git |
+| `sync-state.sh` | Sync state → repo git |
 
 ### 8.2 Cron jobs (đã đăng ký)
 
 | Job | Lịch | Chức năng |
 |---|---|---|
-| `ultron-sync` | mỗi 60m | sync state → git |
-| `ultron-escalate` | mỗi 2m | forward escalate → DM Hoàng |
-| `ultron-mention-poller` | mỗi 2m | quét @Hoàng mention |
-| `ultron-mention-reply` | mỗi 2m | quyết định trả lời hay escalate |
-| `daily-resource-check` | 9h mỗi ngày | snapshot RAM/CPU |
+| `sync-state` | mỗi 60m | sync state → git |
+| `escalate` | mỗi 2m | forward escalate → DM chủ nhân |
+| `mention-poller` | mỗi 2m | quét @mention |
+| `mention-reply` | mỗi 2m | quyết định trả lời hay escalate |
+| `resource-check` | 9h mỗi ngày | snapshot RAM/CPU |
 
 ---
 
@@ -300,9 +301,9 @@ Các skill tùy chỉnh trong `~/.hermes/skills/`:
 | Skill | Chức năng |
 |---|---|
 | `tester-support` | Trả lời tester, scope theo project (scope-map) |
-| `vbsme-db-lookup` | Tra DB SIT + cho tester câu SQL |
-| `vbsme-error-diagnosis` | Chẩn đoán mã lỗi vbsme |
-| `vbsme-flow-explainer` | Giải thích flow nghiệp vụ |
+| `<project>-db-lookup` | Tra DB SIT + cho tester câu SQL |
+| `<project>-error-diagnosis` | Chẩn đoán mã lỗi |
+| `<project>-flow-explainer` | Giải thích flow nghiệp vụ |
 | `google-chat-setup` | Runbook cài/fix Google Chat bot |
 | `markdown-mermaid-pdf` | Render markdown+mermaid → PDF |
 
@@ -314,14 +315,14 @@ bất kỳ câu hỏi nào** — không hardcode bảng/schema/DB trong đầu.
 
 ## 10. Sync / restore qua git
 
-Repo: `git@github.com:VIethoangnguyenle/Ultron.git` (local `~/Ultron`).
+Repo: `<GIT_REPO_URL>` (local checkout `~/<repo>`).
 
-**Sync (đẩy lên):** `sync.sh` (tự động qua cron `ultron-sync`).
+**Sync (đẩy lên):** chạy script sync (tự động qua cron).
 **Restore (máy mới):**
 
 ```bash
-git clone git@github.com:VIethoangnguyenle/Ultron.git ~/Ultron
-bash ~/Ultron/restore.sh        # copy state về ~/.hermes
+git clone <GIT_REPO_URL> ~/<repo>
+bash ~/<repo>/restore.sh        # copy state về ~/.hermes
 ```
 
 ⚠ **Sau khi clone phải cấp lại credential** — `.env` (API keys) và `auth.json` (OAuth
@@ -355,21 +356,4 @@ của mình vào `~/.hermes/`.
 - **Cho tester câu SQL:** SELECT tự do; UPDATE/DELETE/INSERT phải có WHERE chặt + kèm cảnh báo;
   DROP/TRUNCATE/ALTER cấm + escalate.
 - **Không lộ tiến trình trace / code nội bộ** ra group — chỉ đưa kết quả nghiệp vụ cuối.
-- **Escalate về Hoàng** khi gặp: deadline, số liệu, quyết định kỹ thuật, thông tin nhạy cảm.
-
----
-
-## Phụ lục: giá trị máy-specific của Hoàng (tham chiếu)
-
-> Đây là giá trị của Hoàng, **bạn thay bằng của mình**. Ghi lại để tiện debug.
-
-- GCP project: `cosmic-inkwell-508103-s8`
-- SA email (Hermes): `ultron-tr-l-ho-ngnlv@cosmic-inkwell-508103-s8.iam.gserviceaccount.com`
-- Chat app pusher SA: `service-698401240103@gcp-sa-gsuiteaddons.iam.gserviceaccount.com`
-- Topic: `projects/cosmic-inkwell-508103-s8/topics/hermes-chat-events`
-- Subscription: `projects/cosmic-inkwell-508103-s8/subscriptions/hermes-chat-events-sub`
-- Allowlist: `hoangnlv@vnpay.vn`
-- Hoàng user id: `users/110121981097849566202`
-- Bot Ultron id: `users/107189931083311611240`
-- Group vietbanksme: `spaces/AAAADv4ib6s`
-- Group riêng Hoàng (test bạn bè): `spaces/AAQAiOgBqio`
+- **Escalate về chủ nhân** khi gặp: deadline, số liệu, quyết định kỹ thuật, thông tin nhạy cảm.
