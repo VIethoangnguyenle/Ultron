@@ -233,3 +233,11 @@ approvals:
 platforms:
   google_chat:
     typing_status_text: Ultron đang nghĩ đã… 🤖💭
+
+auxiliary:
+  vision:
+    provider: custom
+    model: deepseek-v4-flash-vision-exp
+    base_url: https://api-llm.x.vnshop.cloud/v1
+    api_key: ${HERMES_CUSTOM_API_LLM_X_VNSHOP_CLOUD_API_KEY}
+    timeout: 120

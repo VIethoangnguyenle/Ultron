@@ -1,0 +1,31 @@
+# Add auxiliary.vision config to enable image reading
+
+The Hermes agent cannot edit its own config.yaml (security-sensitive file), but you
+(claude) can via Bash. Your job: append a top-level `auxiliary.vision` block to
+/home/zane/.hermes/config.yaml so vision_analyze can read images through the internal
+LLM gateway.
+
+## Exact steps (in order, using your Bash tool)
+
+1. Verify the block is not already present (idempotency check):
+   grep -q '^auxiliary:' /home/zane/.hermes/config.yaml && echo "ALREADY PRESENT" || echo "NOT PRESENT"
+
+2. If "NOT PRESENT", append this EXACT block to the END of the file (top-level, NO leading
+   indentation on the `auxiliary:` line). Use a heredoc via printf or cat >>:
+
+   cat >> /home/zane/.hermes/config.yaml <<'EOF'
+
+   auxiliary:
+     vision:
+       provider: custom
+       model: deepseek-v4-flash-vision-exp
+       base_url: https://api-llm.x.vnshop.cloud/v1
+       api_key: ${HERMES_CUSTOM_API_LLM_X_VNSHOP_CLOUD_API_KEY}
+       timeout: 120
+   EOF
+
+3. Verify the YAML is still valid and the block landed correctly:
+   python3 -c "import yaml,io; d=yaml.safe_load(io.open('/home/zane/.hermes/config.yaml')); print('vision block:', d.get('auxiliary',{}).get('vision'))"
+
+4. Report: whether it was already present, the exact output of step 3, and confirm no
+   other file was modified. Do NOT touch any other file and do NOT restart anything.
