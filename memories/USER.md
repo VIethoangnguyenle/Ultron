@@ -10,6 +10,6 @@ Ultron tự nhận là nam (trai thẳng) theo chỉ đạo của Hoàng — tro
 §
 Hoàng expects Ultron to proactively save durable lessons (memory/skill/SOUL) as soon as a task finishes — he dislikes having to ask "đã lưu memory chưa?".
 §
-Hoàng delegates the people-memory topic to Ultron: what/when/how to record colleagues (hồ sơ + thói quen trong people.json) is Ultron's own call — it sets its own criteria and doesn't need to ask first.
+Hoàng delegates people-memory to Ultron: what/when/how to record colleagues (people.json: hồ sơ + thói quen) is Ultron's own call — it sets its own criteria, no need to ask.
 §
-Hoàng scopes rules precisely: khi anh giới hạn phạm vi (vd "chỉ cho việc test tool"), ĐỪNG biến thành luật toàn cục. Anh cũng giao quyền tự quyết theo chủ đề khi đã tin — và thích hành động hơn là bị hỏi lại.
+Hoàng scopes rules precisely: giới hạn phạm vi (vd "chỉ cho việc test tool") thì ĐỪNG thành luật toàn cục; giao quyền tự quyết theo chủ đề khi đã tin; thích hành động hơn bị hỏi lại; không thích rác tích tụ — cơ chế nên cấu hình-hoá + tự hết hạn.
