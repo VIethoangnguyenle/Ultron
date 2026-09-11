@@ -5,7 +5,7 @@ Vì sao local: clip tester gửi có thể chứa dữ liệu khách hàng/số 
 đẩy lên Groq/OpenAI. Model faster-whisper nằm trong venv riêng, tải 1 lần rồi dùng offline.
 
 Script tự nhảy sang python của venv whisper nếu đang chạy bằng python khác:
-  python3 audio_transcribe.py <file.wav|file.mp4|file.mp3> [--model small] [--lang vi]
+  python3 audio_transcribe.py <file.wav|file.mp4|file.mp3> [--model medium] [--lang vi]
 
 Kết quả: in transcript + ghi cạnh file gốc: <tên>.transcript.txt và .transcript.json
 """
@@ -59,7 +59,7 @@ def extract_audio(src: Path, dst: Path) -> Path:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("media")
-    p.add_argument("--model", default="small", help="tiny|base|small|medium|large-v3 (mặc định small)")
+    p.add_argument("--model", default="medium", help="tiny|base|small|medium|large-v3 (mặc định medium — nhỏ hơn đọc tiếng Việt kém; large-v3 hay bịa)")
     p.add_argument("--lang", default="vi", help="mã ngôn ngữ, mặc định vi; 'auto' để tự đoán")
     p.add_argument("--threads", type=int, default=min(8, os.cpu_count() or 4))
     p.add_argument("--json", action="store_true", help="in JSON thay vì text")

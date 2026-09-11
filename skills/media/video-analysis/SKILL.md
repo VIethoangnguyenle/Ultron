@@ -8,7 +8,7 @@ description: Use when someone sends a video to analyze.
 ## Khi nào dùng
 - Tester/dev gửi clip quay màn hình (mp4/mov/mkv/webm) kèm câu kiểu *"clip lỗi đây anh xem giúp"*.
 - Cần biết clip **diễn ra những bước nào, lỗi hiện ở giây thứ mấy, mã lỗi là gì**.
-- Có clip trong `~/.hermes/cache/videos/` (adapter Google Chat tự tải mọi attachment `video/*` về đây).
+- Có clip trong `~/.hermes/cache/videos/` (adapter Google Chat tự tải mọi attachment `video/*` về đây; nếu không thấy thì soi `~/.hermes/cache/documents/`).
 
 **Model chính không xem được video.** Muốn "xem" phải biến clip thành ẢNH + LỜI THOẠI rồi đọc bằng 2 đường: `vision_analyze` (đọc ảnh) và `audio_transcribe.py` (bóc tiếng, chạy local).
 
@@ -26,7 +26,7 @@ python3 ~/.hermes/scripts/video_inspect.py "$CLIP" --audio
 
 # 2) bóc lời thoại (nếu clip có thuyết minh) — LOCAL, không gửi cloud
 /home/zane/.hermes/venvs/whisper/bin/python ~/.hermes/scripts/audio_transcribe.py \
-    /tmp/video_<tên>/audio.wav --model small
+    /tmp/video_<tên>/audio.wav --model medium
 
 # 3) đọc ảnh: contact sheet trước, rồi soi từng khung nếu cần
 #    vision_analyze(image_url="/tmp/video_<tên>/contact_sheet.jpg", question="...")
@@ -50,7 +50,10 @@ python3 ~/.hermes/scripts/video_inspect.py "$CLIP" --audio
 - **Đừng dán transcript/cả trăm khung vào ngữ cảnh** — ghi ra file, chỉ giữ tóm tắt.
 - Clip dài (>5 phút): giảm `--rate` (vd `--rate 0.5`) cho khỏi trích quá nhiều khung.
 
+- **Chất lượng bóc tiếng tiếng Việt còn thô** (đo thật trên clip 24s có thuyết minh): `small` sai nhiều, `medium` đọc được ý (vẫn sai dấu/từ), `large-v3` int8 trên CPU **bịa hẳn** ("Hãy đăng ký kênh…") → mặc định `medium`, và **chỉ dùng transcript để hiểu ý, KHÔNG trích nguyên văn** trong câu trả lời cho tester.
+- **Chỉ chạy bước 2 khi clip thật sự có tiếng** (`video_inspect.py` in "tiếng: có/không"); clip quay màn hình thường im lặng → bỏ qua cho nhanh.
+
 ## Đã kiểm chứng
 - `ffmpeg`/`ffprobe` 7.0.2 static ở `~/.local/bin` (không cần sudo).
 - Clip test 24s 1280×720 có thuyết minh: lọc đúng 3 mốc (0s/8s/16s), contact sheet được `vision_analyze` đọc đúng từng bước + mã lỗi.
-- Whisper local: venv `~/.hermes/venvs/whisper` (`uv venv` + `uv pip install faster-whisper`), model `small` int8, CPU 8 luồng.
+- Whisper local: venv `~/.hermes/venvs/whisper` (`uv venv` + `uv pip install faster-whisper`), model `medium` int8, CPU 8 luồng.

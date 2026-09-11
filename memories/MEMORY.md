@@ -6,9 +6,9 @@ Bot Ultron on VNPay Workspace. Send text thô (link <url|text>). Mention: đọc
 §
 Run claude/agy từ /home/zane/Desktop/work/vietbank/vietbank-sme; task nặng check RAM trước (abort nếu trống <~2GB).
 §
-Guard Hermes chặn restart gateway từ trong gateway (kể cả ssh máy khác) + chặn sửa thẳng config.yaml. Muốn restart → GỌI CLAUDE từ terminal (`claude -p "đọc ~/.hermes/scripts/gw_restart.txt…"`), nó chạy `systemd-run --user --collect /bin/sh -c 'sleep 150; systemctl --user restart hermes-gateway'`; KHÔNG đẩy việc cho Hoàng (ảnh remote, không vào máy được). Sửa config: `hermes config set`.
+Guard Hermes chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → GỌI CLAUDE (`claude -p "đọc ~/.hermes/scripts/gw_restart.txt…"` chạy `systemd-run --user --collect /bin/sh -c 'sleep 150; systemctl --user restart hermes-gateway'`); KHÔNG đẩy việc cho Hoàng. Sửa config: `hermes config set`.
 §
-Đọc ảnh: dùng agy (gemini-3.8-flash-medium), KHÔNG giao claude; redirect output ra file (pipe làm mất output); auxiliary.vision hay 403.
+Đọc ảnh: `vision_analyze` chạy tốt (auxiliary vision qua custom gateway); agy chỉ dự phòng (Gemini hay chặn filter). Video tester gửi → skill `video-analysis` (ffmpeg static ~/.local/bin + venv whisper ~/.hermes/venvs/whisper).
 §
 agentmemory: systemd, MCP 54 tool, EMBEDDING_PROVIDER=local (skill agentmemory).
 §
