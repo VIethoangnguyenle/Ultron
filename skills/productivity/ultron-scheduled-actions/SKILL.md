@@ -45,7 +45,10 @@ Các tin lặp theo giờ (nhắc trưa, khai ca chiều, chào cuối ngày) d�
 phân biệt bằng `--kind`. Thêm một loại tin mới = thêm 1 entry trong `KINDS` của script + 1 action
 lên lịch — KHÔNG viết script thứ N (rồi lại phải nhớ xoá).
 
-Hiện có: `lunch` (12h) · `afternoon` (13h, khai ca chiều) · `evening` (17h30).
+Hiện có: `lunch` (12h) · `afternoon` (13h, khai ca chiều) · `evening` (17h30) — **mỗi khung 18 câu**, tổng 54
+(Hoàng yêu cầu 2026-09-11: "cho tầm 50 câu xoay vòng"); giọng **vui vẻ cà nhây**, không @mention ai.
+Thêm câu = thêm 1 dòng vào list trong `KINDS`; giữ ≥15 câu mỗi pool để lâu bị lặp.
+`SALT` lệch pha 3 khung giờ (0/7/13) để 3 tin trong ngày không nhảy cùng nhịp.
 
 ```yaml
 - id: afternoon-kickoff
