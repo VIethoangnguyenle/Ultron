@@ -39,6 +39,26 @@ $P ~/.hermes/scripts/daily_dispatch.py --prune     # liệt kê action hết h�
 `date` (one-shot đúng ngày), `until` (hết hạn), `retry` (số lần thử/ngày, mặc định 1),
 `catch_up_minutes` (mặc định 120 — gateway down lúc tới giờ thì vẫn chạy khi còn trong cửa sổ).
 
+## Tin định kỳ trong ngày — thêm KIND, đừng thêm script
+
+Các tin lặp theo giờ (nhắc trưa, khai ca chiều, chào cuối ngày) dùng CHUNG `scripts/team_post.py`;
+phân biệt bằng `--kind`. Thêm một loại tin mới = thêm 1 entry trong `KINDS` của script + 1 action
+lên lịch — KHÔNG viết script thứ N (rồi lại phải nhớ xoá).
+
+Hiện có: `lunch` (12h) · `afternoon` (13h, khai ca chiều) · `evening` (17h30).
+
+```yaml
+- id: afternoon-kickoff
+  when: "13:00"
+  days: [mon, tue, wed, thu, fri]
+  script: team_post.py
+  args: ["--kind", "afternoon", "--space", "spaces/AAAADv4ib6s"]
+```
+
+Câu chọn theo NGÀY (`date.today().toordinal() % len(opts)`), không random ⇒ chạy lại trong ngày ra
+đúng câu cũ nên test được bằng `--dry-run`; xem trước câu của hôm nay: `team_post.py --kind X --dry-run`.
+Các tin này **không @mention ai** (réo tên cả team = chuông báo, mất tính xã giao).
+
 ## Pitfalls (đã dính thật)
 - **Phải ghi nhận cả lần LỖI vào state.** Nếu chỉ ghi khi thành công, action lỗi sẽ chạy lại mỗi
   tick (2 phút/lần) và tạo một file escalation mỗi lần → spam. Thiết kế hiện tại: thử tối đa
