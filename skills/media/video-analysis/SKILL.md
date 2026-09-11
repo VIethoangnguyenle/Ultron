@@ -56,8 +56,38 @@ python3 ~/.hermes/scripts/video_inspect.py "$CLIP" --audio
 - **Chỉ chạy bước 2 khi clip thật sự có tiếng** (`video_inspect.py` in "tiếng: có/không"); clip quay màn hình thường im lặng → bỏ qua cho nhanh.
 - **Âm thanh clip tự tạo nên chuẩn hoá độ to**: `-af loudnorm=I=-16:TP=-1.5` (mean_volume từ -21dB lên -16.6dB, max -1.3dB) cho dễ nghe.
 
+## Dựng clip minh hoạ (demo) — dùng script, đừng dựng tay
+
+`~/.hermes/scripts/make_demo_clip.py`: PIL vẽ slide → ffmpeg ghép thành video → nhép giọng đọc → chuẩn hoá độ to. Chạy local, không API ngoài.
+
+File slide (`slides.txt`): mỗi slide 1 khối, cách nhau bằng dòng `---`; dòng đầu là tiêu đề (chữ lớn), các dòng sau là nội dung.
+
+```
+BƯỚC 1: Mở màn ĐĂNG NHẬP
+user: ngocmai87 -> Đăng nhập thành công
+---
+BƯỚC 3: Bấm XÁC NHẬN
+!! Lỗi hệ thống — giao dịch không thực hiện được
+```
+
+```
+python3 ~/.hermes/scripts/make_demo_clip.py --text-file slides.txt --out /tmp/demo.mp4 \
+  --narration "A lô, em gửi anh clip lỗi nhé. Bước một, ..." [--narration-speed 0.95] [--seconds 6] [--silent]
+```
+
+- Có `--narration` → số giây mỗi slide tự chia theo độ dài audio, không phải canh tay; bỏ trống/`--silent` → clip im lặng, mỗi slide `--seconds` giây.
+- Tiếng đã chuẩn hoá `loudnorm=I=-16:TP=-1.5` (đo thật: mean -17dB, đỉnh -1.5dB — nghe rõ, không bẹt).
+- **Kiểm tra lại chính clip vừa dựng**: chạy `video_inspect.py` + `vision_analyze` contact sheet như luồng phân tích bình thường (đã test: đọc đúng tiêu đề + nội dung từng slide và đúng mốc giây).
+
+### Pitfalls khi dựng clip
+- **ffmpeg static thiếu `drawtext`** → chữ phải do PIL vẽ; đừng thêm `drawtext` vào lệnh ffmpeg (exit 8).
+- **edge-tts hay chặn từng giọng theo lúc** (`NoAudioReceived`, câu ngắn thì được câu dài thì không). Script tự: probe chọn **1 giọng cho cả clip** (tránh lẫn giọng nam/nữ trong cùng clip), thử lại từng câu, hỏng mới fallback `vi-VN-HoaiMyNeural`.
+- **Lời đọc nên viết thành từng câu** (dấu chấm) — script tự tách câu và chèn 0.3s nghỉ, nghe rõ hơn hẳn so với một câu dài.
+- Giọng mặc định `vi-VN-NamMinhNeural` (nam Việt Nam). Đổi bằng `--voice`.
+
 ## Đã kiểm chứng
 - `ffmpeg`/`ffprobe` 7.0.2 static ở `~/.local/bin` (không cần sudo).
 - Clip test 24s 1280×720 có thuyết minh: lọc đúng 3 mốc (0s/8s/16s), contact sheet được `vision_analyze` đọc đúng từng bước + mã lỗi.
 - Whisper local: venv `~/.hermes/venvs/whisper` (`uv venv` + `uv pip install faster-whisper`), model `medium` int8, CPU 8 luồng.
 - Clip v2 (giọng Việt `vi-VN-NamMinhNeural` + loudnorm): bóc tiếng ra đúng: *"Alo, em gửi anh clip lỗi nhé. Bước 1, em đăng nhập vào hệ thống bình thường… Giao dịch không thực hiện được."*
+- `make_demo_clip.py` dựng clip 3 slide + thuyết minh (22.6s, 0.34 MB): `video_inspect.py` lọc đúng 3 mốc (0s/8s/15s), `vision_analyze` đọc đúng cả 3 slide, bóc tiếng đúng từng chữ.
