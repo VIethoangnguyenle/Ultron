@@ -220,6 +220,43 @@ def cmd_habit(args) -> int:
     return 0
 
 
+def cmd_todo(args) -> int:
+    """Ai còn thiếu thông tin → để Ultron chủ động hỏi thăm bổ sung hồ sơ."""
+    data = load()
+    spaces = data.get("spaces", {})
+    want = set(args.missing or ["role"])
+    rows = []
+    for uid, p in data["people"].items():
+        if (p.get("type") or "HUMAN").upper() == "BOT" or "self" in (p.get("tags") or []):
+            continue
+        if args.group and args.group not in (p.get("groups") or []):
+            continue
+        miss = []
+        if "role" in want and not (p.get("role") or "").strip():
+            miss.append("chức danh")
+        if "note" in want and not (p.get("notes") or []):
+            miss.append("ghi chú")
+        if not miss:
+            continue
+        rows.append({
+            "id": uid,
+            "name": p.get("name", ""),
+            "groups": ", ".join(spaces.get(g, g) for g in (p.get("groups") or [])) or "-",
+            "missing": miss,
+        })
+    rows.sort(key=lambda r: r["name"])
+    if args.json:
+        print(json.dumps(rows, ensure_ascii=False, indent=2))
+        return 0
+    where = f" (nhóm {spaces.get(args.group, args.group)})" if args.group else ""
+    print(f"{len(rows)} người còn thiếu thông tin{where}")
+    for r in rows[: args.limit]:
+        print(f"  {r['name']}  [{r['id']}]  thiếu: {','.join(r['missing'])}  • {r['groups']}")
+    if len(rows) > args.limit:
+        print(f"  … còn {len(rows) - args.limit} người nữa (dùng --limit để xem thêm)")
+    return 0
+
+
 def cmd_set(args) -> int:
     data = load()
     uid, p = find(data, args.who)
@@ -253,6 +290,10 @@ def main() -> int:
     a.add_argument("--group", action="append"); a.add_argument("--tag", action="append"); a.set_defaults(fn=cmd_add)
     hb = sub.add_parser("habit"); hb.add_argument("who"); hb.add_argument("text"); hb.add_argument("--at")
     hb.set_defaults(fn=cmd_habit)
+    td = sub.add_parser("todo", help="ai còn thiếu chức danh/ghi chú để hỏi thăm")
+    td.add_argument("--group"); td.add_argument("--missing", action="append", choices=["role", "note"])
+    td.add_argument("--limit", type=int, default=25); td.add_argument("--json", action="store_true")
+    td.set_defaults(fn=cmd_todo)
     args = ap.parse_args()
     return args.fn(args)
 

@@ -113,6 +113,31 @@ Cách mention: viết `<users/<id>>` trong câu trả lời — Google tự bi�
 4. Người được gọi không nằm trong space → đừng tag (họ không thấy); nói tên thường hoặc escalate Hoàng.
 5. Nếu việc thuộc Hoàng → escalate Hoàng như cũ, không tự gán cho người khác.
 
+## Chủ động hỏi thăm để bổ sung hồ sơ (Hoàng cho phép 2026-09-11)
+
+Không cần chờ ai tự giới thiệu: gặp người **chưa có trong sổ** hoặc **thiếu chức danh/đầu mối** thì
+được phép hỏi thăm — đây là cách xây kết nối, không phải làm phiền.
+
+```bash
+$P todo                          # ai còn thiếu chức danh (mặc định)
+$P todo --missing note           # ai chưa có ghi chú nào
+$P todo --group spaces/AAAADv4ib6s --limit 40
+```
+
+**Cách hỏi (mẫu):**
+> "Anh/chị ơi, em chưa rõ anh/chị phụ trách mảng nào trong dự án, cho em hỏi để em ghi lại với ạ 🙏"
+
+**Rails:**
+1. **1 câu, 1 lần** — hỏi xong thì thôi; không hỏi dồn nhiều người trong cùng một tin (vi phạm rail
+   "tối đa 1 mention").
+2. **Chỉ hỏi về CÔNG VIỆC**: vai trò, mảng phụ trách, đầu mối việc gì. **Không** hỏi đời tư, tuổi,
+   quê quán, chuyện riêng.
+3. **Hỏi đúng chỗ**: trong group nơi họ đang hoạt động (họ trả lời tự nhiên), hoặc DM nếu tiện hơn.
+4. **Không hỏi lại** điều đã có trong sổ; trước khi hỏi chạy `show` để chắc là thiếu thật.
+5. **Hỏi xong ghi ngay** — `note` (điều học được) hoặc `set --role/--tag`; nếu họ nói rõ "em là tester
+   bên chị Hà" thì ghi cả vào `how`/`tags` để lần sau tra `--tag` ra ngay.
+6. Vẫn giữ nguyên: không nêu nội dung hồ sơ ra trước mặt người khác, không nói "hồ sơ ghi bạn...".
+
 ## Rails
 
 - Đây là bộ nhớ NỘI BỘ. **Không dán hồ sơ của người này cho người khác** trong group, không nêu

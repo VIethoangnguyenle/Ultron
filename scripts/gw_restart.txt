@@ -1,11 +1,19 @@
-# Restart gateway (đã nạp config hiển thị mới) — detached & safe.
-# Gateway chạy dưới user systemd service "hermes-gateway"; claude là con của gateway
-# nên restart foreground sẽ tự giết mình trước khi kịp báo cáo.
-#
-# Bước 1 — hẹn restart tách rời 40 giây nữa (sống trong cgroup riêng của user systemd):
-systemd-run --user --unit=ultron-gw-restart --collect /bin/sh -c 'sleep 40; systemctl --user restart hermes-gateway'
+# Nhiệm vụ (Hoàng ra lệnh trực tiếp): khởi động lại 2 gateway Hermes.
+# Làm ĐÚNG 2 bước, báo lại nguyên văn output. Không làm gì khác.
 
-# Bước 2 — xác nhận unit đã được hẹn:
+## Bước 1 — máy này (Linux, service user systemd tên "hermes-gateway")
+Gateway là cha của tiến trình này nên phải hẹn tách rời (sống trong cgroup riêng của user systemd):
+
+systemd-run --user --unit=ultron-gw-restart --collect /bin/sh -c 'sleep 150; systemctl --user restart hermes-gateway'
+
+Xác nhận đã hẹn xong:
 systemctl --user list-units --all --no-pager | grep -i ultron-gw-restart
 
-# Không chạy lệnh nào khác. Báo lại nguyên văn output của cả 2 bước.
+## Bước 2 — máy Mac của Kitty (chị Nguyên), qua ssh
+ssh -o BatchMode=yes nguyen@10.173.137.191 '/Users/nguyen/.hermes/hermes-agent/venv/bin/hermes gateway restart'
+Nếu lệnh trên lỗi thì thử cách 2:
+ssh -o BatchMode=yes nguyen@10.173.137.191 'launchctl kickstart -k gui/501/ai.hermes.gateway'
+Báo lại nguyên văn output của cả cách đã thử.
+
+## Báo cáo
+Mỗi bước: OK hay lỗi + nguyên văn output. Không chạy lệnh nào khác.
