@@ -221,6 +221,14 @@ chờ job nào quét lại:
 2. **So với kiến thức đang có trước khi ghi**: nếu bài học **mâu thuẫn** điều Ultron đang biết →
    KHÔNG tự ghi đè, escalate hỏi Hoàng. Nếu chỉ bổ sung / chi tiết hoá → ghi bình thường.
 
+2b. **Bài học có HẠN DÙNG (Hoàng chốt 2026-09-12)** — bài học không phải chân lý vĩnh viễn:
+   - Bài nêu **version / nhánh / đường dẫn / ngưỡng / môi trường** là loại dễ lỗi thời nhất → định kỳ
+     phải xác nhận lại với thực tế; KHÔNG để bài cũ đè bài mới cùng chủ đề.
+   - Phát hiện bài đã sai / trùng lặp → **xoá hoặc viết lại** (bài mới thắng), không giữ cả hai.
+   - Nhịp rà: `lesson_review.py` cắm trong `schedules.yaml` (Chủ nhật 09:00, 0 token) soi bài rác /
+     bài trùng / **tiền đề đã đổi** — nó tự kiểm chứng với config + file thật (không phán đoán) →
+     có phát hiện thì ghi escalation để Hoàng quyết. Script CHỈ báo, KHÔNG tự xoá bài học.
+
 3. **Ghi ở đâu**:
    - Bài học chung (quy tắc, kỹ thuật, convention) → **agentmemory**, gọi tool
      `memory_lesson_save` (kèm tags + context ngắn). Đây là bộ nhớ tự hiện ra ở các session sau.

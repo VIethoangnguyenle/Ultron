@@ -77,6 +77,25 @@ NOT hot-load tools into the current session.
 - memory_graph_query / memory_relations / memory_profile — knowledge graph + profile
 - memory_diagnose / memory_heal — subsystem health + auto-fix
 
+## "Rà bài học lỗi thời" — bài học có HẠN DÙNG (Hoàng chốt 2026-09-12)
+
+Bài học trong store không phải chân lý vĩnh viễn. Bài nêu **version / nhánh / đường dẫn / ngưỡng /
+môi trường** là loại dễ lỗi thời nhất; bài cũ SAI thì phải xoá hoặc viết lại, KHÔNG để đè nhau.
+
+- Script: `~/.hermes/scripts/lesson_review.py` — **0 token**, đọc thẳng `mem%3Alessons.bin`, phân 4 nhóm:
+  bài rác/thử nghiệm · bài nghi trùng (Jaccard từ >4 ký tự ≥ 0.6) · **tiền đề ĐÃ ĐỔI** · bài dễ lỗi thời (≥14 ngày).
+- **Tiền đề đã đổi = tự kiểm chứng với thế giới thật, không phán đoán**: bài nói cơ chế approval → so
+  `approvals.mode` trong config; bài cảnh báo token trong `.mcp.json` → grep xem còn token sống không;
+  bài chứa đường dẫn → kiểm file còn tồn tại không.
+- Nhịp: action `lesson-review` trong `~/.hermes/schedules.yaml` (Chủ nhật 09:00). Có phát hiện → ghi
+  1 file escalation → cron forward về DM Hoàng. **Script CHỈ BÁO, không tự xoá** — xoá là quyết định
+  của Ultron/Hoàng (`memory_lesson_delete`, soft-delete).
+- Report: `~/.hermes/reports/lesson_review_<YYYY-MM-DD>.md`.
+- Pitfalls: (a) store là **dict lồng dict** — loader phải bắt cả nhánh value là dict, không chỉ list;
+  (b) phải **lọc `deleted: true`** nếu không sẽ đếm cả bài đã xoá; (c) probe theo TỪ KHOÁ dễ bắt oan —
+  chữ "approval" từng khớp tên service `approval` trong bài micrometer ⇒ regex phải đòi cụm ngữ cảnh
+  (`command_allowlist`, `approvals.mode`, "cơ chế approval"), không chỉ 1 từ.
+
 ## Modes & pitfalls
 
 - ACTIVE config (this install): KEYLESS (no LLM key, no cloud) + `EMBEDDING_PROVIDER=local`

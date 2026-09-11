@@ -51,6 +51,13 @@ actions:
     script: team_post.py
     args: ["--kind", "afternoon", "--space", "spaces/AAAADv4ib6s"]
 
+  # Rà bài học dài hạn lỗi thời — Chủ nhật 09:00. 0 token: lesson_review.py chỉ SOI và BÁO
+  # (bài rác / bài trùng / tiền đề đã đổi), KHÔNG tự xoá. Có phát hiện → ghi escalation về DM Hoàng.
+  - id: lesson-review
+    when: "09:00"
+    days: [sun]
+    script: lesson_review.py
+
   # Lời chào cuối ngày — ngày làm việc, 17h30. Nội dung xoay vòng theo ngày; không @mention ai.
   - id: evening-greeting
     when: "17:30"
