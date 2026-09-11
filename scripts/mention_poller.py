@@ -12,6 +12,7 @@ Runs as a no_agent cron job (stdout -> cron log). State persists in
 """
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -152,6 +153,28 @@ def _emit_pending(entry: dict) -> None:
         "created_at": entry.get("create_time"),
         "waited_sec": WAIT_SEC,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
+    _kick_reply_job()
+
+
+REPLY_JOB_ID = "5fc5e2166c3a"  # job ultron-mention-reply (LLM)
+
+
+def _kick_reply_job() -> None:
+    """Đánh thức job trả lời NGAY thay vì để nó tự thức mỗi 2 phút.
+
+    Mỗi lần job LLM thức dậy — kể cả khi không có việc gì — vẫn gửi lại toàn bộ system prompt
+    (~27k token). Quét 2 phút/lần = ~19 triệu token/ngày cho việc ngó hàng đợi. Nên: poller (script,
+    0 token) phát hiện việc rồi mới kích; job LLM để nhịp thưa làm lưới an toàn.
+    """
+    hermes = Path(sys.executable).parent / "hermes"
+    if not hermes.exists():
+        return
+    try:
+        subprocess.Popen([str(hermes), "cron", "run", REPLY_JOB_ID],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                         start_new_session=True)
+    except Exception as exc:  # không chặn poller vì trigger lỗi
+        print(f"[mention_poller] kick reply job failed: {exc}")
 
 
 _MEMBERS_CACHE_PATH = HERMES_HOME / "mention_members_cache.json"
