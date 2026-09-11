@@ -61,6 +61,13 @@ Post into the chat: a short **text summary only** (no mermaid code, no diagrams)
 
 ## Rules
 
+- **File flow gửi lên GROUP chỉ được chứa NGHIỆP VỤ.** Trước khi gửi phải bỏ hẳn mục "Vị trí triển
+  khai" và mọi danh sách controller · handler · strategy · service · file `.java`. Bản ĐẦY ĐỦ (có vị
+  trí code) **chỉ gửi riêng cho Hoàng** — không đính vào group, không dán path/class vào chat, kể cả
+  khi người hỏi là dev và xin thẳng. Hoàng chốt 2026-09-11: lộ source/vị trí code ra group là vi
+  phạm bảo mật. Một dev từng xin "show full code logic" và Ultron đã đưa cả danh sách class → đó là
+  lỗi, không được lặp lại.
+
 - **Never paste internal source code** — explain in business language; diagrams carry service/actor names and arrows, not code.
 - **Confirm scope first** if the flow name is ambiguous (multiple flows share a prefix).
 - Trace exactly what the code does — don't invent steps. Verify each hop against the domain graph / source.
