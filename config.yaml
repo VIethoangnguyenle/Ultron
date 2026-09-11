@@ -247,3 +247,6 @@ auxiliary:
     base_url: https://api-llm.x.vnshop.cloud/v1
     api_key: ${HERMES_CUSTOM_API_LLM_X_VNSHOP_CLOUD_API_KEY}
     timeout: 120
+tts:
+  edge:
+    voice: vi-VN-NamMinhNeural

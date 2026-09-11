@@ -39,6 +39,7 @@ python3 ~/.hermes/scripts/video_inspect.py "$CLIP" --audio
 - Contact sheet có nhãn `giây mm:ss` ở góc mỗi khung → luôn nói lỗi ở **giây thứ mấy**.
 - Clip quay màn hình: chữ trong khung nhỏ → gọi `vision_analyze` với `region=[...]` để phóng to vùng thông báo lỗi trước khi kết luận.
 - Lời thoại và hình khớp nhau thì trích cả hai; chỉ có hình thì mô tả thao tác.
+- **Với giọng tiếng Việt thật, `medium` bóc đúng gần hết** (đo thật: câu "Bước 1, em đăng nhập vào hệ thống bình thường…" ra đúng từng chữ) → có thể trích nguyên văn khi câu rõ ràng; còn audio méo/nhiễu thì chỉ hiểu ý, đừng trích.
 - Có mã lỗi trong clip → tra mã lỗi theo `scope-map.json` của skill `tester-support` (đúng dự án của group), không đoán.
 
 ## Pitfalls (đã dính thật)
@@ -51,9 +52,12 @@ python3 ~/.hermes/scripts/video_inspect.py "$CLIP" --audio
 - Clip dài (>5 phút): giảm `--rate` (vd `--rate 0.5`) cho khỏi trích quá nhiều khung.
 
 - **Chất lượng bóc tiếng tiếng Việt còn thô** (đo thật trên clip 24s có thuyết minh): `small` sai nhiều, `medium` đọc được ý (vẫn sai dấu/từ), `large-v3` int8 trên CPU **bịa hẳn** ("Hãy đăng ký kênh…") → mặc định `medium`, và **chỉ dùng transcript để hiểu ý, KHÔNG trích nguyên văn** trong câu trả lời cho tester.
+- **TTS giọng tiếng Anh đọc chữ tiếng Việt → nghe méo, và ASR bóc ra rác.** Đã dính thật: `tts.edge.voice` để mặc định `en-US-AriaNeural` → clip nghe không ra chữ; đổi sang `vi-VN-NamMinhNeural` (`hermes config set tts.edge.voice vi-VN-NamMinhNeural`) thì cùng câu đó bóc đúng gần hết. **Nếu clip nhà mình tự tạo (demo/thuyết minh) mà ASR ra rác → nghi giọng TTS trước, đừng nghi model.**
 - **Chỉ chạy bước 2 khi clip thật sự có tiếng** (`video_inspect.py` in "tiếng: có/không"); clip quay màn hình thường im lặng → bỏ qua cho nhanh.
+- **Âm thanh clip tự tạo nên chuẩn hoá độ to**: `-af loudnorm=I=-16:TP=-1.5` (mean_volume từ -21dB lên -16.6dB, max -1.3dB) cho dễ nghe.
 
 ## Đã kiểm chứng
 - `ffmpeg`/`ffprobe` 7.0.2 static ở `~/.local/bin` (không cần sudo).
 - Clip test 24s 1280×720 có thuyết minh: lọc đúng 3 mốc (0s/8s/16s), contact sheet được `vision_analyze` đọc đúng từng bước + mã lỗi.
 - Whisper local: venv `~/.hermes/venvs/whisper` (`uv venv` + `uv pip install faster-whisper`), model `medium` int8, CPU 8 luồng.
+- Clip v2 (giọng Việt `vi-VN-NamMinhNeural` + loudnorm): bóc tiếng ra đúng: *"Alo, em gửi anh clip lỗi nhé. Bước 1, em đăng nhập vào hệ thống bình thường… Giao dịch không thực hiện được."*
