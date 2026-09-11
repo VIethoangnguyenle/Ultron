@@ -130,15 +130,21 @@ Clip/nhạc gửi vào group là dạng file, Ultron không "xem" trực tiếp 
 **Không gửi khung hình/clip ra group hay lên cloud** — clip có thể chứa số tài khoản/tên khách hàng;
 chỉ gửi **báo cáo chữ**.
 
-## Báo cáo cho tester (file markdown)
+## Báo cáo cho tester (file PDF)
 
-- Kết quả phân tích check log phải đưa tester dưới dạng **file markdown (.md)** rồi gửi lên group.
-- **Định dạng file mặc định LUÔN là markdown.** Các định dạng khác (csv, xlsx, json, ...)
-  CHỈ làm khi tester/Hoàng yêu cầu rõ ràng — không tự đổi định dạng.
+- **Định dạng gửi tester mặc định là PDF** (Hoàng chốt 2026-09-11: *"đối với team tester,
+  họ ưu tiên pdf hơn nhé"*). Quy trình: viết markdown trước (để dễ sửa/tra) → convert
+  `python3 ~/.hermes/scripts/md2pdf.py <file.md>` → gửi **file .pdf** lên group.
+  File .md chỉ để nội bộ, KHÔNG gửi làm bản chính cho tester.
+- Các định dạng khác (csv, xlsx, json, ...) CHỈ làm khi tester/Hoàng yêu cầu rõ ràng.
 - **TUYỆT ĐỐI KHÔNG thả đường dẫn local** (`/home/zane/...`, `file://`) — tester không thấy
   được. Phải gửi file thật lên group (attachment qua user OAuth — đã cấp `/setup-files`).
 - Gửi file: `scripts/gchat_send_file.py --space spaces/XXX --file <path> --thread spaces/XXX/threads/YYY`
   (nên truyền `--thread` để file nằm đúng thread đang trao đổi).
+  - ⚠️ **`--thread` chỉ ăn khi request kèm `messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD`**
+    (đã vá trong script). Thiếu tham số này, Chat **tạo thread MỚI** và file lạc ra ngoài thread
+    đang trao đổi — mà user token không xoá được tin sai → phải nhờ Hoàng xoá tay. Gửi xong LUÔN
+    đọc lại `thread.name` của tin vừa tạo để chắc nó nằm đúng thread.
   - ⚠️ Caption nhiều dòng: **KHÔNG** truyền qua `--text {cap!r}` trong f-string — repr() biến
     newline thành 2 ký tự `\n` và group sẽ thấy chữ `\n` literal. Viết caption ra file rồi
     `--text "$(cat /tmp/cap.txt)"`.

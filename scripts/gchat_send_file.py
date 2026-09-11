@@ -73,9 +73,12 @@ def main() -> int:
     body = {"attachment": [{"attachmentDataRef": ref}]}
     if args.text:
         body["text"] = args.text
+    kwargs: dict = {"parent": space, "body": body}
     if args.thread:
+        # BẮT BUỘC: thiếu messageReplyOption thì Chat tạo THREAD MỚI thay vì trả lời vào thread đang có
+        kwargs["messageReplyOption"] = "REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
         body["thread"] = {"name": args.thread}
-    resp = api.spaces().messages().create(parent=space, body=body).execute()
+    resp = api.spaces().messages().create(**kwargs).execute()
     print(json.dumps({"ok": True, "message": resp.get("name"), "attachment": resp.get("attachment")}, ensure_ascii=False))
     return 0
 
