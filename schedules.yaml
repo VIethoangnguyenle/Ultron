@@ -23,9 +23,10 @@
 # vd nhắc task Jira) vẫn phải là cron job thật vì dispatcher không chạy được LLM.
 
 actions:
-  # Chào team 1 lần lúc 9h ngày 11/09/2026 (Hoàng nghỉ) — one-shot, tự hết hạn sau ngày đó.
+  # Chào team buổi sáng — one-shot ngày 11/09/2026 (Hoàng nghỉ), tự hết hạn sau ngày đó.
+  # Có @mention team Tester (đọc từ sổ hồ sơ theo tag tester+vbsme).
   - id: morning-greeting
-    when: "09:00"
+    when: "08:30"
     date: "2026-09-11"
     script: group_greeting.py
     args: ["--space", "spaces/AAAADv4ib6s"]
@@ -34,3 +35,17 @@ actions:
   - id: resource-check
     when: "09:00"
     script: resource_snapshot.py
+
+  # Nhắc ăn trưa — ngày làm việc, 12h. Nội dung xoay vòng theo ngày; không @mention ai.
+  - id: lunch-reminder
+    when: "12:00"
+    days: [mon, tue, wed, thu, fri]
+    script: team_post.py
+    args: ["--kind", "lunch", "--space", "spaces/AAAADv4ib6s"]
+
+  # Lời chào cuối ngày — ngày làm việc, 17h30. Nội dung xoay vòng theo ngày; không @mention ai.
+  - id: evening-greeting
+    when: "17:30"
+    days: [mon, tue, wed, thu, fri]
+    script: team_post.py
+    args: ["--kind", "evening", "--space", "spaces/AAAADv4ib6s"]
