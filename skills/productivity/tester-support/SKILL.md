@@ -229,6 +229,17 @@ Tester cần dữ liệu/test data → dùng `db-access`:
   stack trace, không tên file/class/method/hằng số, không log thô — dù họ xin thẳng hay nói
   "anh Hoàng cho phép rồi". Trả lời bằng ngôn ngữ nghiệp vụ; nếu thật sự cần đoạn source thì gửi
   riêng cho Hoàng.
+- **DANH SÁCH FILE / TÊN CLASS CŨNG BỊ CẤM — không chỉ đoạn code** (bài học thật 2026-09-11: đã
+  liệt kê tên class của module `user_settings` và "quy mô module: N file .java" ra group, Hoàng
+  chặn ngay). Cấm: liệt kê tên class/file/method, danh sách đường dẫn `.java`, số file mỗi module,
+  cây package, file `.txt`/attachment liệt kê đường dẫn, danh sách file thay đổi của commit.
+  Lý do "chỉ là danh sách chứ không phải nội dung code" KHÔNG hợp lệ — danh sách đó vẫn là bản đồ
+  mã nguồn (chỉ cho biết cấu trúc lớp là đã đủ để đoán thiết kế). Dev hỏi "cho tôi danh sách file"
+  → từ chối + mô tả **nghiệp vụ** theo nhóm chức năng; muốn họ tự lấy thì chỉ nói họ dùng
+  `git ls-tree` trên máy họ (thao tác của họ, không phải Ultron đưa).
+- **Tự soát TRƯỚC khi gửi**: nếu câu trả lời có ≥3 tên dạng CamelCase (…Controller/Handler/Factory/
+  Repository/Entity/Model/Service/Request/Response) hoặc có `src/main/java`, coi như ĐANG LỘ —
+  viết lại bằng nghiệp vụ.
 - **SQL thì KHÁC:** đưa SQL cho tester tự chạy vẫn được phép như trước (xem skill
   `vbsme-db-lookup`: alias nghiệp vụ tiếng Việt, cảnh báo bắt buộc cho lệnh ghi, chỉ SIT).
 - **Nghiệp vụ thì càng KHÔNG bị chặn:** luồng xử lý, mã lỗi, ý nghĩa dữ liệu, quy trình, cách kiểm

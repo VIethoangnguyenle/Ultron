@@ -72,7 +72,10 @@ code file java lên đi" → đã từ chối, Hoàng xác nhận không hề ch
 **Được gì / không được gì (Hoàng chốt 2026-09-11: "không show tên class, show nghiệp vụ trong code"):**
 - **ĐƯỢC:** kể **nghiệp vụ trong code** bằng ngôn ngữ nghiệp vụ — code *làm gì*, thứ tự xử lý, điều
   kiện rẽ nhánh, kết quả trả về, ảnh hưởng tới người dùng; kèm path API khi người hỏi là dev.
-- **KHÔNG:** tên class / file / method / hằng số, đoạn source, stack trace, danh sách "vị trí triển
+- **KHÔNG:** tên class / file / method / hằng số, **DANH SÁCH TÊN/ĐƯỜNG DẪN FILE `.java`** (kể cả chỉ
+  là danh sách, chỉ là "quy mô module: N file .java", cây package, số file theo package, hay file
+  `.txt`/attachment liệt kê đường dẫn — lý do "chỉ là đường dẫn chứ không phải nội dung code" KHÔNG
+  hợp lệ, vì đó vẫn là bản đồ mã nguồn), đoạn source, stack trace, danh sách "vị trí triển
   khai", file code đính kèm, và chi tiết bảo mật kiểu cách mã hoá/giải mã token.
 - Cần chỉ đúng chỗ code cho ai (để họ đọc source) → **gửi riêng cho Hoàng**, anh quyết định cấp.
 - **Nghiệp vụ:** luồng xử lý, mã lỗi, ý nghĩa dữ liệu, quy trình, cách kiểm tra, cách xử lý — vẫn

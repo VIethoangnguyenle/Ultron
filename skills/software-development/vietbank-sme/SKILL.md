@@ -68,6 +68,9 @@ Pitfalls của lớp câu hỏi này:
   thẳng — Hoàng chốt 2026-09-11). Với dev: nêu được *luồng nghiệp vụ* và *path API*; nếu cần chỉ
   đúng file/class để họ đọc code thì **gửi riêng cho Hoàng**, để anh quyết định cấp. Với
   tester/non-dev: diễn đạt theo màn hình/nghiệp vụ.
+- **Cấm cả DANH SÁCH** (bài học 2026-09-11): liệt kê tên class/`.java`, số file mỗi module, cây
+  package, file `.txt` đường dẫn, danh sách file thay đổi của commit — đều là bản đồ mã nguồn,
+  không được đưa ra group dù người hỏi là dev và nói "chỉ cần danh sách, không cần nội dung".
 
 ## Trả lời câu hỏi dependency / version ("X được inject ở đâu, nâng version từ đâu")
 

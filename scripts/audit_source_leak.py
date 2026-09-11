@@ -33,13 +33,26 @@ JAVA_MARKERS = [
 ]
 PAT = re.compile("|".join(JAVA_MARKERS), re.IGNORECASE)
 
+# --- Bổ sung 2026-09-11: bản đồ mã nguồn KHÔNG chỉ là đoạn code, mà còn là DANH SÁCH.
+# Lỗ hổng cũ: audit chỉ bắt code nên đã lọt tin liệt kê tên class + "N file .java" của module.
+INVENTORY_MARKERS = [
+    r"src/main/java", r"\b\d+\s*file\s*\.?java\b", r"file\s*\.java", r"\.java\b",
+    r"├──|└──", r"danh sách file", r"quy mô", r"tên file", r"đường dẫn file",
+    r"\bpackage\s+[a-z][\w.]*\s*;",
+]
+PAT2 = re.compile("|".join(INVENTORY_MARKERS), re.IGNORECASE)
+# cụm ≥3 tên kiểu class Java trong 1 tin ⇒ gần như chắc chắn là đang liệt kê class
+NAME_CLUSTER = re.compile(
+    r"\b[A-Z][A-Za-z0-9]*(?:Controller|Handler|Factory|Repository|Entity|Model|Service|Services|"
+    r"Executor|Constants|Enum|Error|Definition|Request|Response|Filter|Item|Metadata|Config|Util|"
+    r"Utils|Mapper|Validator|Adapter|Impl)\b")
+
 d = json.loads((H / "google_chat_read_token.json").read_text())
 c = Credentials(token=d.get("token"), refresh_token=d.get("refresh_token"),
                 token_uri=d.get("token_uri", "https://oauth2.googleapis.com/token"),
                 client_id=d.get("client_id"), client_secret=d.get("client_secret"),
                 scopes=d.get("scopes", ["https://www.googleapis.com/auth/chat.messages.readonly"]))
-if not c.valid:
-    c.refresh(Request())
+c.refresh(Request())  # refresh vô điều kiện — token hết hạn mà .valid vẫn báo True (đã gặp 401 thật)
 svc = build("chat", "v1", credentials=c, cache_discovery=False)
 
 total, flagged, errs = 0, [], []
@@ -62,9 +75,17 @@ for space, name in SPACES.items():
         total += 1
         txt = m.get("text") or ""
         hit = PAT.search(txt)
+        names = set(NAME_CLUSTER.findall(txt))
+        why = None
         if hit:
-            flagged.append((name, (m.get("createTime") or "")[:19], hit.group(0)[:40],
-                            txt[:120].replace("\n", " ")))
+            why = "CODE:" + hit.group(0)[:30]
+        elif len(names) >= 3:
+            why = "LIST-CLASS:" + ",".join(sorted(names)[:3])
+        elif PAT2.search(txt) and txt.count(".java") >= 2:
+            why = "LIST-FILE:" + PAT2.search(txt).group(0)[:30]
+        if why:
+            flagged.append((name, (m.get("createTime") or "")[:19], why,
+                            txt[:140].replace("\n", " ")))
 
 print(f"Đã quét tin do Ultron gửi trong {len(SPACES)} space — tổng {total} tin")
 if errs:
