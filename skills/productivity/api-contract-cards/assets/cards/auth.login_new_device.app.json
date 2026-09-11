@@ -1,0 +1,559 @@
+{
+  "card_id": "auth.login_new_device.app",
+  "flow": "dang-nhap",
+  "flow_step": "B2b",
+  "title": "Đăng nhập trên thiết bị mới - kênh App (MB)",
+  "channel": "APP",
+  "method": "POST",
+  "path": "/api/v1/app/nonfinancial/auth/login-new-device",
+  "version": "v1",
+  "headers": [
+    {
+      "name": "Content-Type",
+      "required": true,
+      "sample": "application/json"
+    }
+  ],
+  "client_must_know": [
+    "Chỉ dùng khi khách đăng nhập trên thiết bị CHƯA được cấp phép; thiết bị đã biết thì dùng API đăng nhập thường.",
+    "Trước khi gọi API này, thiết bị cũ phải thực hiện luồng cấp phép (permit-new-device: validate -> init -> confirm).",
+    "Kích hoạt sai quá số lần cho phép sẽ bị tạm khoá (mã 100035)."
+  ],
+  "request_fields": [
+    {
+      "name": "username",
+      "type": "string",
+      "required": true,
+      "example": "namdx",
+      "note": "Tên đăng nhập"
+    },
+    {
+      "name": "password",
+      "type": "string",
+      "required": false,
+      "example": "Vnpay@123",
+      "note": "Bắt buộc khi loginType = PASSWORD"
+    },
+    {
+      "name": "loginType",
+      "type": "enum",
+      "enum": [
+        "PASSWORD",
+        "BIOMETRIC"
+      ],
+      "required": false,
+      "example": "PASSWORD"
+    },
+    {
+      "name": "softOtpStatus",
+      "type": "enum",
+      "enum": [
+        "INACTIVE",
+        "ACTIVE",
+        "LOCK"
+      ],
+      "required": false,
+      "example": "INACTIVE"
+    },
+    {
+      "name": "sessionId",
+      "type": "string",
+      "required": false,
+      "example": "9265ccf6-3fa6-4f29-a851-c05b79846009",
+      "note": "ID phiên đăng nhập"
+    },
+    {
+      "name": "clientId",
+      "type": "integer",
+      "required": false,
+      "example": 123456,
+      "note": "ID thiết bị (0 nếu chưa biết)"
+    },
+    {
+      "name": "customerId",
+      "type": "integer",
+      "required": false,
+      "example": 0,
+      "note": "ID khách hàng (0 nếu chưa biết)"
+    },
+    {
+      "name": "unlockBootloader",
+      "type": "boolean",
+      "required": false,
+      "example": false,
+      "note": "Cờ Android đã mở khoá bootloader"
+    },
+    {
+      "name": "mainColor",
+      "type": "string",
+      "required": false,
+      "example": "456456",
+      "note": "Màu chủ đạo app"
+    },
+    {
+      "name": "appPackage",
+      "type": "string",
+      "required": false,
+      "example": "vn.vnpay.vbsme",
+      "note": "Package app"
+    },
+    {
+      "name": "signature",
+      "type": "string",
+      "required": false,
+      "example": "123456",
+      "note": "Chữ ký giữa server và client"
+    },
+    {
+      "name": "DT",
+      "type": "enum",
+      "enum": [
+        "IOS",
+        "ANDROID",
+        "WEB",
+        "UNKNOWN"
+      ],
+      "required": false,
+      "example": "IOS",
+      "note": "Hệ điều hành thiết bị"
+    },
+    {
+      "name": "E",
+      "type": "string",
+      "required": false,
+      "example": "3509823445",
+      "note": "Raw IMEI"
+    },
+    {
+      "name": "PS",
+      "type": "string",
+      "required": false,
+      "example": "IS_SAFE",
+      "note": "Phone Security"
+    },
+    {
+      "name": "PM",
+      "type": "string",
+      "required": false,
+      "example": "iPhone12",
+      "note": "Tên thiết bị"
+    },
+    {
+      "name": "VER",
+      "type": "string",
+      "required": false,
+      "example": "1.0.3",
+      "note": "Phiên bản app"
+    },
+    {
+      "name": "OV",
+      "type": "string",
+      "required": false,
+      "example": "12.0.7",
+      "note": "Phiên bản hệ điều hành"
+    }
+  ],
+  "response_data_extra": [
+    {
+      "name": "nextStep",
+      "type": "enum",
+      "enum": [
+        "NORMAL",
+        "LOGIN_FIRST",
+        "ANOTHER",
+        "RESET_PASSWORD",
+        "EXPIRED_PASSWORD",
+        "REQUIRE_COLLECT",
+        "CHANGE_PASSWORD_MIGRATE",
+        "RESET_PASSWORD_MIGRATE",
+        "EXPIRED_PASSWORD_MIGRATE"
+      ],
+      "example": "ANOTHER",
+      "note": "ANOTHER = đăng nhập thiết bị khác -> client gọi bước kích hoạt"
+    },
+    {
+      "name": "otpToken",
+      "type": "string",
+      "example": "<otp-token>",
+      "note": "Token dùng cho luồng OTP kích hoạt"
+    },
+    {
+      "name": "otpExpireTime",
+      "type": "integer",
+      "example": 300,
+      "note": "Thời gian hết hạn OTP (giây)"
+    },
+    {
+      "name": "otpAction",
+      "type": "string",
+      "example": "SEND_OTP",
+      "note": "Action cho API resend OTP"
+    },
+    {
+      "name": "ekycSignature",
+      "type": "string",
+      "example": "<ekyc-signature>",
+      "note": "Chữ ký so khớp với đầu eKYC"
+    }
+  ],
+  "errors": [
+    {
+      "code": "100030",
+      "message": "Không tìm thấy thiết bị",
+      "cause": "Thiết bị chưa có trong hệ thống",
+      "fix": "Kiểm tra clientId/IMEI gửi lên"
+    },
+    {
+      "code": "100035",
+      "message": "Tài khoản bị tạm khóa do kích hoạt sai quá số lần.",
+      "cause": "Kích hoạt thiết bị mới sai quá số lần",
+      "fix": "Chờ hết thời gian khoá hoặc liên hệ tổng đài"
+    },
+    {
+      "code": "003001",
+      "message": "Tài khoản của Quý khách đã bị khóa bởi quản trị viên.",
+      "cause": "Tài khoản bị khoá",
+      "fix": "Liên hệ QTV doanh nghiệp"
+    },
+    {
+      "code": "100033",
+      "message": "Tài khoản bị tạm khóa do nhập mật khẩu sai quá số lần.",
+      "cause": "Sai mật khẩu nhiều lần",
+      "fix": "Chờ hết thời gian tạm khoá"
+    }
+  ],
+  "notes": [
+    "Bước chuyển tiếp: sau khi API này trả nextStep = ANOTHER, client gọi API kích hoạt (active)."
+  ],
+  "response_data_fields": [
+    {
+      "name": "accessToken",
+      "type": "string",
+      "example": "<access-token>",
+      "note": "Token xác thực phiên - client dùng cho các API sau"
+    },
+    {
+      "name": "refreshToken",
+      "type": "string",
+      "example": "<refresh-token>",
+      "note": "Token lấy lại accessToken khi hết hạn"
+    },
+    {
+      "name": "clientId",
+      "type": "integer",
+      "example": 123456,
+      "note": "ID thiết bị"
+    },
+    {
+      "name": "sessionId",
+      "type": "string",
+      "example": "9265ccf6-3fa6-4f29-a851-c05b79846009",
+      "note": "ID phiên đăng nhập"
+    },
+    {
+      "name": "expireSession",
+      "type": "integer",
+      "example": 1800,
+      "note": "Thời điểm/ thời lượng hết hạn phiên"
+    },
+    {
+      "name": "accessKey",
+      "type": "string",
+      "example": "<access-key>",
+      "note": "Khoá truy cập kèm phiên"
+    },
+    {
+      "name": "username",
+      "type": "string",
+      "example": "namdx",
+      "note": "Tên đăng nhập"
+    },
+    {
+      "name": "customerName",
+      "type": "string",
+      "example": "NGUYEN VAN A",
+      "note": "Tên khách hàng"
+    },
+    {
+      "name": "fullName",
+      "type": "string",
+      "example": "NGUYEN VAN A",
+      "note": "Tên đầy đủ"
+    },
+    {
+      "name": "customerId",
+      "type": "integer",
+      "example": 987654,
+      "note": "Mã khách hàng"
+    },
+    {
+      "name": "lastLogin",
+      "type": "string",
+      "example": "2026-09-10 08:15:00",
+      "note": "Lần đăng nhập gần nhất"
+    },
+    {
+      "name": "cifCore",
+      "type": "string",
+      "example": "0000000001",
+      "note": "Mã CIF"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "example": "ACTIVE",
+      "note": "Trạng thái khách hàng"
+    },
+    {
+      "name": "activatedDate",
+      "type": "string",
+      "example": "2024-01-01 00:00:00",
+      "note": "Ngày kích hoạt lần đầu"
+    },
+    {
+      "name": "lastActivatedDate",
+      "type": "string",
+      "example": "2026-08-01 10:00:00",
+      "note": "Ngày kích hoạt gần nhất"
+    },
+    {
+      "name": "unlockTime",
+      "type": "string",
+      "example": "",
+      "note": "Thời gian mở khoá (nếu đang bị khoá)"
+    },
+    {
+      "name": "passwordExpiredDate",
+      "type": "string",
+      "example": "2026-12-31 00:00:00",
+      "note": "Ngày hết hạn mật khẩu"
+    },
+    {
+      "name": "mobileOtp",
+      "type": "string",
+      "example": "09xxxxxxx1",
+      "note": "SĐT nhận OTP (mask khi trả lời client)"
+    },
+    {
+      "name": "mobileOtt",
+      "type": "string",
+      "example": "09xxxxxxx2|987654",
+      "note": "SĐT nhận OTT kèm customerId"
+    },
+    {
+      "name": "mainAccount",
+      "type": "string",
+      "example": "9704000000000001",
+      "note": "Số tài khoản mặc định"
+    },
+    {
+      "name": "customerRank",
+      "type": "string",
+      "example": "NORMAL",
+      "note": "Hạng khách hàng"
+    },
+    {
+      "name": "customerType",
+      "type": "string",
+      "example": "ENTERPRISE",
+      "note": "Loại khách hàng"
+    },
+    {
+      "name": "representative",
+      "type": "boolean",
+      "example": true,
+      "note": "Là người đại diện doanh nghiệp"
+    },
+    {
+      "name": "admin",
+      "type": "boolean",
+      "example": false,
+      "note": "Là quản trị viên"
+    },
+    {
+      "name": "softOtpStatus",
+      "type": "enum",
+      "enum": [
+        "ACTIVE",
+        "LOCK",
+        "INACTIVE"
+      ],
+      "example": "ACTIVE",
+      "note": "Trạng thái Soft OTP"
+    },
+    {
+      "name": "sdkSoftAction",
+      "type": "enum",
+      "enum": [
+        "NO_ACTION",
+        "LOCK",
+        "UNLOCK"
+      ],
+      "example": "NO_ACTION",
+      "note": "Lệnh cho SDK soft OTP phía client"
+    },
+    {
+      "name": "isUsingOtt",
+      "type": "boolean",
+      "example": false,
+      "note": "Có đăng ký biến động số dư"
+    },
+    {
+      "name": "isPublicOtt",
+      "type": "boolean",
+      "example": false,
+      "note": "Cho phép xem nhanh biến động số dư"
+    },
+    {
+      "name": "ottKey",
+      "type": "string",
+      "example": "<ott-key>",
+      "note": "Khoá OTT"
+    },
+    {
+      "name": "branchCode",
+      "type": "string",
+      "example": "001",
+      "note": "Mã chi nhánh"
+    },
+    {
+      "name": "branchName",
+      "type": "string",
+      "example": "Hội sở",
+      "note": "Tên chi nhánh"
+    },
+    {
+      "name": "posCode",
+      "type": "string",
+      "example": "001001",
+      "note": "Mã phòng giao dịch"
+    },
+    {
+      "name": "posName",
+      "type": "string",
+      "example": "PGD Trung tâm",
+      "note": "Tên phòng giao dịch"
+    },
+    {
+      "name": "isUpdateVersionAlert",
+      "type": "boolean",
+      "example": false,
+      "note": "Cảnh báo có phiên bản mới"
+    },
+    {
+      "name": "serverPublicKey",
+      "type": "string",
+      "example": "<server-public-key>",
+      "note": "Khoá trao đổi với đầu Web"
+    },
+    {
+      "name": "userRight",
+      "type": "array",
+      "example": [
+        "VIEW_BALANCE"
+      ],
+      "note": "Danh sách quyền của user"
+    },
+    {
+      "name": "companyName",
+      "type": "string",
+      "example": "CONG TY TNHH ABC",
+      "note": "Tên công ty"
+    },
+    {
+      "name": "companyShortName",
+      "type": "string",
+      "example": "ABC",
+      "note": "Tên công ty rút gọn"
+    },
+    {
+      "name": "statusCollected",
+      "type": "enum",
+      "enum": [
+        "UNKNOWN",
+        "NOT_COLLECT",
+        "DONE_COLLECT"
+      ],
+      "example": "DONE_COLLECT",
+      "note": "Trạng thái thu thập thông tin KH"
+    },
+    {
+      "name": "avatar",
+      "type": "string",
+      "example": "avt_0001.png",
+      "note": "Tên file avatar - chỉ gọi lấy lại khi tên đổi"
+    },
+    {
+      "name": "mediaSecretKey",
+      "type": "string",
+      "example": "<media-secret-key>",
+      "note": "Khoá giải mã media phía client"
+    },
+    {
+      "name": "companyCif",
+      "type": "string",
+      "example": "0000000002",
+      "note": "CIF doanh nghiệp"
+    },
+    {
+      "name": "ottAccessKey",
+      "type": "string",
+      "example": "<ott-access-key>",
+      "note": "AccessKey cho OTT server"
+    },
+    {
+      "name": "identifyExpiryDate",
+      "type": "string",
+      "example": "2030-01-01",
+      "note": "Ngày hết hạn giấy tờ"
+    },
+    {
+      "name": "cardExpiredSoon",
+      "type": "boolean",
+      "example": false,
+      "note": "Giấy tờ sắp hết hạn"
+    },
+    {
+      "name": "nextStep",
+      "type": "enum",
+      "enum": [
+        "NORMAL",
+        "LOGIN_FIRST",
+        "ANOTHER",
+        "RESET_PASSWORD",
+        "EXPIRED_PASSWORD",
+        "REQUIRE_COLLECT",
+        "CHANGE_PASSWORD_MIGRATE",
+        "RESET_PASSWORD_MIGRATE",
+        "EXPIRED_PASSWORD_MIGRATE"
+      ],
+      "example": "ANOTHER",
+      "note": "ANOTHER = đăng nhập thiết bị khác -> client gọi bước kích hoạt"
+    },
+    {
+      "name": "otpToken",
+      "type": "string",
+      "example": "<otp-token>",
+      "note": "Token dùng cho luồng OTP kích hoạt"
+    },
+    {
+      "name": "otpExpireTime",
+      "type": "integer",
+      "example": 300,
+      "note": "Thời gian hết hạn OTP (giây)"
+    },
+    {
+      "name": "otpAction",
+      "type": "string",
+      "example": "SEND_OTP",
+      "note": "Action cho API resend OTP"
+    },
+    {
+      "name": "ekycSignature",
+      "type": "string",
+      "example": "<ekyc-signature>",
+      "note": "Chữ ký so khớp với đầu eKYC"
+    }
+  ],
+  "success_code": "00"
+}

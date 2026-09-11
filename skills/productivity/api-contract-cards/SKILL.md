@@ -1,9 +1,14 @@
 ---
 name: api-contract-cards
-description: Use when building client API Q&A cards, samples, mock.
+description: Use when a client asks an API's JSON request/response. Generate verified samples.
 ---
 
 # API Contract Cards (Q&A request/response cho client)
+
+## Trọng tâm: JSON request / response
+
+Client hỏi API thì thứ họ cần là **JSON request mẫu + JSON response mẫu + endpoint**, không phải văn xuôi.
+Mọi câu trả lời phải bám 2 khối JSON đó; field/kiểu lấy từ hợp đồng thật.
 
 ## Khi nào dùng
 - Client/đối tác hỏi: field này bắt buộc không, JSON request mẫu là gì, response này nghĩa gì, mã lỗi X sửa sao, luồng login gồm bước nào.
@@ -31,6 +36,28 @@ Viết 1 lần cho mỗi API: luồng, mã lỗi, validator payload đều ăn c
 ```sql
 SELECT CODE, VI_CONTENT FROM VBSMEONL.AD_MESSAGE WHERE CODE IN ('100005','100008','100013')
 ```
+
+## Sinh JSON request/response — script đã đóng gói (dùng luôn, đừng dựng lại)
+
+```
+scripts/api_card.py                       generator: the API -> JSON Schema + mẫu + validate
+assets/cards/auth.login.app.json          thẻ đã kiểm chứng (App)
+assets/cards/auth.login.web.json          thẻ đã kiểm chứng (Web)
+assets/cards/auth.login_new_device.app.json
+references/client-json-qa.md              playbook: câu hỏi client -> nguồn + khuôn trả lời
+```
+
+3 chế độ (chạy từ thư mục skill):
+```
+python3 scripts/api_card.py --out <dir>                    # sinh schema + mẫu + validate (exit 1 nếu FAIL)
+python3 scripts/api_card.py --show auth.login.app          # in JSON mẫu để dán vào câu trả lời client
+python3 scripts/api_card.py --check-payload <card> <file>  # soi payload client, chỉ đích danh field sai
+```
+Kiểm chứng cuối: **21/21 kiểm tra PASS, exit 0**; `--check-payload` bắt đúng sai enum / sai kiểu / field lạ.
+
+Thẻ API **tự chứa** (cả `response_data_fields`) nên script không phụ thuộc file nào khác. Thêm API mới =
+viết 1 file thẻ JSON vào `assets/cards/` rồi chạy lại. Script chỉ **sinh mẫu từ thẻ**, không phát minh field:
+field/kiểu/enum/mã lỗi phải lấy từ hợp đồng thật.
 
 ## Quy trình dựng thẻ API / POC
 1. Card JSON: endpoint, headers, request_fields, response_data_fields, errors, notes — mỗi field kèm `required`, `type`, `enum`, `example`, `note` tiếng Việt.
