@@ -1,0 +1,11 @@
+# Restart gateway (đã nạp config hiển thị mới) — detached & safe.
+# Gateway chạy dưới user systemd service "hermes-gateway"; claude là con của gateway
+# nên restart foreground sẽ tự giết mình trước khi kịp báo cáo.
+#
+# Bước 1 — hẹn restart tách rời 40 giây nữa (sống trong cgroup riêng của user systemd):
+systemd-run --user --unit=ultron-gw-restart --collect /bin/sh -c 'sleep 40; systemctl --user restart hermes-gateway'
+
+# Bước 2 — xác nhận unit đã được hẹn:
+systemctl --user list-units --all --no-pager | grep -i ultron-gw-restart
+
+# Không chạy lệnh nào khác. Báo lại nguyên văn output của cả 2 bước.

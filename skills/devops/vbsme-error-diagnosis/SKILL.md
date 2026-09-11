@@ -87,6 +87,24 @@ Many behaviours are NOT in code — they read the `AD_CONFIG` table (key→value
 - Check `IS_ACTIVE` (0 = disabled row) and `STATUS` (approval state) — an inactive/not-yet-confirmed row silently changes behaviour.
 - Note: `AD_CONFIG` is cached per-service; a config change needs the reload event or a cache expiry to take effect.
 
+## Hạn mức — loại nào kiểm ở BƯỚC NÀO (câu hỏi "sao không chặn ở bước soạn lệnh?")
+
+Có **hai nhóm hạn mức theo ngày khác nhau**, kiểm ở hai bước khác nhau. Phân biệt đúng nhóm là mấu chốt:
+
+| Nhóm | Ý nghĩa | Kiểm ở bước | Mã lỗi |
+|---|---|---|---|
+| **Hạn mức LẬP LỆNH tối đa/ngày** của loại dịch vụ | Tổng tiền các lệnh user **tạo ra** trong ngày | **Soạn lệnh / khởi tạo** (`init` chain — chỉ chạy khi `AD_SERVICE_TYPE.IS_INIT_LIMIT = 1`) | 500022 |
+| Hạn mức min/max mỗi giao dịch (dịch vụ trong gói) | Số tiền 1 GD | Soạn lệnh | 500012 / 500013 |
+| Tổng HM giao dịch/ngày của gói | Tổng hoạch toán cả ngày của gói | **Duyệt cuối** | 500011 |
+| Tổng HM giao dịch/tháng của gói | Tổng hoạch toán cả tháng | **Duyệt cuối** | 500021 |
+| HM giao dịch/ngày của loại dịch vụ | Tổng hoạch toán cả ngày theo loại dịch vụ | **Duyệt cuối** | 500028 |
+| HM giao dịch/ngày của dịch vụ | Tổng hoạch toán cả ngày theo dịch vụ | **Duyệt cuối** | 500029 |
+
+- Code chỉ kiểm hạn mức giao dịch (daily/monthly package/service/service-type) **duyệt cuối** — xem `DefaultConfirmFinancialTransactionHandler.validateBeforeConfirm` (chỉ chạy khi `ConfirmType.CONFIRM_FINAL_APPROVED_TRANSACTION`; comment trong code ghi rõ "CHỈ chạy ở duyệt cuối") và `final_approve/processor/ValidateTransactionLimitProcessor` → `ValidateFinalApproveFinancialTransactionLimitHandler`.
+- Bước `init` (soạn lệnh) dùng `action/init/processor/ValidateTransactionLimitProcessor` — **chỉ** kiểm hạn mức lập lệnh tối đa/ngày (so với `OMNI_DAILY_CUS_TRANS_REQ_CHECK`, hoặc override công ty trong `OMNI_DAILY_TRANS_REQ_LIMIT`) + min/max mỗi GD. **Không** kiểm hạn mức giao dịch.
+- Hệ quả thường bị báo nhầm là bug: user tạo (soạn) nhiều lệnh cộng dồn vượt hạn mức giao dịch/ngày vẫn OK, chỉ bị chặn (500028/500029) khi mở bước duyệt. Đây là **đúng luồng hiện tại**. Muốn chặn ngay ở bước soạn lệnh thì phải dùng hạn mức **lập lệnh** (500022) + bật `IS_INIT_LIMIT` cho loại dịch vụ — hoặc hỏi BA/dev nếu muốn đổi thiết kế.
+- Bảng tra: `AD_PACKAGE_LIMIT` (gói), `AD_PACKAGE_SERVICE_TYPE_LIMIT` (`DAILY_AMOUNT_LIMIT` = HM giao dịch, `DAILY_CUS_TRANS_REQ_AMOUNT_LIMIT` = HM lập lệnh), `AD_PACKAGE_SERVICE_LIMIT` (dịch vụ), `AD_SERVICE_TYPE.IS_INIT_LIMIT`, `OMNI_DAILY_TRANS_REQ_LIMIT` (override theo công ty).
+
 ## Environment scope — log available only in UAT & LIVE
 
 - **Log portal covers UAT and LIVE only** (`https://10.22.17.219:10443/omni-sme/`). There is **NO log for SIT**.

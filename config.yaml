@@ -74,8 +74,8 @@ display:
   interim_assistant_messages: true
   tool_progress: all
   cleanup_progress: false
-  long_running_notifications: true
-  busy_ack_detail: true
+  long_running_notifications: generic
+  busy_ack_detail: false
   platforms:
     google_chat:
       tool_progress: false

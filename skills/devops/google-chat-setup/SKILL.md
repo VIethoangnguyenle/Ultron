@@ -83,6 +83,31 @@ print('OK topic=', got.topic, 'retention=', got.message_retention_duration)
 - PermissionDenied 403 (NOT NotFound) = subscription exists but SA lacks Subscriber → fix step 4.
 - IAM propagation is normally instant for Pub/Sub; a 403 after 45s is almost always wrong-resource/wrong-role/wrong-email grant, not propagation.
 
+## "Rác" hiện trong chat — 2 loại hay bị hiểu nhầm là bot lỗi
+
+1. `⏳ Working — N min — iteration X/500, waiting for provider response (streaming)`
+   → **heartbeat** của gateway khi 1 lượt chạy lâu (mặc định 180s, dựng ở `gateway/run_turn.py`).
+   `display.busy_ack_detail` quyết định có in `iteration N/cap`; đuôi activity đến từ
+   `agent/session_activity.py::format_iteration_progress` + `agent/chat_completion_helpers.py`
+   ("waiting for provider response (streaming)"). Ý nghĩa: provider đang treo giữa stream.
+2. `[System: Empty message content sanitised to satisfy protocol]`
+   → **KHÔNG phải Hermes**: là placeholder `_EMPTY_TEXT_PLACEHOLDER` của **litellm**
+   (`litellm_core_utils/prompt_templates/factory.py::_sanitize_empty_text_content`), chèn khi một
+   message có content rỗng lúc dựng request. Lọt ra chat = dấu vết lượt trước model trả về RỖNG.
+
+Cả hai là triệu chứng của *provider treo giữa stream* (model reasoning + ngữ cảnh dài), không phải
+lỗi hiển thị. Kiểm 1 deployment có gửi heartbeat không: `grep -c "Working — " ~/.hermes/logs/gateway.log`.
+
+Dập tiếng ồn (config.yaml, per-platform được):
+```yaml
+display:
+  long_running_notifications: false   # tắt heartbeat "Working — N min"
+  busy_ack_detail: false              # bỏ "iteration N/500"
+  platforms:
+    google_chat:
+      long_running_notifications: false
+```
+
 ## Restart & watch the real logs (never guess)
 
 After console done: `hermes gateway restart`, then confirm `gateway_state.json` `platforms` non-empty and `logs/gateway.log` shows `[GoogleChat] Connected; project=...`.

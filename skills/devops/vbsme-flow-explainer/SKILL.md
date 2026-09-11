@@ -23,6 +23,14 @@ Always produce **two files**: a `.md` (source of truth, editable + searchable) a
 3. Produce the `.pdf`: either chrome headless on the HTML (mermaid rendered inline), or `weasyprint in.html out.pdf`.
 4. If the render chain fails or tools are unavailable, still deliver the `.md` and say plainly the PDF needs `mmdc`/chrome to render — never ship a PDF with raw mermaid text.
 
+### Pitfalls render PDF (đã gặp thật — đọc trước khi build)
+
+- **`npx @mermaid-js/mermaid-cli` hay TIMEOUT** (`TimeoutError: Timed out after waiting 30000ms` khi puppeteer launch) dù đã set `PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome`. Đừng phụ thuộc mmdc.
+- **`google-chrome --headless --print-to-pdf` + mermaid.js từ CDN ⇒ PDF RỖNG (~660 byte)**. Chrome headless bị treo ở bước tải script CDN, không kịp paint. Verify luôn bằng `pdfinfo`/`ls -la`: PDF vài trăm byte = rỗng, phải build lại.
+- **`file://` bắt buộc dùng ĐƯỜNG DẪN TUYỆT ĐỐI** (`file://{path.resolve()}`). `file://relative/path.html` bị parse thành host ⇒ chrome render trang trắng, PDF rỗng 660 byte mà **exit code vẫn 0** — không có lỗi nào để thấy.
+- **Cách chạy được (đã kiểm chứng):** vẽ diagram thành **SVG inline tự sinh bằng Python** (không JS, không CDN), nhúng thẳng vào HTML cạnh markdown đã convert (`python-markdown` có sẵn: extensions `tables, fenced_code, sane_lists, attr_list`), rồi `google-chrome --headless --disable-gpu --no-sandbox --no-pdf-header-footer --print-to-pdf=<abs>.pdf --virtual-time-budget=8000 file://<abs>.html`. Chart mermaid trong `.md` (để đọc trên GitLab) được thay bằng `<div class="diagram">…svg…</div>` khi build PDF.
+- Verify cuối: `pdfinfo <pdf> | grep Pages` (>1 trang) + `pdftotext -layout <pdf> - | grep <nội dung chính>` — chữ trong SVG **có** được extract ra text, nên grep thấy nội dung diagram = diagram đã render.
+
 Save both to `vietbank-sme/docs/flows/<slug>-flow.md` and `<slug>-flow.pdf` (or a fitting subfolder of `docs/`).
 
 Covers **BOTH** business flows AND base-source / framework questions (dvnh-common, CQRS, factory, security, cache, gRPC/Kafka pipeline, logging, interceptor, config mechanism, common patterns...). Any "how does X work" question — business or infra — gets the same treatment.
