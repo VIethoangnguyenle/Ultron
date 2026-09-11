@@ -96,7 +96,17 @@ def write_report(d: dict) -> None:
     REPORT.write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
+def silent_mode() -> bool:
+    """Máy không phải của Hoàng (vd máy Kitty): chỉ ghi báo cáo, KHÔNG ghi escalate
+    để khỏi ping nhầm chủ máy. Bật bằng env TOKEN_BUDGET_SILENT=1 hoặc file cờ."""
+    if os.environ.get("TOKEN_BUDGET_SILENT") in {"1", "true", "yes"}:
+        return True
+    return (HH / "token_budget_silent.flag").exists()
+
+
 def escalate(question: str, reason: str) -> None:
+    if silent_mode():
+        return
     ESCALATIONS.mkdir(parents=True, exist_ok=True)
     p = ESCALATIONS / f"token_budget_{int(dt.datetime.now().timestamp())}.json"
     p.write_text(json.dumps({"from": "Ultron (watchdog token)", "space": "(hệ thống)",
