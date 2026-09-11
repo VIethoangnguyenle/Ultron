@@ -129,6 +129,35 @@ Bổ sung (2026-09-11):
   `git worktree add --detach /home/zane/Desktop/work/wt/<base> <commit-gốc>` rồi chạy lại đúng task build đó —
   lỗi y hệt ⇒ kết luận đúng, mới dám báo cho Hoàng.
 
+## Trace "đường dẫn công bố" của API — không lấy từ hằng số trong service (bài học 2026-09-11)
+
+Cùng một API có thể bị 3 nguồn mô tả khác nhau; thứ tự tin cậy:
+```
+1. Catalog mã lỗi dựng TỪ HỆ THỐNG ĐANG CHẠY (mỗi lỗi ghi kèm API)  <- sự thật cho client
+2. Tài liệu luồng MỚI NHẤT (bản có các endpoint vừa bổ sung)
+3. Hằng số path trong service / tài liệu luồng cũ                     <- chỉ là khai báo nội bộ
+```
+Nguyên nhân lệch: tầng công bố (gateway/BFF) gắn thêm **đoạn namespace miền** mà service không khai báo.
+Ví dụ thật: nghiệp vụ phi tài chính (đăng nhập, kích hoạt thiết bị, tiện ích) → client gọi
+`/api/v1/{app|web}/nonfinancial/auth/...`, còn service khai `APP_URI=/api/v1/app` + `/auth`. Tài liệu
+luồng cũ lẫn hằng số đều ghi bản KHÔNG có `nonfinancial` ⇒ đọc code xong vẫn trả lời sai cho client.
+
+Thứ tự làm khi trace:
+1. Grep **từng mảnh** path, đừng grep full path: path được ghép từ nhiều hằng số (`APP_URI` +
+   `AUTHENTICATION` + literal) nên grep `/api/v1/app/auth/login` trả 0 là bình thường — **0 match KHÔNG
+   phải bằng chứng là không tồn tại**. Grep `nonfinancial/auth`, `app/nonfinancial`, rồi so hằng số của
+   từng service.
+2. So hằng số của MỌI service liên quan: service sở hữu namespace miền và service xử lý nghiệp vụ có
+   thể là hai service khác nhau.
+3. Đối chiếu catalog mã lỗi + flow doc mới nhất (đừng tin doc cũ).
+4. Chốt bằng gọi thử môi trường test: đường dẫn sai trả **404**, đúng trả 400/401.
+
+Máy soi lệch tài liệu (exit 1 = còn lệch, cắm được vào CI) — chạy sau mỗi lần sửa doc/endpoint:
+`python3 ~/.hermes/reports/api-card-poc/check_doc_drift.py /home/zane/Desktop/work/vietbank/vietbank-sme`
+
+Pitfall khi sửa doc: ghi chú kiểu "bản cũ ghi `/api/v1/app/auth/login`" sẽ bị chính máy soi báo lệch →
+viết `.../app/auth/login` (bỏ tiền tố `/api/v1`) hoặc mô tả bằng lời.
+
 ## Ranh giới với repo code (Hoàng chốt 2026-09-11)
 
 Hoàng **chưa dạy workflow coding** → trong mọi repo vbsme Ultron ở chế độ **read-only**:

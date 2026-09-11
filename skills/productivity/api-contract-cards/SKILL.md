@@ -39,13 +39,16 @@ SELECT CODE, VI_CONTENT FROM VBSMEONL.AD_MESSAGE WHERE CODE IN ('100005','100008
 4. Mock server stdlib: trả đúng mẫu và **validate payload client gửi lên** -> chỉ đích danh field sai (tính năng "request của tôi sai ở đâu").
 5. Tài liệu luồng cho client: sơ đồ tuần tự (mermaid) + bảng bước + thẻ JSON từng bước + "client phải làm gì" + bẫy; xuất PDF bằng `md2pdf.py`.
 
-POC tham chiếu: `~/.hermes/reports/api-card-poc/` (thẻ auth, generator `build_poc.py`, `mock/mock_server.py`, PDF luồng đăng nhập, zip gửi khách).
+POC tham chiếu: `~/.hermes/reports/api-card-poc/` (thẻ auth, generator `build_poc.py`, `mock/mock_server.py`, `check_doc_drift.py`, PDF luồng đăng nhập, zip gửi khách).
+
+6. **Cổng chặn lệch tài liệu**: `python3 check_doc_drift.py <repo>` so đường dẫn trong tài liệu/flow doc với registry; exit 1 khi lệch ⇒ gắn vào CI để tài liệu lệch hợp đồng là build đỏ. Sửa doc/thẻ xong phải chạy lại.
 
 ## Pitfalls (đã trả giá thật)
 - **Kênh App trả HTTP 200 kể cả khi lỗi**; kênh Web trả 400 cho lỗi đầu vào. Client phải đọc `success`/`code` trong body. Ghi rõ vào thẻ.
 - **`data` trong response lỗi** có thể là map `field -> thông báo` hoặc `null`; ở môi trường thật chi tiết field có thể rỗng -> schema cho `"type": ["object","null"]`, client có thông báo dự phòng theo `code`.
 - **Mã thành công = `00`**. Catalog lỗi KHÔNG có dòng mã thành công -> đừng tự đặt mã (đã từng đặt sai `000000`).
-- **Đường dẫn phía client có namespace `nonfinancial`**: `/api/v1/{app|web}/nonfinancial/auth/...`, khác hằng số path trong service. Kiểm tra lại bằng flow doc + catalog QA trước khi đưa vào thẻ.
+- **Đường dẫn phía client có namespace miền**: `/api/v1/{app|web}/nonfinancial/auth/...`, khác hằng số path trong service (service khai `/api/v1/app` + `/auth`). Thứ tự tin cậy: catalog mã lỗi sinh từ hệ thống chạy > flow doc mới > hằng số/doc cũ. Grep full path trả 0 **KHÔNG** phải bằng chứng không tồn tại (path ghép từ nhiều hằng số). Chốt bằng curl: sai → 404. Máy soi lệch: `check_doc_drift.py`.
+- **Tài liệu luồng cũ bị lệch đường dẫn** (đã gặp: doc đăng nhập thiếu `nonfinancial`) → sửa doc khi được phép, kèm ghi chú giải thích 2 tầng path; đừng chỉ sửa thẻ mà để doc cũ nằm đó.
 - **Thông báo lỗi có chỗ trống động**: `{hotline}`, `{maxLoginFailures}`, `{duration}` do hệ thống điền -> client hiển thị nguyên văn, không tự ghép câu.
 - **Enum chép nguyên văn**: LoginType `PASSWORD|BIOMETRIC`, BiometricType `FACE|TOUCH`, DeviceOs `IOS|ANDROID|WEB|UNKNOWN`.
 - **Tên field thiết bị viết tắt**: `DT` (hệ điều hành), `E`, `PS`, `PM` (tên máy), `VER` (phiên bản app), `OV` (phiên bản OS). Copy sai tên = bị coi như thiếu dữ liệu.
