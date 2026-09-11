@@ -229,7 +229,7 @@ def cmd_todo(args) -> int:
     for uid, p in data["people"].items():
         if (p.get("type") or "HUMAN").upper() == "BOT" or "self" in (p.get("tags") or []):
             continue
-        if args.group and args.group not in (p.get("groups") or []):
+        if args.group and not any(str(g).split(" ")[0] == args.group for g in (p.get("groups") or [])):
             continue
         miss = []
         if "role" in want and not (p.get("role") or "").strip():
@@ -241,7 +241,7 @@ def cmd_todo(args) -> int:
         rows.append({
             "id": uid,
             "name": p.get("name", ""),
-            "groups": ", ".join(spaces.get(g, g) for g in (p.get("groups") or [])) or "-",
+            "groups": "; ".join(str(g) for g in (p.get("groups") or [])) or "-",
             "missing": miss,
         })
     rows.sort(key=lambda r: r["name"])
