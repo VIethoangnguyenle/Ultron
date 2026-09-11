@@ -43,6 +43,14 @@ actions:
     script: team_post.py
     args: ["--kind", "lunch", "--space", "spaces/AAAADv4ib6s"]
 
+  # Khai ca chiều — ngày làm việc, 13h. Nội dung xoay vòng theo ngày; không @mention ai.
+  # (Hoàng yêu cầu 2026-09-11: "13h mọi người ngủ dậy vào ca chiều, lên tạo không khí làm việc")
+  - id: afternoon-kickoff
+    when: "13:00"
+    days: [mon, tue, wed, thu, fri]
+    script: team_post.py
+    args: ["--kind", "afternoon", "--space", "spaces/AAAADv4ib6s"]
+
   # Lời chào cuối ngày — ngày làm việc, 17h30. Nội dung xoay vòng theo ngày; không @mention ai.
   - id: evening-greeting
     when: "17:30"

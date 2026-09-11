@@ -2,8 +2,9 @@
 """Post a recurring team message to a Google Chat space AS the bot (service account).
 
 Một script cho mọi tin định kỳ trong ngày, chọn loại bằng `--kind`:
-  lunch    — nhắc ăn trưa (12h)
-  evening  — chào cuối ngày (17:30)
+  lunch      — nhắc ăn trưa (12h)
+  afternoon  — khai ca chiều (13h)
+  evening    — chào cuối ngày (17:30)
 
 Vì sao gom: các tin này chỉ khác nhau ở nội dung. Thêm loại mới = thêm 1 entry trong KINDS,
 không phải thêm script thứ N rồi lại phải nhớ xoá.
@@ -32,6 +33,14 @@ KINDS = {
         "12h — giờ ăn trưa ạ 🍜\nMọi người nhớ ăn đúng bữa nhé, em trông máy giúp cho. Quay lại mình chạy tiếp.",
         "Tới giờ cơm rồi cả nhà ơi 🍛\nĐừng để task nguội trước cơm nhé 😄 Ăn xong nghỉ chút rồi chiều chiến tiếp.",
         "Chuông báo: 12h — ăn trưa 🍽️\nAi đang họp thì cố thêm 5 phút, ai đang code thì cũng cố thêm 5 phút rồi đi ăn nha 😄",
+    ],
+    "afternoon": [
+        "13h rồi cả nhà ơi ☕ Ca chiều khai hỏa!\nNgủ trưa đủ giấc rồi thì bung sức tiếp nhé 😄 Sáng nay còn tồn gì thì ném xuống đây, em xếp hàng xử.",
+        "Chào ca chiều cả nhà ạ 🌤️\nNăng lượng nạp đầy chưa? Task nào gấp thì nói em biết, em ưu tiên đúng thứ tự cho.",
+        "13h — ca chiều bắt đầu 🚀\nSáng mà nhẹ nhàng thì chiều mình chạy bù nha 😄 Có gì tắc ở màn nào cứ réo em, em trực sẵn.",
+        "Dậy chưa cả nhà? 😆 Ca chiều tới rồi!\nAi vừa lên thì làm ngụm nước, mở tool lên — log bên em đã mở sẵn. Cần gì ping em nhé.",
+        "Chào buổi chiều cả nhà 👋\nSáng nay trôi ổn không mọi người? Chiều nay mình chạy tiếp 💪 Không tắc gì thì thôi, tắc là em gỡ.",
+        "Ca chiều điểm danh 📋\nAi đã lên thì gõ \"có\", ai chưa lên thì em giữ máy giúp 😄 Có việc gấp cứ gọi em trước.",
     ],
     "evening": [
         "Hết ngày rồi cả nhà ơi 🌇\nHôm nay mọi người làm việc thế nào? Có gì vướng thì kể em nghe, mai xử tiếp.\nEm xin phép về ăn dưa đây 🍉",
