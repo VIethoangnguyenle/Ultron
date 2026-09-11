@@ -8,13 +8,13 @@ Run claude/agy từ /home/zane/Desktop/work/vietbank/vietbank-sme; task nặng c
 §
 Guard Hermes chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → GỌI CLAUDE (`claude -p "đọc ~/.hermes/scripts/gw_restart.txt…"` chạy `systemd-run --user --collect /bin/sh -c 'sleep 150; systemctl --user restart hermes-gateway'`); KHÔNG đẩy việc cho Hoàng. Sửa config: `hermes config set`.
 §
-Đọc ảnh: `vision_analyze` chạy tốt (auxiliary vision qua custom gateway); agy chỉ dự phòng (Gemini hay chặn filter). Video tester gửi → skill `video-analysis` (ffmpeg static ~/.local/bin + venv whisper ~/.hermes/venvs/whisper).
+Đọc ảnh: `vision_analyze` chạy tốt (auxiliary vision gateway); agy dự phòng (Gemini hay chặn filter). Video → skill `video-analysis` (ffmpeg ~/.local/bin, venv whisper). TTS phải giọng Việt `vi-VN-NamMinhNeural` — giọng Anh đọc tiếng Việt nghe méo.
 §
 agentmemory: systemd, MCP 54 tool, EMBEDDING_PROVIDER=local (skill agentmemory).
 §
 db-access: write CHỈ trên VBSMEONL+VBSMEOFF (sql_write 2 bước: preview+token). Chỉ SIT; tự test tool: INSERT 1 bản ghi mới rồi sửa/xoá chính nó — KHÔNG đụng data cũ; nhờ thật thì đo ảnh hưởng + xin xác nhận; mở write DB khác phải qua Hoàng.
 §
-Chat chỉ đẩy event khi bot được @mention (-8 tin ngữ cảnh). Bot↔bot BẤT KHẢ THI (Google ko giao event app↔app) → bridge qua Agent Space + envelope [[A2A:v1 from=<alias> to=<alias>]]; alias ultron/kitty; registry ~/.hermes/a2a_agents.json; helper scripts/a2a.py; chi tiết: skill agent-space-knowledge.
+registry ~/.hermes/a2a_agents.json; helper scripts/a2a.py.
 §
 Sổ hồ sơ: ~/.hermes/people.json (115 người) + scripts/people.py (list/show/note/habit) + skill team-people; bot/app phải add tay.
 §

@@ -168,6 +168,25 @@ def _tts(text: str, out_mp3: Path, voice: str, speed: float) -> None:
          "-c", "copy", str(out_mp3)])
 
 
+def _music_track(out_mp3: Path, dur: float) -> None:
+    """Nhạc nền nhẹ (pad 2 nốt + tremolo) cho clip kiểu ngâm thơ — sinh tại chỗ bằng ffmpeg."""
+    fade_out = max(dur - 3.0, 0.5)
+    _sh(["ffmpeg", "-y", "-v", "error",
+         "-f", "lavfi", "-i", f"sine=frequency=196:duration={dur:.2f}",        # G3
+         "-f", "lavfi", "-i", f"sine=frequency=293.66:duration={dur:.2f}",     # D4
+         "-filter_complex",
+         f"[0][1]amix=inputs=2,tremolo=f=0.12:d=0.45,volume=0.10,"
+         f"afade=t=in:st=0:d=2.5,afade=t=out:st={fade_out:.2f}:d=3",
+         "-c:a", "libmp3lame", "-b:a", "128k", str(out_mp3)])
+
+
+def _mix_voice_music(voice: Path, music: Path, out_mp3: Path) -> None:
+    """Trộn giọng đọc + nhạc nền (nhạc nhỏ hơn hẳn để không lấn lời)."""
+    _sh(["ffmpeg", "-y", "-v", "error", "-i", str(voice), "-i", str(music),
+         "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:weights='1 0.5'",
+         "-c:a", "libmp3lame", "-b:a", "128k", str(out_mp3)])
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--text-file", required=True, help="file slide (khối cách nhau bằng '---')")
@@ -178,6 +197,7 @@ def main() -> int:
     p.add_argument("--seconds", type=float, default=6.0, help="số giây mỗi slide (khi không có lời đọc)")
     p.add_argument("--voice", default="vi-VN-NamMinhNeural", help="giọng edge-tts (mặc định nam Việt Nam)")
     p.add_argument("--silent", action="store_true", help="cố tình làm clip không tiếng")
+    p.add_argument("--music", action="store_true", help="trộn nhạc nền nhẹ dưới lời đọc (kiểu ngâm thơ)")
     p.add_argument("--keep", action="store_true", help="giữ thư mục làm việc để soi lại")
     a = p.parse_args()
 
@@ -207,6 +227,11 @@ def main() -> int:
                 ["ffprobe", "-v", "error", "-show_entries", "format=duration",
                  "-of", "default=nw=1:nk=1", str(audio)], capture_output=True, text=True).stdout.strip()
             dur = float(raw_dur) if raw_dur else 0.0
+            if a.music and dur > 0:
+                music, mixed = work / "music.mp3", work / "narration_mixed.mp3"
+                _music_track(music, dur + 0.5)
+                _mix_voice_music(audio, music, mixed)
+                audio = mixed
             per = (dur + 0.8) / len(slides)  # chia đều theo độ dài lời đọc + 0.8s lấy hơi
         else:
             per = a.seconds

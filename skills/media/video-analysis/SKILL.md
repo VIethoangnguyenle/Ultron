@@ -84,6 +84,8 @@ python3 ~/.hermes/scripts/make_demo_clip.py --text-file slides.txt --out /tmp/de
 - **edge-tts hay chặn từng giọng theo lúc** (`NoAudioReceived`, câu ngắn thì được câu dài thì không). Script tự: probe chọn **1 giọng cho cả clip** (tránh lẫn giọng nam/nữ trong cùng clip), thử lại từng câu, hỏng mới fallback `vi-VN-HoaiMyNeural`.
 - **Lời đọc nên viết thành từng câu** (dấu chấm) — script tự tách câu và chèn 0.3s nghỉ, nghe rõ hơn hẳn so với một câu dài.
 - Giọng mặc định `vi-VN-NamMinhNeural` (nam Việt Nam). Đổi bằng `--voice`.
+- **`--music`**: trộn nhạc nền pad nhẹ (ffmpeg `sine` 196/293Hz + tremolo, sinh tại chỗ, không cần file nhạc) — ghép với `--narration-speed 0.88` là ra kiểu "ngâm thơ".
+- **Nhạc nền làm bóc tiếng kém hẳn** (thử thật: cùng giọng đọc, có nhạc → ASR ra "trồng chăn vỡ húc gợt đầu") → chỉ dùng `--music` cho clip giải trí/giới thiệu, **không** dùng cho clip cần trích lời thoại chính xác.
 
 ## Đã kiểm chứng
 - `ffmpeg`/`ffprobe` 7.0.2 static ở `~/.local/bin` (không cần sudo).
