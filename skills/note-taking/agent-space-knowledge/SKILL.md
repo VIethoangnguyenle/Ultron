@@ -126,6 +126,11 @@ thu gọn rule thành 3 tầng. Nhắc lại fact 10 lần cũng không ăn.
 | Xem thành viên space | `gchat_members.py --space spaces/XXX` |
 | Đọc lại để kiểm chứng | `gchat_dump.py --space spaces/XXX --limit N [--json]` |
 
+- **Mặc định: trả lời TRONG THREAD của tin nhắn đang hỏi.** Ai hỏi trong thread nào thì đáp đúng
+  thread đó (`--thread spaces/.../threads/<id>`). Muốn biết tin nằm ở thread nào thì đọc `thread.name`
+  của tin đó — tin đăng ở đầu space sẽ tự sinh thread riêng có tên = id tin. **Chỉ bỏ qua thread khi
+  Hoàng nói rõ "group chính"** (hoặc yêu cầu kiểu "đăng lên group X cho cả nhà thấy"). Trả lời lệch
+  thread = người hỏi không thấy, mất mạch hội thoại (đã bị Hoàng nhắc 2026-09-11).
 - **Tin MỚI ở đầu space vs tin trong THREAD:** KHÔNG truyền `--thread` ⇒ tin mới ở đầu space (ai
   cũng thấy). Có `--thread` ⇒ trả lời trong đúng thread. Hoàng phân biệt rõ hai thứ này: "lên
   group chính Nội bộ dự án" = post tin mới ở space NGOÀI, không phải trả lời trong thread đang mở.

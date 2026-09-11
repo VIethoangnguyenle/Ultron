@@ -137,6 +137,16 @@ chỉ gửi **báo cáo chữ**.
   CHỈ làm khi tester/Hoàng yêu cầu rõ ràng — không tự đổi định dạng.
 - **TUYỆT ĐỐI KHÔNG thả đường dẫn local** (`/home/zane/...`, `file://`) — tester không thấy
   được. Phải gửi file thật lên group (attachment qua user OAuth — đã cấp `/setup-files`).
+- Gửi file: `scripts/gchat_send_file.py --space spaces/XXX --file <path> --thread spaces/XXX/threads/YYY`
+  (nên truyền `--thread` để file nằm đúng thread đang trao đổi).
+  - ⚠️ Caption nhiều dòng: **KHÔNG** truyền qua `--text {cap!r}` trong f-string — repr() biến
+    newline thành 2 ký tự `\n` và group sẽ thấy chữ `\n` literal. Viết caption ra file rồi
+    `--text "$(cat /tmp/cap.txt)"`.
+  - User token chỉ có scope `chat.messages.create` → **không xoá được message đã gửi**; caption
+    sai coi như vĩnh viễn. Kiểm tra kỹ trước khi gửi.
+  - File gửi bằng user OAuth hiện lên **dưới tên Hoàng**, không phải "Ultron (bot)" — bình thường,
+    đừng hoảng; cứ nói trong tin nhắn bot là "file em gửi kèm ở trên".
+  - Sau khi gửi, xác nhận thật bằng `scripts/gchat_dump.py --space ... --limit 3` (đừng tin mỗi exit code).
 - File báo cáo viết bằng ngôn ngữ nghiệp vụ, KHÔNG code (đúng quy tắc). Cấu trúc gợi ý:
   - Tóm tắt lỗi: ai gặp, mã lỗi, môi trường, thời gian
   - Nghĩa mã lỗi (từ AD_MESSAGE)
