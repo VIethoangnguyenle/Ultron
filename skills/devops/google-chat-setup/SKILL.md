@@ -24,6 +24,28 @@ Adapter source: `plugins/platforms/google_chat/adapter.py` (+ `oauth.py`, `setup
 1. Service Account JSON (REQUIRED for the bot itself). `{"type": "service_account", ...}`. Env `GOOGLE_CHAT_SERVICE_ACCOUNT_JSON`. Authenticates the bot to read messages / post replies.
 2. OAuth client_secret.json (OPTIONAL, only for native file attachments). Has `{"installed": {...}}` or `{"web": {...}}`. Goes to `${HERMES_HOME}/google_chat_user_client_secret.json`. Used by per-user `/setup-files` OAuth flow because Chat `media.upload` rejects service-account auth.
 
+## Sending a file to a space/DM from the agent (`scripts/gchat_send_file.py`)
+
+`hermes send --to google_chat:... "MEDIA:/path"` does NOT attach on Google Chat (it
+posts the caption text and silently drops the file; verified 2026-09-11 — no self-check
+needed on the caption, check the sent message's `attachment` field instead). Attachments
+only work through the user-OAuth path (`media.upload` is hard-rejected for the bot SA):
+
+```
+python3 ~/.hermes/scripts/gchat_send_file.py --space spaces/XXXX \
+  --file /path/report.pdf --text "caption" [--thread threads/YYY]
+```
+
+The script refreshes `google_chat_user_token.json` (scope `chat.messages.create`) and
+does `media.upload` + `messages.create`. Caveats:
+- The message is authored by the **user** whose token is stored, not by the bot (Chat binds
+  the `attachmentDataRef` to the uploading principal) — expect the file to show as if the
+  user sent it.
+- Token missing/revoked → run `/setup-files` once in that user's DM first.
+- Verify delivery by listing messages with the read token and checking `attachment`
+  (`scripts/gchat_dump.py` text output does NOT show attachments — ignore it for this).
+- Never send internal/security reports to a group space; send to the requester's DM.
+
 ## Host-side prep (idempotent)
 
 ```bash

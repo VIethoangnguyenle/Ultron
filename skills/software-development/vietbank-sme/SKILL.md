@@ -104,6 +104,19 @@ Quy trình đã chạy trót lọt (nhánh `pilot_hotfix_13_08_cve`, 2026-09-11)
    `git show --name-only HEAD` (đúng file, không có .env), và chạy lại dependencyInsight/gradle cho vài module.
 5. Dọn worktree (`git worktree remove --force`) và file tạm ở /tmp; local branch giữ lại.
 
+Bổ sung (2026-09-11):
+- **Ghim đúng nhánh theo lời Hoàng**, đừng suy ra từ `git branch --show-current`. Báo cáo quét CVE ghi rõ
+  `jar <tên>.jar/BOOT-INF/lib/<lib>-<ver>.jar` ⇒ dò ngược version trong từng nhánh để biết báo cáo thuộc
+  nhánh nào (vd jar có spring-boot 3.5.14 + spring 6.2.18 ⇒ nhánh `pilot_hotfix_13_08_cve`, KHÔNG phải
+  nhánh `fix/ekyc-loi-nghiep-vu` đang ở Boot 4.1.0).
+- Trong worktree mới `./gradlew` **không có quyền thực thi** → chạy `sh gradlew ...` (đừng `chmod +x`, sẽ
+  làm bẩn tree).
+- Verify version thật bằng `sh gradlew :<module>:dependencies --configuration runtimeClasspath -q > deps.txt`
+  rồi grep (nhanh hơn chạy dependencyInsight cho từng lib), và đọc kỹ dòng `x -> y` để biết bản resolve cuối.
+- Khi claude báo "build fail ở module khác, không phải do tôi": **tự kiểm chứng** bằng
+  `git worktree add --detach /home/zane/Desktop/work/wt/<base> <commit-gốc>` rồi chạy lại đúng task build đó —
+  lỗi y hệt ⇒ kết luận đúng, mới dám báo cho Hoàng.
+
 ## Ranh giới với repo code (Hoàng chốt 2026-09-11)
 
 Hoàng **chưa dạy workflow coding** → trong mọi repo vbsme Ultron ở chế độ **read-only**:
