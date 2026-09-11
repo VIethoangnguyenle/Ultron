@@ -32,7 +32,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T10:16:51.219491+07:00",
-      "next_run_at": "2026-09-11T12:02:28.897145+07:00",
+      "next_run_at": "2026-09-11T13:03:19.295077+07:00",
       "last_run_at": "2026-09-11T11:02:28.897145+07:00",
       "last_status": "ok",
       "last_error": null,
@@ -44,12 +44,15 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-11T11:01:56.498057+07:00",
-        "dispatched_at": "2026-09-11T11:02:20.117352+07:00",
-        "lateness_seconds": 23.6,
+        "scheduled_at": "2026-09-11T12:02:28.897145+07:00",
+        "dispatched_at": "2026-09-11T12:03:19.184332+07:00",
+        "lateness_seconds": 50.3,
         "kind": "on_time"
       },
-      "fire_claim": null
+      "fire_claim": {
+        "at": "2026-09-11T12:03:19.468342+07:00",
+        "by": "hoangnlv:988981:42a7216c3fd94cc68a4df52744116af7"
+      }
     },
     {
       "id": "ea45cc9800e7",
@@ -135,7 +138,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:13.990487+07:00",
-      "next_run_at": "2026-09-11T12:03:01.229128+07:00",
+      "next_run_at": "2026-09-11T12:05:19.301413+07:00",
       "last_run_at": "2026-09-11T12:01:01.229128+07:00",
       "last_status": "ok",
       "last_error": null,
@@ -148,12 +151,15 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-11T12:00:01.099016+07:00",
-        "dispatched_at": "2026-09-11T12:00:18.876877+07:00",
-        "lateness_seconds": 17.8,
+        "scheduled_at": "2026-09-11T12:03:01.229128+07:00",
+        "dispatched_at": "2026-09-11T12:03:19.184332+07:00",
+        "lateness_seconds": 18.0,
         "kind": "on_time"
       },
-      "fire_claim": null
+      "fire_claim": {
+        "at": "2026-09-11T12:03:19.471429+07:00",
+        "by": "hoangnlv:988981:037ea00dba314b69865c2cfb1d818a4f"
+      }
     },
     {
       "id": "5fc5e2166c3a",
@@ -373,5 +379,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-09-11T12:01:21.200643+07:00"
+  "updated_at": "2026-09-11T12:03:19.471583+07:00"
 }
