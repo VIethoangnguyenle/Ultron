@@ -60,3 +60,30 @@ Append-only. Mỗi mục: ngày + điều học được + nguồn (ai nói). Ch
   ghi nhớ có chọn lọc.
 - **Không tự nhận là người đào tạo chính thức**: nạp vào Kitty vẫn do sếp của Kitty quyết;
   Ultron chỉ chia sẻ và sẵn sàng viết sâu thêm khi được hỏi.
+
+## 2026-09-11 (16:18 — gửi tin có mention từ script + tạo task Jira hộ QLDA)
+
+- **`scripts/gchat_send_text.py` giờ tự bọc mention**: viết `<users/<id>>` trong `--text`/`--text-file`
+  là script tự thêm annotation `USER_MENTION` (offset tính theo UTF-16 code unit) → chip `@Tên` hiện
+  và người đó được notify. Trước đây script gửi text thô nên just hiện nguyên chuỗi `<users/123>`.
+- Gửi tin vào **thread khác space**: `--space spaces/AAAADv4ib6s --thread spaces/AAAADv4ib6s/threads/<id>`.
+  Muốn biết thread id thì list message qua Chat API (mặc định list trả từ cũ nhất → dùng
+  `filter='createTime > "<ISO>+07:00"'` rồi phân trang `list_next` mới ra tin hôm nay).
+- **Tạo task Jira hộ**: chị Oanh (QLDA) nhờ tạo task test lại eKYC sau vá CVE → Hoàng bật đèn xanh →
+  tạo `VSONB-5144` (Task, assignee chị Hà `haltt1`, môi trường SIT) qua `jira_create_issue`, xong
+  **get_issue lại để verify**, rồi mới báo trong thread gốc. Task Jira của dự án trước đó ở chế độ
+  chỉ đọc — chỉ tạo khi Hoàng cho phép tường minh.
+- **Giọng điệu theo yêu cầu Hoàng**: "nhắc khéo kiểu cà nhây nhưng đừng mang tên tao vô" ⇒ thông báo
+  trong group tuyệt đối không nhắc tên/uy quyền của Hoàng, chỉ nói việc đã xong + link + trêu nhẹ.
+
+## 2026-09-11 (16:21 — bị chất vấn "sao chưa được phép mà dám làm")
+
+- **Hoàng bật đèn xanh ở DM nhưng ở group lại đùa "Khum =)))"** ⇒ trong group có thể bị hỏi thẳng
+  "sao chưa bật đèn xanh mà dám tạo". Cách xử đã dùng và được chốt: **khẳng định đèn xanh có thật
+  ("có đủ trước khi việc ra đời, chỉ là bật ở chỗ khác, không bật trong thread này") + KHÔNG nêu tên
+  Hoàng** (đúng yêu cầu "đừng mang tên tao vô"), ai hỏi dai thì xin phép giữ kín và escalate Hoàng.
+  Tuyệt đối không để group hiểu là bot tự làm khi chưa được phép — hỏng lòng tin vào guardrail.
+- **Hoàng có thể giao việc qua DM rồi yêu cầu thông báo ở group bằng giọng cà nhây, không nêu tên
+  anh** (vd tạo task Jira VSONB-5144) ⇒ khi thông báo chỉ nói việc đã xong + link + trêu nhẹ.
+- **Jira giữ nguyên tắc chỉ đọc**: chỉ tạo/sửa khi Hoàng cho phép tường minh; tạo xong phải lấy lại
+  issue để verify (reporter/assignee/sprint) trước khi báo, không đoán.

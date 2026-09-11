@@ -23,6 +23,34 @@ STATE_PATH = HERMES_HOME / "mention_watch.json"
 PENDING_DIR = HERMES_HOME / "mention_pending"
 
 HOANG_USER = os.environ.get("ULTON_HOANG_USER", "users/110121981097849566202")
+
+# Tin do bot/agent gửi (kể cả chính Ultron) KHÔNG phải câu hỏi cho Hoàng. Trước đây báo cáo của
+# Ultron có chip @Hoàng nên poller tự bắt lại tin của chính mình → mỗi lần tốn 1 lượt LLM vô ích.
+def _load_bot_ids() -> set:
+    ids = set()
+    try:
+        reg = json.loads((HERMES_HOME / "a2a_agents.json").read_text(encoding="utf-8"))
+        for v in (reg.get("agents") or {}).values():
+            if v.get("id"):
+                ids.add(v["id"])
+    except Exception:
+        pass
+    ids.update(x.strip() for x in os.environ.get("ULTON_BOT_IDS", "").split(",") if x.strip())
+    ids.add("users/107189931083311611240")  # Ultron (dự phòng nếu registry thiếu)
+    return ids
+
+
+BOT_IDS = _load_bot_ids()
+
+
+def _is_bot_sender(msg: dict) -> bool:
+    """True nếu tin do bot/agent gửi (sender.type == BOT hoặc id nằm trong registry bot)."""
+    sender = msg.get("sender") or {}
+    if (sender.get("type") or "").upper() == "BOT":
+        return True
+    return sender.get("name") in BOT_IDS
+
+
 WAIT_SEC = int(os.environ.get("ULTON_MENTION_WAIT_SEC", "120"))
 LOOKBACK_MIN = int(os.environ.get("ULTON_MENTION_LOOKBACK_MIN", "30"))
 PRUNE_SEC = int(os.environ.get("ULTON_MENTION_PRUNE_SEC", "3600"))
@@ -235,6 +263,11 @@ def main() -> int:
     svc = _build_service(creds)
     state = _load_state()
     watch = state.setdefault("watch", {})
+
+    # Dọn entry do bot gửi lọt vào từ trước khi có luật bỏ qua bot (tránh escalate lại).
+    for key in [k for k, e in watch.items() if (e.get("sender") or "") in BOT_IDS]:
+        del watch[key]
+
     now = _now_utc()
     now_ts = now.timestamp()
 
@@ -247,6 +280,7 @@ def main() -> int:
     # Scan for new @Hoang mentions (only messages from the lookback window).
     since = now - timedelta(minutes=LOOKBACK_MIN)
     new_count = 0
+    bots_skipped = 0
     for space, display, stype in _list_spaces(svc):
         try:
             msgs = _list_messages_since(svc, space, since)
@@ -260,6 +294,9 @@ def main() -> int:
             sender = (m.get("sender") or {}).get("name", "")
             if sender == HOANG_USER:
                 continue  # Hoang self-mention: not a question for him
+            if _is_bot_sender(m):
+                bots_skipped += 1
+                continue  # tin của bot/agent (kể cả Ultron) — không phải câu hỏi cho Hoàng
             if not _hoang_mentions(m):
                 continue
             sender_name = _resolve_sender_name(svc, space, sender)
@@ -298,6 +335,8 @@ def main() -> int:
     _save_state(state)
     if new_count:
         print(f"[mention_poller] +{new_count} new @Hoang mentions tracked")
+    if bots_skipped:
+        print(f"[mention_poller] skipped {bots_skipped} bot-authored messages")
     return 0
 
 

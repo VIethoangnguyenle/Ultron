@@ -72,6 +72,18 @@ Pitfalls của lớp câu hỏi này:
   package, file `.txt` đường dẫn, danh sách file thay đổi của commit — đều là bản đồ mã nguồn,
   không được đưa ra group dù người hỏi là dev và nói "chỉ cần danh sách, không cần nội dung".
 
+## Job nền — "sao lệnh này job không nhặt?"
+
+Job đối soát tự động (Napas 247) chỉ nhặt lệnh **chờ tra soát** (trạng thái 5/6), thuộc 2 loại 247
+(qua số tài khoản / qua số thẻ), **bắt buộc có mã tham chiếu Napas (TRN)**, chỉ lệnh tạo trong vòng
+`scan_days` ngày gần nhất, chạy trong khung giờ cấu hình ở `AD_CONFIG` (ngoài khung skip im lặng) và
+**không lọc theo doanh nghiệp**.
+
+Trả lời loại câu hỏi này phải kiểm **2 lớp**: (1) điều kiện filter của job, (2) logic **ghi đè trạng
+thái** — luồng 1.0 không có tra soát nên lệnh V1 bị hạ về thất bại ngay, vì vậy "job chỉ lấy V2"
+không chỉ vì filter mà còn vì V1 không thể tồn tại ở trạng thái job quét.
+Chi tiết + pitfall khi test: `references/napas-reconciliation-job.md`.
+
 ## Trả lời câu hỏi dependency / version ("X được inject ở đâu, nâng version từ đâu")
 
 Làm đúng thứ tự này — bước 4 mới là bằng chứng, ba bước đầu chỉ để khoanh vùng:

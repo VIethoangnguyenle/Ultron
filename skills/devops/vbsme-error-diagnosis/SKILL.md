@@ -27,6 +27,7 @@ Example: `600002` → module `BILLING` (id=600) + ordinal `2` → `BillingError.
 - `/home/zane/Desktop/work/vietbank/vietbank-sme/docs/enum-db-mapping.md` — 51 enums with @Converter.
 - `/home/zane/Desktop/work/vietbank/vietbank-sme/docs/tester-db-playbook.md` — tables + status mapping.
 - `VBSMEONL.AD_MESSAGE` (Oracle) — error message VI/EN content keyed by CODE (also holds the 44 `VPG*` gateway codes).
+- `references/error-004-version-key.md` — nhóm lỗi `004xxx` (phiên bản app + khoá mặc định/key default): cơ chế, checklist, và vì sao `004005` hay gặp lúc login.
 
 ## Module → service/tầng (13 modules)
 

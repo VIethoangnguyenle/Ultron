@@ -19,11 +19,40 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
 HOME = Path.home()
 SA_PATH = HOME / ".hermes" / "google-chat-sa.json"
+
+_MENTION_RE = re.compile(r"<users/(\d+)>")
+
+
+def _u16_len(s: str) -> int:
+    """Độ dài theo UTF-16 code unit — Google Chat tính offset kiểu này."""
+    return len(s.encode("utf-16-le")) // 2
+
+
+def _mention_annotations(text: str) -> list:
+    """Tự bọc annotation USER_MENTION cho mọi `<users/<id>>` trong text.
+
+    Không có annotation thì Google Chat hiện nguyên chuỗi `<users/123>` —
+    không ai được notify. Có annotation thì chip `@Tên` hiện ra và người đó được ping.
+    """
+    out = []
+    for m in _MENTION_RE.finditer(text):
+        if m.start() > 0 and text[m.start() - 1] == "\\":
+            continue
+        out.append({
+            "type": "USER_MENTION",
+            "startIndex": _u16_len(text[: m.start()]),
+            "length": _u16_len(m.group(0)),
+            "userMention": {
+                "user": {"name": f"users/{m.group(1)}", "type": "HUMAN"},
+            },
+        })
+    return out
 
 
 def main() -> int:
@@ -67,6 +96,9 @@ def main() -> int:
     svc = build("chat", "v1", credentials=creds, cache_discovery=False)
 
     body: dict = {"text": text}
+    annotations = _mention_annotations(text)
+    if annotations:
+        body["annotations"] = annotations
     kwargs: dict = {"parent": a.space, "body": body}
     if a.thread:
         kwargs["messageReplyOption"] = "REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
