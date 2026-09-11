@@ -121,6 +121,15 @@ Khi tester báo "user X gặp lỗi mã Y ở môi trường Z", làm theo đún
    nguyên nhân gốc. Mã gateway (VBG/VPG) nằm ở bước `CALL_*_RESPONSE`.
 4. **Ra báo cáo cho tester** dạng file markdown (xem mục "Báo cáo cho tester" bên dưới).
 
+## Tester gửi CLIP/VIDEO quay màn hình lỗi
+
+Clip/nhạc gửi vào group là dạng file, Ultron không "xem" trực tiếp được → dùng skill `video-analysis`:
+`video_inspect.py` (metadata + lọc khung hình khác nhau + contact sheet + tách tiếng) → `vision_analyze`
+đọc contact sheet → `audio_transcribe.py` bóc lời thuyết minh (local) → trả lời bằng ngôn ngữ nghiệp vụ
+(các bước tester làm, lỗi ở giây thứ mấy, mã lỗi), rồi tra mã lỗi theo `error_code_source` như thường.
+**Không gửi khung hình/clip ra group hay lên cloud** — clip có thể chứa số tài khoản/tên khách hàng;
+chỉ gửi **báo cáo chữ**.
+
 ## Báo cáo cho tester (file markdown)
 
 - Kết quả phân tích check log phải đưa tester dưới dạng **file markdown (.md)** rồi gửi lên group.
