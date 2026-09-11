@@ -99,6 +99,23 @@ Format the reply: the SQL in a code block + a short business note on what each a
 means, how to run it (schema prefix `VBSMEONL.` etc.), and — for write queries — the mandatory
 safety warning. No internal trace shown.
 
+## Query được chuyển cho BANK / đối tác chạy trên DB của họ
+
+Tester hay forward query của Ultron sang bank (hoặc đối tác) để chạy trên hạ tầng bank. Query
+phải tự đứng một mình được, vì người chạy không có ngữ cảnh SIT của mình:
+
+- **Nhắc bỏ/đổi tiền tố schema.** `VBSMEONL.` là schema SIT nội bộ — bank phải dùng schema của họ
+  (thường chỉ cần bỏ tiền tố). Đây là lỗi đầu tiên bank sẽ gặp.
+- **Dịch mã số trạng thái ra nghiệp vụ ngay trong SQL** (`CASE STATUS WHEN 5 THEN '...' WHEN 6 THEN '...'`)
+  và nói rõ định nghĩa đang dùng. Vd "chờ tra soát" = timeout (bank không nhận kết quả) + pending
+  (bank trả mã đang xử lý). Bank có thể định nghĩa hẹp hơn (chỉ lấy lệnh duyệt cuối thành công) →
+  nói trước để họ chốt, tránh chạy ra 0 dòng rồi tưởng query sai.
+- **Nói rõ mốc ngày** là ngày tạo lệnh hay ngày hoạch toán, và ngày đang để cứng là ngày nào.
+- **Cảnh báo trước nếu SIT đang rỗng cho bộ lọc đó** (0 dòng ≠ query sai), kèm mốc dữ liệu gần
+  nhất có thật để bên kia đối chiếu.
+- **Tự chạy thử nguyên văn câu SQL trên SIT trước khi gửi** — xác nhận nó execute sạch, không chỉ
+  đọc bằng mắt.
+
 ## Ultron tự chạy ghi DB (`sql_write`) — quy trình bắt buộc
 
 **A. TỰ TEST TOOL (không ai nhờ) — luật nghiêm (Hoàng chốt 2026-09-10):**
