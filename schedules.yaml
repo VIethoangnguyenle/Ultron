@@ -58,6 +58,14 @@ actions:
     days: [sun]
     script: lesson_review.py
 
+  # Bản tin email sáng cho Hoàng — 08:00 ngày làm việc, gửi vào DM riêng.
+  # Lọc bot JIRA/bản tin/đào tạo, chỉ liệt kê mail NGƯỜI gửi; im lặng nếu không có gì mới.
+  - id: email-digest
+    when: "08:00"
+    days: [mon, tue, wed, thu, fri]
+    script: email_digest.py
+    args: ["--send"]
+
   # Lời chào cuối ngày — ngày làm việc, 17h30. Nội dung xoay vòng theo ngày; không @mention ai.
   - id: evening-greeting
     when: "17:30"

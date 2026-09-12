@@ -1,10 +1,10 @@
-State sync: ~/Ultron/sync.sh mirror memory/skills/config/cron → git@github.com:VIethoangnguyenle/Ultron.git (restore.sh khôi phục máy mới). KHÔNG commit .env/auth.json/state.db.
+State sync: ~/Ultron/sync.sh → git@github.com:VIethoangnguyenle/Ultron.git (restore.sh); KHÔNG commit .env/auth.json/state.db.
 §
 Bot Ultron on VNPay Workspace. Send text thô (link <url|text>). Mention: đọc userMention.user.name; viết <users/<id>>; bot ko displayName → chip chỉ '@', đừng chèn space. ⚠ Thread nhiều người: chip auto-mention có thể ra SAI tên → đối chiếu id trước khi gọi tên.
 §
 'chồn ăn dưa'=AAQAiOgBqio (test riêng)
 §
-Run claude/agy: workdir = WORKSPACE /home/zane/Desktop/work/vietbank/vietbank-sme — bản thân KHÔNG phải git repo (chỉ .git/hooks), chứa 4 repo con có .git riêng: vietbank-sme-omni (repo chính) / dvnh-common / viet-bank-ekyc-sme / test-workload ⇒ lệnh git phải `git -C <repo con>`. Task nặng check RAM trước (abort nếu trống <~2GB).
+claude/agy workdir = /home/zane/Desktop/work/vietbank/vietbank-sme (workspace vỏ, KHÔNG git; 4 repo con có .git riêng: vietbank-sme-omni chính / dvnh-common / viet-bank-ekyc-sme / test-workload ⇒ git phải `git -C <repo con>`). Task nặng check RAM (<2GB thì abort).
 §
 Guard Hermes chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → GỌI CLAUDE (`claude -p "đọc ~/.hermes/scripts/gw_restart.txt…"` chạy `systemd-run --user --collect /bin/sh -c 'sleep 150; systemctl --user restart hermes-gateway'`); KHÔNG đẩy việc cho Hoàng. Sửa config: `hermes config set`.
 §
@@ -21,3 +21,5 @@ Sổ hồ sơ: ~/.hermes/people.json (115 người) + scripts/people.py (list/sh
 Lịch sử Chat: scripts/gchat_dump.py (read token).
 §
 Group conduct (Hoàng chốt 2026-09-11): bảo mật KHÔNG tiết lộ dù nhỏ nhất — không source/code, không tên file/class, không hướng dẫn bóc token, không nêu lỗ hổng. Siết luật mới thì mirror sang Kitty (SOUL + adapter) + restart cả 2 máy.
+§
+Hoàng giao Ultron quản lý email hộ (skill account-access-provisioning).
