@@ -8,7 +8,7 @@ claude/agy workdir = /home/zane/Desktop/work/vietbank/vietbank-sme (workspace v�
 §
 Guard Hermes chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → GỌI CLAUDE (`claude -p "đọc ~/.hermes/scripts/gw_restart.txt…"` chạy `systemd-run --user --collect /bin/sh -c 'sleep 150; systemctl --user restart hermes-gateway'`); KHÔNG đẩy việc cho Hoàng. Sửa config: `hermes config set`.
 §
-Đọc ảnh: `vision_analyze` chạy tốt (auxiliary vision gateway); agy dự phòng (Gemini hay chặn filter). Video → skill `video-analysis` (ffmpeg ~/.local/bin, venv whisper). TTS phải giọng Việt `vi-VN-NamMinhNeural` — giọng Anh đọc tiếng Việt nghe méo.
+Đọc ảnh: vision_analyze (agy dự phòng). Video → skill video-analysis (ffmpeg ~/.local/bin, venv whisper). TTS giọng Việt vi-VN-NamMinhNeural.
 §
 agentmemory: systemd, MCP 54 tool, EMBEDDING_PROVIDER=local (skill agentmemory).
 §
@@ -20,6 +20,6 @@ Sổ hồ sơ: ~/.hermes/people.json (115 người) + scripts/people.py (list/sh
 §
 Lịch sử Chat: scripts/gchat_dump.py (read token).
 §
-Group conduct (Hoàng chốt 2026-09-11): bảo mật KHÔNG tiết lộ dù nhỏ nhất — không source/code, không tên file/class, không hướng dẫn bóc token, không nêu lỗ hổng. Siết luật mới thì mirror sang Kitty (SOUL + adapter) + restart cả 2 máy.
+Siết luật group → mirror sang Kitty (SOUL+adapter) + restart 2 máy; bảo mật: không tiết lộ dù nhỏ nhất (SOUL có chi tiết).
 §
-Hoàng giao Ultron quản lý email hộ (skill account-access-provisioning).
+Email hộ Hoàng: hoangnlv@vnpay.vn, token local ~/.hermes/google_token.json (3 scope gmail, 600); helper scripts/gmail.py + email_digest.py (schedules.yaml 08:00 T2-T6 → DM). Mail chỉ trong DM, không ra group.

@@ -36,6 +36,16 @@ Dùng khi Hoàng yêu cầu Ultron đọc/làm việc trên một tài khoản c
 - **Tài khoản Workspace do admin quản lý:** admin có thể chặn restricted scope của Gmail (hoặc tắt App Password). Xác định trước phương án dự phòng (mail-only ⇒ `himalaya` + App Password) để không kẹt giữa đường; consent bị chặn thì báo thẳng, không đoán.
 - **Code cấp quyền hết hạn trong vài phút** và chỉ dùng được một lần: hết hạn thì sinh URL mới, đừng thử lại code cũ. URL mới ⇒ pending session mới.
 - **Đừng xác nhận "cấp xong" khi mới có URL.** Bước cuối là người dùng mở link, approve, dán code về — thiếu code thì việc còn dang dở, phải nói rõ là đang chờ.
+- **Consent OK + có `refresh_token` ≠ gọi được API.** Nếu GCP project chưa **bật API** thì lời gọi trả `403: Gmail API has not been used in project <id> or it is disabled`. Chỉ chủ project bật được: `console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=<id>`. Bật xong **không cần cấp quyền lại** — token cũ chạy ngay (chờ ~30s cho Google lan truyền). Đây là bước hay bị bỏ sót nhất: token đúng, scope đúng, vẫn 403.
+- **Filter tìm kiếm Gmail dễ ăn mất mail thật.** `-category:promotions/-category:social/-category:forums` ghép với các `-from:` làm mất gần hết mail người gửi (đo thật: 48 → 4 thư, mất cả mail dự án lẫn thư nhân sự). Muốn tin một filter thì **đếm A/B** (số thư khớp khi có và khi không có filter) rồi mới dùng, đừng đoán theo cảm giác.
+
+## Sau khi đã có quyền — vận hành hằng ngày
+
+- **Helper Gmail local:** `~/.hermes/scripts/gmail.py` — `profile` · `counts` · `search "<query>" --max N` · `read <id>` · `send` · `modify`. Đếm số thư bằng **phân trang** (`_count`), KHÔNG dùng `resultSizeEstimate` của Gmail (bị cap, luôn trả ~201).
+- **Bản tin mail sáng:** `~/.hermes/scripts/email_digest.py --send` — thuần script, **0 token**, cắm trong `schedules.yaml` (action `email-digest`, 08:00 T2–T6) → gửi vào DM Hoàng (`spaces/0dniIqAAAAE`); lọc bot JIRA/bản tin/đào tạo, **im lặng khi không có mail mới** (chống spam).
+- **Nội dung mail KHÔNG BAO GIỜ ra group** — chỉ DM Hoàng. Không ghi nội dung mail vào file nằm trong repo sync.
+- **Trước khi thêm file mới vào `~/.hermes`,** kiểm `~/Ultron/sync.py` xem nó có bị mirror lên GitHub không: sync chỉ lấy `memories/ scripts/ SOUL.md config.yaml cron/ schedules.yaml skills/` ⇒ token (`google_token.json`, `google_client_secret.json`) không bị đẩy. Nhưng **kiểm lại mỗi lần thêm file**, đừng đoán.
+- **File script trong `scripts/` thì CÓ bị đẩy lên GitHub** ⇒ script phải sạch secret (đọc token từ file, không nhúng giá trị).
 
 ## References
 

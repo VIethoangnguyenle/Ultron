@@ -28,9 +28,11 @@ DM_HOANG = "spaces/0dniIqAAAAE"
 SEND = SCRIPT_DIR / "gchat_send_text.py"
 
 # Nguon "rach" — bot he thong, ban tin, dao tao: khong dua vao ban tin.
+# CHU Y: KHONG dung -category:promotions/-category:social/-category:forums o day —
+# do that su an mat gan het mail nguoi gui (do that: 48 -> 4), ke ca mail du an/nhan su.
 NOISE = ["from:jira", "from:ttnb@vnpay.vn", "from:daotao@vnpay.vn",
          "from:noreply", "from:no-reply", "from:notification",
-         "from:marketing@vnpay.vn", "category:promotions", "category:social", "category:forums"]
+         "from:marketing@vnpay.vn"]
 
 # Dau hieu can xu ly / gap.
 URGENT = ["duyệt", "approve", "xác nhận", "confirm", "khẩn", "urgent", "gấp",
