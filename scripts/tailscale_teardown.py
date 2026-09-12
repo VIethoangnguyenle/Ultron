@@ -8,9 +8,11 @@ Tailscale trên hệ thống** — không để lại dấu vết đường vào
     tailscale_teardown.py [--dry-run] [--no-notify]
 
 Dọn gì:
-  1. logout node khỏi tailnet
-  2. stop + rm container (docker rm -v xoá luôn log json của container)
-  3. xoá volume `tailscale-state` (state + log của tailscaled)
+  1. `tailscale down` node (GIỮ danh tính: state volume để lại ⇒ mở lại đúng node, đúng IP,
+     không phải tạo node mới — bài học 2026-09-12: logout + xoá state ⇒ mất node, IP đổi,
+     phải sửa config/cổng Siri/Shortcut mỗi lần)
+  2. stop + rm container (xoá luôn log json của container)
+  3. GIỮ volume `tailscale-state` (đó là danh tính node, không phải log — xoá là mất node)
   4. xoá file log có TÊN chứa "tailscale" (trừ script/skill — đó là công cụ, không phải log)
   5. SCRUB mọi dòng có dấu vết tailscale trong log chung (gateway.log, agent.log, *.txt/*.json
      ở ~/.hermes + /tmp). File mà sau khi scrub không còn dòng nào → xoá hẳn.
@@ -47,7 +49,17 @@ SKIP_PREFIXES = [
 ]
 # Dấu vết cần xoá: IP node, tên node, tên phần mềm. (Không quét .yaml/.md — config & tài liệu
 # bật lại phải giữ, nếu không thì hôm sau không dựng lại được.)
-MARKERS = ("100.120.110.26", "vbsme-log-gw", "tailscale", "Tailscale", "tailscaled")
+def _tailnet_ip_markers() -> list:
+    """IP node hiện tại — node tạo lại là IP đổi, nên đọc từ state thay vì chỉ gắn cứng."""
+    try:
+        ip = (Path.home() / ".hermes" / "state" / "tailnet_ip.txt").read_text().strip()
+    except Exception:
+        ip = ""
+    return [ip] if ip else []
+
+
+MARKERS = tuple(_tailnet_ip_markers() + ["100.120.110.26", "vbsme-log-gw", "tailscale", "Tailscale",
+                                         "tailscaled", "tskey-"])
 # CHỈ scrub file log. KHÔNG đụng .json/.yaml: `webhook_subscriptions.json` là định nghĩa route
 # Siri, scrub vào là hỏng cổng (đã bắt được ở dry-run 2026-09-12) — config không phải log.
 SCAN_SUFFIXES = {".log", ".txt", ".out", ".err"}
@@ -83,8 +95,8 @@ def _candidates() -> list[Path]:
             real = str(path)
             if real in seen or not path.is_file():
                 continue
-            if path.suffix.lower() not in SCAN_SUFFIXES:
-                continue
+            if path.suffix.lower() not in SCAN_SUFFIXES and ".log." not in path.name:
+                continue  # log xoay vòng tên `agent.log.1` — suffix là ".1"
             if path.name in PROTECTED_NAMES:
                 continue
             if any(real.startswith(pref) for pref in SKIP_PREFIXES):
@@ -170,7 +182,7 @@ def main() -> int:
     if args.dry_run:
         code, out = sh(["docker", "ps", "-a", "--filter", f"name={CONTAINER}",
                         "--format", "{{.Names}} | {{.Status}}"])
-        print(f"→ DRY-RUN: sẽ logout node + stop/rm container {CONTAINER} + xoá volume {VOLUME}")
+        print(f"→ DRY-RUN: sẽ down node (giữ state) + stop/rm container {CONTAINER}; volume {VOLUME} GIỮ LẠI")
         print(f"   hiện trạng: {out or '(không đọc được)'}")
         print(f"   log container sẽ mất cùng container: {log_lines} dòng")
         print(f"   file xoá hẳn ({len(traces['deleted'])}):")
@@ -184,8 +196,8 @@ def main() -> int:
 
     stop_speak_bridge()
     if had_container:
-        code, out = sh(["docker", "exec", CONTAINER, "tailscale", "logout"], timeout=45)
-        print(f"→ logout: {'OK' if code == 0 else f'bỏ qua (exit {code}: {out[:120]})'}")
+        code, out = sh(["docker", "exec", CONTAINER, "tailscale", "down"], timeout=45)
+        print(f"→ down node (giữ danh tính/IP): {'OK' if code == 0 else f'bỏ qua (exit {code}: {out[:120]})'}")
 
         code, out = sh(["docker", "stop", CONTAINER], timeout=90)
         if code != 0:
@@ -193,17 +205,23 @@ def main() -> int:
             return 1
         print("→ đã stop container")
 
-        code, out = sh(["docker", "rm", "-v", CONTAINER], timeout=60)
+        code, out = sh(["docker", "rm", CONTAINER], timeout=60)
         print("→ đã xoá container (kèm log)" if code == 0
               else f"cảnh báo: xoá container lỗi ({out[:120]})")
 
-        code, out = sh(["docker", "volume", "rm", VOLUME], timeout=60)
-        print("→ đã xoá volume state (state + log của tailscaled)" if code == 0
-              else f"cảnh báo: xoá volume lỗi ({out[:120]})")
+        # Cầu nối ra tailnet (git.vnpay.vn :9445 / console :9446) KHÔNG cần tắt riêng:
+        # nó nằm ngay trong nginx của Hoàng (omni-sme-proxy) và chỉ allow dải CGNAT
+        # 100.64.0.0/10 ⇒ Tailscale down là tự nhiên không ai vào được nữa.
+
+        # GIỮ volume state: đó là danh tính node (machine key + IP), không phải log.
+        # Xoá nó ⇒ lần mở sau phải tạo node mới ⇒ IP mới ⇒ sửa config + cổng Siri + Shortcut.
+        code_v, out_v = sh(["docker", "volume", "ls", "--filter", f"name={VOLUME}", "--format", "{{.Name}}"], timeout=30)
+        if code_v == 0 and VOLUME in out_v.split():
+            print(f"→ giữ volume {VOLUME} (danh tính node — cố ý KHÔNG xoá)")
 
     if not args.no_notify:
         lines = [f"🔒 Đã tắt Tailscale theo luật 17h30 (log đã xoá):"]
-        lines.append(f"• Node vbsme-log-gw: logout + container + state đã xoá" if had_container
+        lines.append(f"• Node vbsme-log-gw: down + xoá container (state GIỮ để tái dùng đúng node/IP)" if had_container
                      else "• Node: trước đó đã tắt")
         lines.append(f"• Log container: {log_lines} dòng đã xoá")
         lines.append(f"• File log xoá hẳn: {len(traces['deleted'])}"

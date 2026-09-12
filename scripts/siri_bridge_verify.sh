@@ -3,7 +3,7 @@
 # Chay TACH ROI qua systemd-run nen song duoc qua lan gateway khoi dong lai.
 set -u
 unset HERMES_HOME
-TSIP=100.120.110.26
+TSIP=100.82.132.36
 PORT=9443
 REP=/home/zane/.hermes/reports/siri_bridge_report.txt
 TOK=$(cat /home/zane/.hermes/state/siri_token.txt)

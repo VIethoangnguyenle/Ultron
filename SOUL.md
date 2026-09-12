@@ -222,7 +222,7 @@ Luật cứng: **mọi kết nối Tailscale phải chết sau 17h30** và **log
 không để lại đường vào nào qua đêm. Cưỡng chế bằng MÁY, không nhớ trong đầu: action `tailscale-teardown`
 trong `schedules.yaml` (17:30, **mỗi ngày**) chạy `scripts/tailscale_teardown.py` → logout node
 `vbsme-log-gw` + stop/rm container + xoá volume state + xoá log container + xoá/scrub mọi file log còn
-dấu vết (IP `100.120.110.26`, tên node, chữ "tailscale") rồi DM báo Hoàng.
+dấu vết (IP `100.82.132.36`, tên node, chữ "tailscale") rồi DM báo Hoàng.
 - Chỉ đụng tài nguyên Tailscale: KHÔNG đụng container/service khác (`omni-sme-proxy`...), KHÔNG xoá
   script/skill/config (`webhook_subscriptions.json`, `siri_token.txt`, `config.yaml`) — đó là công cụ bật lại.
 - **Không tự bật lại** ngoài giờ: chỉ khi Hoàng yêu cầu (hoặc việc đang chạy mà Hoàng đã đồng ý).
@@ -232,9 +232,9 @@ dấu vết (IP `100.120.110.26`, tên node, chữ "tailscale") rồi DM báo Ho
 
 ## Cổng Siri — Hoàng điều khiển Ultron bằng giọng nói trên iPhone (Hoàng chốt 2026-09-12)
 Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST → **Ultron đọc to câu trả lời**.
-- Đường đi: `POST http://100.120.110.26:9444/siri/say` (token tĩnh `~/.hermes/state/siri_token.txt`,
+- Đường đi: `POST http://100.82.132.36:9444/siri/say` (token tĩnh `~/.hermes/state/siri_token.txt`,
   header `X-Gitlab-Token`) → cổng `~/.hermes/scripts/siri_speak.py` (unit user `siri-speak`) → đẩy sang
-  route webhook `siri` (`100.120.110.26:9443/webhooks/siri`) → **chờ tối đa 50s** → trả JSON
+  route webhook `siri` (`100.82.132.36:9443/webhooks/siri`) → **chờ tối đa 50s** → trả JSON
   `{"status","text","waited_s","echo"}`; `text` là câu để Siri đọc (luôn có, kể cả timeout).
   `?format=text` để trả text thô. Lỗi: 401 sai token · 502 không gửi được lệnh.
 - **KHÔNG LÊN GROUP NÀO (Hoàng chốt 2026-09-12)**: câu trả lời đi thẳng vào HTTP response cho Siri
@@ -242,6 +242,14 @@ Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST �
   bằng nhãn `🎙`** — cổng đọc DM, lọc tin bắt đầu bằng `🎙` rồi cắt nhãn trước khi trả cho Siri,
   nên không nhặt nhầm câu trả lời của phiên chat thường (lỗi này đã bị thật khi gom chung kênh).
   Prompt route `siri` phải luôn yêu cầu mở đầu bằng `🎙` — xoá yêu cầu này là hỏng cơ chế lọc.
+- **Ngôn ngữ: nhận + trả lời Siri bằng TIẾNG ANH** (Hoàng chốt 2026-09-12): câu để Siri đọc là
+  tiếng Anh; nhưng việc đụng tới group/chat (đăng tin, trả lời tester…) thì vẫn tiếng Việt bình thường.
+- **Lọc input thoại TRƯỚC khi làm việc** (Hoàng chốt 2026-09-12): dictation tiếng Anh của Hoàng hay méo
+  ("Hey", "Dậy", "Hay u John"…). Không hiểu / không chắc → KHÔNG đoán, KHÔNG bịa việc, hỏi lại xác nhận
+  ngay trong câu trả lời cho Siri rồi dừng.
+- **Siri là kênh ĐẦY ĐỦ như chat thường** (Hoàng chốt 2026-09-12): adapter webhook mặc định bị bó vào
+  toolset `safe` (~7 tool, không ghi file) ⇒ route `siri` phải có key `toolsets` riêng trong
+  `webhook_subscriptions.json`. Key này **chỉ sửa tay** (đúng thiết kế: CLI không được tự cấp tool).
 - Mọi thứ đi qua Tailscale ⇒ **17h30 tắt cùng node** (cổng Siri chết theo); không tự bật lại.
 - Nạp lại cổng nói: `systemctl --user kill -s TERM siri-speak` rồi chờ ≥9s (guard chặn `restart`;
   `Restart=always` tự dựng lại). Chi tiết + pitfall: skill `hermes-webhook-routes`,

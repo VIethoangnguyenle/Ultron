@@ -34,9 +34,19 @@ sys.path.insert(0, str(SCRIPTS))
 import gchat_dump as gc  # noqa: E402 — dùng lại creds()/text_of() (token read-only của Hoàng)
 
 TOKEN_PATH = HOME / ".hermes" / "state" / "siri_token.txt"
-BIND_HOST = "100.120.110.26"   # IP Tailscale — chỉ trong tailnet
+def _tailnet_ip() -> str:
+    """IP tailnet hiện tại. Node tạo lại là IP đổi ⇒ đọc từ state, KHÔNG gắn cứng."""
+    try:
+        ip = (Path.home() / ".hermes" / "state" / "tailnet_ip.txt").read_text().strip()
+    except Exception:
+        ip = ""
+    return ip or os.environ.get("TAILNET_IP") or "100.120.110.26"
+
+
+TS_IP = _tailnet_ip()
+BIND_HOST = TS_IP               # IP Tailscale — chỉ trong tailnet
 PORT = 9444
-UPSTREAM = "http://100.120.110.26:9443/webhooks/siri"
+UPSTREAM = f"http://{TS_IP}:9443/webhooks/siri"
 OUTBOX_SPACE = "spaces/0dniIqAAAAE"      # DM Hoàng — kênh DUY NHẤT nhận câu trả lời Siri (nhãn 🎙); KHÔNG group
 DM_SPACE = "spaces/0dniIqAAAAE"          # (giữ tên cũ cho tương thích; nay cùng đích)
 MIC = "🎙"                               # nhãn phiên Siri — cổng lọc theo nhãn này để không nhặt nhầm chat thường
@@ -47,7 +57,7 @@ MAX_BODY = 8192
 WAIT_SECONDS = 50.0
 POLL_EVERY = 1.2
 SKEW = timedelta(seconds=3)              # trừ hao lệch đồng hồ giữa máy này và Google
-TIMEOUT_MSG = "Em đang xử lý, kết quả sẽ về tin nhắn ạ."
+TIMEOUT_MSG = "Still working on it — I'll report the result in your chat."
 SKIP_MARKERS = ("is thinking", "đang nghĩ")
 
 _SVC = None
@@ -168,7 +178,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:  # noqa: BLE001
             text = raw.decode("utf-8", "replace").strip()
         if not text:
-            self._reply_result("empty", "chưa nhận được nội dung lệnh")
+            self._reply_result("empty", "I didn't get any command.")
             return
 
         started = time.time()

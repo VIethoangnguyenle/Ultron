@@ -6,11 +6,11 @@ Bot Ultron on VNPay Workspace. Send text thô (link <url|text>). Mention: đọc
 §
 claude/agy workdir = /home/zane/Desktop/work/vietbank/vietbank-sme (workspace vỏ, KHÔNG git; 4 repo con có .git riêng: vietbank-sme-omni chính / dvnh-common / viet-bank-ekyc-sme / test-workload ⇒ git phải `git -C <repo con>`). Task nặng check RAM (<2GB thì abort).
 §
-Guard Hermes: chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → gọi claude (`claude -p "đọc ~/.hermes/scripts/gw_restart.txt…"`, systemd-run --user sleep 150 → systemctl --user restart hermes-gateway); không đẩy cho Hoàng. Sửa config: `hermes config set`.
+Guard Hermes: chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → gọi claude đọc ~/.hermes/scripts/gw_restart.txt (hẹn 150s rồi restart); không đẩy cho Hoàng. Sửa config: `hermes config set`.
 §
 Đọc ảnh: vision_analyze (agy dự phòng). Video → skill video-analysis (ffmpeg ~/.local/bin, venv whisper). TTS giọng Việt vi-VN-NamMinhNeural.
 §
-agentmemory: systemd, MCP 54 tool, EMBEDDING_PROVIDER=local (skill agentmemory).
+agentmemory: systemd, MCP 54 tool, EMBEDDING_PROVIDER=local.
 §
 db-access: write chỉ VBSMEONL+VBSMEOFF (sql_write 2 bước preview+token), chỉ SIT; mở write DB khác phải qua Hoàng.
 §
@@ -20,8 +20,8 @@ Sổ hồ sơ: ~/.hermes/people.json (115 người) + scripts/people.py (list/sh
 §
 Lịch sử Chat: scripts/gchat_dump.py (read token).
 §
-Siết luật group → mirror sang Kitty (SOUL+adapter) + restart 2 máy; bảo mật: không tiết lộ dù nhỏ nhất (SOUL có chi tiết).
+Siết luật bảo mật → mirror sang Kitty (SOUL+adapter) + restart.
 §
-Email hộ Hoàng: hoangnlv@vnpay.vn, token ~/.hermes/google_token.json; scripts/gmail.py + email_digest.py (schedules 08:00 T2-T6 → DM). Mail chỉ trong DM.
+Email hộ Hoàng: token ~/.hermes/google_token.json; scripts/gmail.py + email_digest.py (08:00 T2-T6 → DM). Mail chỉ trong DM.
 §
-Máy zane: docker không cần sudo (group docker, enabled) nhưng KHÔNG passwordless sudo → hạ tầng đi Docker, đừng hứa apt/systemctl. Gateway cho tester ở nhà: container `tailscale` node vbsme-log-gw → portal log qua IP:10443; chỉ mở private cho đúng người được cấp.
+Máy zane: docker không cần sudo (group docker) nhưng KHÔNG passwordless sudo → hạ tầng đi Docker, đừng hứa apt/systemctl. Tailscale (tester log + cổng Siri): node vbsme-log-gw, IP ĐỔI theo node ⇒ đọc ~/.hermes/state/tailnet_ip.txt; authkey ở ~/.hermes/state/tailscale_authkey.txt; docker run phải có TS_STATE_DIR=/var/lib/tailscale + TS_USERSPACE=false (+TS_AUTHKEY) — thiếu = state RAM → loop restart; teardown = `tailscale down` + GIỮ volume state (tái dùng node/IP).

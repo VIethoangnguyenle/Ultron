@@ -53,7 +53,15 @@ Dùng khi Hoàng yêu cầu Ultron đọc/làm việc trên một tài khoản c
 - **Trước khi thêm file mới vào `~/.hermes`,** kiểm `~/Ultron/sync.py` xem nó có bị mirror lên GitHub không: sync chỉ lấy `memories/ scripts/ SOUL.md config.yaml cron/ schedules.yaml skills/` ⇒ token (`google_token.json`, `google_client_secret.json`) không bị đẩy. Nhưng **kiểm lại mỗi lần thêm file**, đừng đoán.
 - **File script trong `scripts/` thì CÓ bị đẩy lên GitHub** ⇒ script phải sạch secret (đọc token từ file, không nhúng giá trị).
 
+## Hạ tầng dùng chung của Hoàng — luật cứng, áp cho MỌI lần đụng tới
+
+- **`omni-sme-proxy` (nginx của Hoàng) đang phục vụ link log UAT/PILOT cho tester — không được làm hỏng.** Mọi thay đổi: backup config trước · sửa **ghi tại chỗ giữ inode** (tool ghi kiểu atomic/`patch` làm đổi inode ⇒ container vẫn đọc bản cũ mà `nginx -t` vẫn báo ok) · validate bằng container rác **cùng image** · rồi `nginx -s reload`. Không dựng nginx/container thứ hai khi anh đã có cái dùng được — hỏi trước.
+- **"Xoá toàn bộ log hệ thống về việc X" = dọn dấu vết, và luôn dry-run trước.** Dùng `~/.hermes/scripts/scrub_matter_logs.py` (mặc định chỉ in ra; `--apply` mới xoá). Nói thẳng phần **không** với tới được (systemd journal, `/var/log` root-owned) kèm lệnh cho Hoàng — đừng im lặng cho rằng đã sạch.
+- **Secret lộ trong log ⇒ scrub log xong vẫn phải khuyên revoke/regenerate credential.** Xoá dấu vết không làm key hết hiệu lực (auth key Tailscale, token webhook…).
+- **Dịch vụ nội bộ login bằng SSO / trỏ về tên miền thật thì nginx proxy KHÔNG đủ** (callback quay về tên miền gốc) — đừng hứa, cũng đừng tự dựng lại route: đường đúng là subnet router.
+
 ## References
 
+- `references/tailscale-lifecycle.md` — luật tắt hết Tailscale sau 17h30, dựng container, IP động, **dọn dấu vết log** (marker, log xoay vòng, phần cần root).
+- `references/tailscale-reopen-procedure.md` — mở lại đầy đủ (node, cổng Siri, gateway) + bản đồ cổng + **bẫy bind-mount theo inode** khi sửa nginx của Hoàng.
 - `references/google-oauth-scope-sets.md` — bảng service → scope, lệnh setup, xử lý lỗi consent thường gặp.
-- `references/tailscale-lifecycle.md` — luật tắt hết kết nối Tailscale sau 17h30 + xoá log (script `tailscale_teardown.py`, action hằng ngày trong `schedules.yaml`, cách bật lại). Cổng nào bind vào IP tailnet thì chết theo lịch này — xem skill `hermes-webhook-routes`.

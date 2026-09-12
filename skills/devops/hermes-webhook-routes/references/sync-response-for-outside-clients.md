@@ -8,10 +8,11 @@ Các đường KHÔNG dùng được (đã kiểm chứng trong source `gateway/
 - `send()` ­chỉ hỗ trợ `deliver` = `log` / `github_comment` / các platform chat đã biết. **Không có callback_url / response_url**.
 - Session webhook bị **giới hạn tool** (~7: web, vision, clarify, tool_search/describe/call) ⇒ **không có `write_file`/terminal**.
   Đừng thiết kế "Agent ghi kết quả ra file rồi client đọc file" — Agent sẽ báo không có tool ghi file.
+  (Cập nhật 2026-09-12: mở được bằng key tay `toolsets` của **từng route** — xem mục cuối file.)
 
 ## Cách chạy được: cổng "nói" đứng giữa (đã dựng: `~/.hermes/scripts/siri_speak.py`)
 ```
-Shortcuts --POST--> 100.120.110.26:9444/siri/say --> (forward) --> 100.120.110.26:9443/webhooks/siri
+Shortcuts --POST--> 100.82.132.36:9444/siri/say --> (forward) --> 100.82.132.36:9443/webhooks/siri
                      bridge chờ câu trả lời, rồi trả JSON {"status","text","waited_s","echo"} trong response body
 ```
 - Bridge tự đẩy lệnh sang route webhook, ghi **mốc thời gian trước khi gửi** (trừ hao 3s lệch đồng hồ), rồi poll kênh `deliver`
@@ -43,3 +44,25 @@ HTTP 200  Content-Type: application/json; charset=utf-8
 
 ## Kiểm chứng (số thật)
 Prompt lệnh thoại ngắn gọn → `POST /siri/say` → HTTP 200, `wait=16.8s`, `answer=yes`, text trả về trùng tin nhắn trong DM.
+
+## Kênh Siri: tiếng Anh + lọc input + full năng lực (chốt 2026-09-12)
+- Prompt route `siri`: **input và output TIẾNG ANH**; việc đụng tới group/chat (đăng tin, trả lời tester) vẫn tiếng Việt.
+- **Lọc input trước khi làm việc**: dictation tiếng Anh hay méo ("Hey", "Dậy", "Hay u John") ⇒ hiểu sai thì hỏi lại
+  xác nhận ngắn rồi DỪNG, tuyệt đối không đoán rồi làm bừa.
+- **Full năng lực**: adapter webhook mặc định bó vào toolset `safe` (web/vision/image_gen ≈ 7 tool, không `write_file`/terminal).
+  Mở bằng key tay `"toolsets": [...]` đặt **trong chính route** ở `webhook_subscriptions.json` — `toolsets_for_source()`
+  đọc `route_config["toolsets"]`, nên chỉ route đó được mở (khác `platform_toolsets` là mở cho mọi route webhook).
+  Đang set cho `siri`: web, search, vision, file, terminal, skills, memory, todo, code_execution, session_search, browser, cronjob.
+- Verify không cần chạy thật: `obj = object.__new__(WebhookAdapter); obj._routes = <subs>;` rồi gọi
+  `WebhookAdapter.toolsets_for_source(obj, src)` với `src.chat_id = "webhook:siri:x"` (route khác phải trả `None`).
+- Câu chờ/lỗi trong `siri_speak.py` cũng phải tiếng Anh (`TIMEOUT_MSG`, nhánh `empty`) vì Siri đọc nguyên văn.
+
+## Mở lại cổng sau teardown (phải login lại từ đầu)
+Teardown xoá container + volume state ⇒ KHÔNG bật lại bằng `start`, phải tạo node mới:
+1. `docker run -d --name tailscale --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW --device=/dev/net/tun -v tailscale-state:/var/lib/tailscale --restart unless-stopped tailscale/tailscale:latest`
+2. `docker exec -d tailscale sh -c 'tailscale up --hostname=vbsme-log-gw --accept-dns=false --timeout=60m > /tmp/tsup.log 2>&1'`
+   (thiếu `--accept-dns=false` là bị từ chối: "requires mentioning all non-default flags").
+3. URL `https://login.tailscale.com/a/...` nằm ở `/tmp/tsup.log` → **gửi DM Hoàng** bấm Approve (không lên group).
+4. Sau khi approve: `systemctl --user start siri-speak` **và khởi động lại gateway** — socket `:9443` bind vào IP tailnet
+   sẽ chết khi IP biến mất, phải bind lại (đường hợp lệ: để claude đọc `gw_restart.txt`, không tự restart từ trong gateway).
+5. Verify: `/health` = `ok` · POST `/siri/say` → `text` tiếng Anh · DM nhận tin `🎙`.
