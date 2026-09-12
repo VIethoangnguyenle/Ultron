@@ -16,8 +16,18 @@ Backend monorepo for VietBank SME omnichannel banking (Java/Gradle, Spring Boot,
 
 ## Source layout (this machine)
 
-- Main repo wrapper: `/home/zane/Desktop/work/vietbank/vietbank-sme/` — its `.git` is a bare `hooks/` only, so git fails at this level. cd into the nested repo before running git.
-- Backend SME: `/home/zane/Desktop/work/vietbank/vietbank-sme/vietbank-sme-omni/` — git `git.vnpay.vn/dvnh/vietbank/app-backend-sme/vietbank-sme-omni.git`. Services are Gradle subprojects in `settings.gradle`.
+- **Workspace gốc = `/home/zane/Desktop/work/vietbank/vietbank-sme/`** (đây là "workspace làm việc" theo cách gọi của Hoàng). Bản thân nó **KHÔNG phải git repo** — `.git` chỉ có `hooks/`, `git rev-parse` báo `fatal: not a git repository`. Nó chứa **4 repo con độc lập**, mỗi cái có `.git` riêng (phải `git -C <repo con> ...`):
+
+| Repo con | Vai trò |
+|---|---|
+| `vietbank-sme-omni/` | repo chính (app-backend-sme) — `feature/goi-3.1-napas2.0` và họ nhánh con nằm ở đây |
+| `dvnh-common/` | thư viện dùng chung |
+| `viet-bank-ekyc-sme/` | eKYC |
+| `test-workload/` | cấu hình/test theo môi trường |
+
+Cùng chỗ có `.claude/` (CLAUDE.md + rules), `.mcp.json`, `.semgrep/`, `.codegraph/`, `docs/`, `qa-harness/`.
+- **Khi giao việc cho `claude`: `workdir` = workspace gốc**, đừng chĩa vào một repo con (giao sai chỗ ⇒ nó mất ngữ cảnh `.claude/` + khó thấy repo khác). Muốn biết nhánh nằm ở repo nào: `for d in */; do [ -d "$d/.git" ] && git -C "$d" branch -a --list '*<từ khóa>*'; done`.
+- Backend SME: `vietbank-sme-omni/` — git `git.vnpay.vn/dvnh/vietbank/app-backend-sme/vietbank-sme-omni.git`. Services là Gradle subprojects trong `settings.gradle`.
 - Backend Omni (older): `/home/zane/Desktop/work/vietbank/vietbank-omni/` — git `git.vnpay.vn/dvnh/vietbank/app-backend-omni/vietbank-omni.git`.
 - Shared lib: `/home/zane/Desktop/work/dvnh-common/` — git `git.vnpay.vn/dvnh/dvnh-common-lib/java/dvnh-common.git`.
 - Also present: `viet-bank-ekyc-sme`, `vietbank-sme-clone`, `documents/`.
