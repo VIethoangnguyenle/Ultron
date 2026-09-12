@@ -79,6 +79,19 @@ grep -E "\[webhook\] POST|inbound message: platform=webhook|response ready" ~/.h
   tắt, và không tự bật lại Tailscale ngoài yêu cầu: xem `account-access-provisioning` →
   `references/tailscale-lifecycle.md`. Cần 24/7 thì đi tunnel công khai + token (rate-limit, chỉ route
   chỉ-đọc) và chỉ dựng khi Hoàng yêu cầu rõ.
+- **Địa chỉ endpoint phải là TÊN MagicDNS, không phải IP tailnet.** IP đổi mỗi lần node được dựng lại,
+  còn Shortcut/cấu hình giữ IP cũ thì request rơi vào hư không và client chỉ báo *"Request timed out"* —
+  cổng KHÔNG hề nhận được gì. Lấy tên từ chính node chứ đừng đoán:
+  `docker exec tailscale tailscale status --json` → `Self.DNSName` (kèm `CurrentTailnet.MagicDNSSuffix`);
+  MagicDNS bật thì `http://<DNSName>:9444/<route>` sống qua mọi lần đổi IP.
+- **Client báo timeout ⇒ soi journal cổng TRƯỚC, rồi mới nghi cổng.** Không thấy dòng `POST /siri/say`
+  nghĩa là lỗi phía client (sai địa chỉ, hoặc VPN trên máy chưa bật) — sửa cổng lúc đó là vô ích.
+  Cách để người dùng tự kiểm trong 30 giây: mở `http://<node>:9444/health` bằng Safari **trên chính thiết bị
+  gọi lỗi** — `ok` = đường thông, timeout = VPN/DNS phía máy, còn POST tới mà trả `401` = sai token.
+- **Thời gian chờ đồng bộ phải NGẮN HƠN ngưỡng cắt của client, không phải ngắn hơn giới hạn của mình.**
+  iOS/Siri tự cắt ở ~30s ⇒ 25s là trần thực tế; đặt 50s thì câu trả lời lâu biến thành lỗi timeout ở phía
+  người dùng dù cổng vẫn chạy bình thường. Quá 25s: trả ngay câu "đang xử lý, kết quả báo trong chat" rồi
+  để phiên webhook đăng phần dài vào DM.
 - **URL/token/endpoint: CHỈ DM Hoàng.** Không thả link hay token vào group, kể cả group nội bộ.
 - **Bàn giao cho người dùng cuối bằng ngôn ngữ nghiệp vụ**: cài app VPN (nếu bind tailnet) → đăng nhập
   → tạo Shortcut (Dictate Text tiếng Việt → Get Contents of URL → Show Result) → thử; kèm *một* cách tự

@@ -9,13 +9,13 @@
 | ~~`0.0.0.0:9445` / `:9446`~~ | cầu nối GitLab / console qua nginx `omni-sme-proxy` — **ĐÃ BỎ** (xem §3) | — |
 | `0.0.0.0:443/10443` | link log UAT/PILOT (stream TCP → `10.22.17.219:10443`) | như cũ |
 
-## 1. Mở lại Tailscale (node `vbsme-log-gw`, IP đọc từ state)
+## 1. Mở lại Tailscale (node `ultron`, IP đọc từ state)
 
 ```bash
 # đọc danh tính cũ: state volume `tailscale-state` phải còn (teardown cố ý KHÔNG xoá)
 docker run -d --name tailscale --net=host --cap-add NET_ADMIN --cap-add NET_RAW \
   --device=/dev/net/tun \
-  -e TS_HOSTNAME=vbsme-log-gw \
+  -e TS_HOSTNAME=ultron \
   -e TS_STATE_DIR=/var/lib/tailscale \
   -e TS_USERSPACE=false \
   -e TS_AUTHKEY="$(cat ~/.hermes/state/tailscale_authkey.txt)" \
@@ -36,7 +36,7 @@ docker exec tailscale tailscale ip -4 | head -1 > ~/.hermes/state/tailnet_ip.txt
   `systemctl --user kill -s TERM siri-speak` rồi chờ ≥9s (guard chặn `restart`; `Restart=always` tự dựng lại).
 - Gateway `:9443` bind IP lúc khởi động ⇒ phải restart gateway: gọi claude đọc `~/.hermes/scripts/gw_restart.txt`
   (hẹn `systemd-run` tách rời rồi restart — KHÔNG tự restart từ trong gateway).
-- Đổi Shortcut iPhone nếu IP đổi: `http://<tailnet_ip>:9444/siri/say`, header `X-Gitlab-Token`, ô
+- Shortcut iPhone (KHÔNG cần đổi theo IP nữa — dùng tên MagicDNS `ultron`): `http://ultron:9444/siri/say`, header `X-Gitlab-Token`, ô
   *Get Dictionary Value* key `text`. Dùng tên MagicDNS (`<node>.<tailnet>.ts.net`) thì không phải sửa nữa.
 
 ## 3. Cầu nối dịch vụ nội bộ qua nginx — **ĐÃ BỎ, đừng tự dựng lại**

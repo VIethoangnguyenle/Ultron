@@ -24,4 +24,4 @@ Siết luật bảo mật → mirror sang Kitty (SOUL+adapter) + restart.
 §
 Email hộ Hoàng: token ~/.hermes/google_token.json; scripts/gmail.py + email_digest.py (08:00 T2-T6 → DM). Mail chỉ trong DM.
 §
-Máy zane: docker không cần sudo (group docker) nhưng KHÔNG passwordless sudo → hạ tầng đi Docker, đừng hứa apt/systemctl. Tailscale (tester log + cổng Siri): node vbsme-log-gw, IP ĐỔI theo node ⇒ đọc ~/.hermes/state/tailnet_ip.txt; authkey ở ~/.hermes/state/tailscale_authkey.txt; docker run phải có TS_STATE_DIR=/var/lib/tailscale + TS_USERSPACE=false (+TS_AUTHKEY) — thiếu = state RAM → loop restart; teardown = `tailscale down` + GIỮ volume state (tái dùng node/IP).
+Tailscale (tester log + cổng Siri): node `ultron` (tên cũ vbsme-log-gw-2)

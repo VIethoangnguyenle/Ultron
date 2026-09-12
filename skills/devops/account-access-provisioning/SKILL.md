@@ -58,6 +58,10 @@ Dùng khi Hoàng yêu cầu Ultron đọc/làm việc trên một tài khoản c
 - **`omni-sme-proxy` (nginx của Hoàng) đang phục vụ link log UAT/PILOT cho tester — không được làm hỏng.** Mọi thay đổi: backup config trước · sửa **ghi tại chỗ giữ inode** (tool ghi kiểu atomic/`patch` làm đổi inode ⇒ container vẫn đọc bản cũ mà `nginx -t` vẫn báo ok) · validate bằng container rác **cùng image** · rồi `nginx -s reload`. Không dựng nginx/container thứ hai khi anh đã có cái dùng được — hỏi trước.
 - **"Xoá toàn bộ log hệ thống về việc X" = dọn dấu vết, và luôn dry-run trước.** Dùng `~/.hermes/scripts/scrub_matter_logs.py` (mặc định chỉ in ra; `--apply` mới xoá). Nói thẳng phần **không** với tới được (systemd journal, `/var/log` root-owned) kèm lệnh cho Hoàng — đừng im lặng cho rằng đã sạch.
 - **Secret lộ trong log ⇒ scrub log xong vẫn phải khuyên revoke/regenerate credential.** Xoá dấu vết không làm key hết hiệu lực (auth key Tailscale, token webhook…).
+- **Mở node Tailscale = mở HẾT cổng bind `0.0.0.0` của máy**, không riêng cổng mình định mở: container chạy
+  `--net=host` nên IP tailnet chạm tới mọi socket host (SSH, redis, minio, nginx, MCP…) và ACL Tailscale mặc
+  định **allow-all** trong tailnet. Mở node thì phải đo bằng `ss -tlnp`, tách "bind đích danh IP tailnet" (cố ý mở)
+  vs "bind `0.0.0.0`" (lộ kèm), rồi nói rõ với Hoàng cái gì đang lộ — chi tiết ở `references/tailscale-lifecycle.md`.
 - **Dịch vụ nội bộ login bằng SSO / trỏ về tên miền thật thì nginx proxy KHÔNG đủ** (callback quay về tên miền gốc) — đừng hứa, cũng đừng tự dựng lại route: đường đúng là subnet router.
 
 ## References

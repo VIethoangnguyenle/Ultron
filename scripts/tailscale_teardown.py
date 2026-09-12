@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tắt & dọn Tailscale gateway (node log UAT/LIVE) — chạy theo lịch trong schedules.yaml.
 
-Vì sao: node `vbsme-log-gw` mở đường riêng cho tester ở nhà đọc log + cổng Siri bridge.
+Vì sao: node `ultron` (tên cũ `vbsme-log-gw`) mở đường riêng cho tester ở nhà đọc log + cổng Siri bridge.
 Hoàng chốt 2026-09-12: **mọi kết nối Tailscale phải tắt sau 17h30** và **phải xoá log
 Tailscale trên hệ thống** — không để lại dấu vết đường vào nào qua đêm.
 

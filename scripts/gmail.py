@@ -6,7 +6,7 @@ Lenh:
   counts                       -> so thu CHUA DOC (inbox) + top label chua doc
   search "<query>" [--max N]   -> liet ke thu (from/subject/date/snippet)
   read <msg_id>               -> header + noi dung text (cat gon)
-  send --to A --subject S --body B [--html]
+  send --to A --subject S --body B [--cc C] [--html] [--label Ten]   ("\n" trong body = xuong dong that)
   reply <msg_id> --body B      -> tra loi trong cung thread
   modify <msg_id> [--add L] [--remove L] [--archive] [--mark-read] [--mark-unread]
   labels                       -> danh sach label
@@ -119,20 +119,39 @@ def cmd_read(a):
     print(_body_text(m, a.limit))
 
 
-def _send(payload: dict):
+def _send(payload: dict) -> dict:
     s = svc()
     raw = base64.urlsafe_b64encode(payload.as_bytes()).decode()
     sent = s.users().messages().send(userId="me", body={"raw": raw}).execute()
     print(f"sent: id={sent.get('id')} thread={sent.get('threadId')}")
+    return sent
+
+
+def _label_id(s, name: str) -> str:
+    """Id cua label theo ten; chua co thi tao (can scope gmail.modify)."""
+    for l in s.users().labels().list(userId="me").execute().get("labels", []):
+        if l["name"].lower() == name.lower():
+            return l["id"]
+    created = s.users().labels().create(userId="me", body={
+        "name": name, "labelListVisibility": "labelShow", "messageListVisibility": "show"}).execute()
+    print(f"tao label moi: {name} ({created['id']})")
+    return created["id"]
 
 
 def cmd_send(a):
-    msg = MIMEText(a.body, "html" if a.html else "plain", "utf-8")
+    # Cho truyen xuong dong kieu shell: "\\n" trong --body thanh newline that
+    body = a.body.replace("\\n", "\n")
+    msg = MIMEText(body, "html" if a.html else "plain", "utf-8")
     msg["To"] = a.to
     msg["Subject"] = a.subject
     if a.cc:
         msg["Cc"] = a.cc
-    _send(msg)
+    sent = _send(msg)
+    if getattr(a, "label", None):
+        s = svc()
+        s.users().messages().modify(
+            userId="me", id=sent["id"], body={"addLabelIds": [_label_id(s, a.label)]}).execute()
+        print(f"gan label: {a.label}")
 
 
 def cmd_reply(a):
@@ -178,7 +197,7 @@ def main():
     sub.add_parser("counts").set_defaults(fn=cmd_counts)
     s = sub.add_parser("search"); s.add_argument("query"); s.add_argument("--max", type=int, default=10); s.set_defaults(fn=cmd_search)
     s = sub.add_parser("read"); s.add_argument("msg_id"); s.add_argument("--limit", type=int, default=4000); s.set_defaults(fn=cmd_read)
-    s = sub.add_parser("send"); s.add_argument("--to", required=True); s.add_argument("--subject", required=True); s.add_argument("--body", required=True); s.add_argument("--cc"); s.add_argument("--html", action="store_true"); s.set_defaults(fn=cmd_send)
+    s = sub.add_parser("send"); s.add_argument("--to", required=True); s.add_argument("--subject", required=True); s.add_argument("--body", required=True); s.add_argument("--cc"); s.add_argument("--label"); s.add_argument("--html", action="store_true"); s.set_defaults(fn=cmd_send)
     s = sub.add_parser("reply"); s.add_argument("msg_id"); s.add_argument("--body", required=True); s.add_argument("--to"); s.add_argument("--html", action="store_true"); s.set_defaults(fn=cmd_reply)
     s = sub.add_parser("modify"); s.add_argument("msg_id"); s.add_argument("--add", action="append"); s.add_argument("--remove", action="append"); s.add_argument("--archive", action="store_true"); s.add_argument("--mark-read", action="store_true"); s.add_argument("--mark-unread", action="store_true"); s.set_defaults(fn=cmd_modify)
     sub.add_parser("labels").set_defaults(fn=cmd_labels)

@@ -43,6 +43,21 @@ Hai đường dọn: (a) teardown hằng ngày (`tailscale_teardown.py`, tự sc
 - **Auth key lộ trong log ⇒ scrub xong vẫn phải nhắc Hoàng revoke/regenerate** trên admin Tailscale
   (`login.tailscale.com/admin/settings/keys`) rồi ghi key mới vào `~/.hermes/state/tailscale_authkey.txt` (600).
 
+## Audit khi node đang mở — tailnet thật ra thấy những gì
+Container Tailscale chạy `--net=host` ⇒ **mọi** socket bind `0.0.0.0`/`[::]` của máy đều vào được qua IP tailnet,
+không riêng cổng mình định mở. Đo bằng `ss -tlnp` rồi tách 2 nhóm và báo đúng 2 nhóm đó:
+- bind **đích danh IP tailnet** = cố ý mở (vd cổng Siri `:9444`, gateway `:9443`);
+- bind `0.0.0.0` = **lộ kèm** (SSH, redis, minio, nginx của Hoàng, MCP db-access…).
+
+- ACL Tailscale mặc định **allow-all** trong cùng tailnet ⇒ mở node là mở hết; muốn siết phải viết policy ACL.
+  Gắn **tag** cho node (`tagOwners` + key mang tag) chứ đừng trông vào luật "cho thiết bị của tôi": node không tag
+  thì nằm trong `autogroup:self` nên luật đó mở luôn node. (Syntax theo docs Tailscale — CHƯA dán lên console lần
+  nào ⇒ validate trong admin trước khi chốt với Hoàng.)
+- Nguồn số liệu về node, không đoán: `docker exec tailscale tailscale status --json` → `Self.DNSName`,
+  `Self.TailscaleIPs`, `CurrentTailnet.MagicDNSSuffix`, và danh sách `Peer` (node chết còn sót trong tailnet =
+  đúng nguồn của "IP cũ vẫn nằm trong Shortcut/cấu hình" ⇒ request rơi vào hư không).
+- **Client ngoài (Shortcut, cấu hình) phải trỏ TÊN MagicDNS, đừng trỏ IP** — IP đổi mỗi lần dựng lại node.
+
 ## Hệ quả cần nhớ trước khi hứa
 - Cổng Siri bridge (`hermes webhook` bind vào IP tailnet) **chết theo** sau 17h30.
 - Đường đọc log UAT/LIVE cho tester ở nhà cũng chết theo.

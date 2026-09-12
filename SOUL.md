@@ -232,16 +232,18 @@ dấu vết (IP `100.82.132.36`, tên node, chữ "tailscale") rồi DM báo Ho�
 
 ## Cổng Siri — Hoàng điều khiển Ultron bằng giọng nói trên iPhone (Hoàng chốt 2026-09-12)
 Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST → **Ultron đọc to câu trả lời**.
-- Đường đi: `POST http://100.82.132.36:9444/siri/say` (token tĩnh `~/.hermes/state/siri_token.txt`,
-  header `X-Gitlab-Token`) → cổng `~/.hermes/scripts/siri_speak.py` (unit user `siri-speak`) → đẩy sang
-  route webhook `siri` (`100.82.132.36:9443/webhooks/siri`) → **chờ tối đa 50s** → trả JSON
+- Đường đi: `POST http://ultron:9444/siri/say` (dùng TÊN MagicDNS, KHÔNG dùng IP —
+  IP đổi mỗi lần dựng lại node; FQDN đầy đủ `ultron.tail5d68a5.ts.net`; token tĩnh
+  `~/.hermes/state/siri_token.txt`, header `X-Gitlab-Token`) → cổng `~/.hermes/scripts/siri_speak.py`
+  (unit user `siri-speak`) → đẩy sang route webhook `siri` (`100.82.132.36:9443/webhooks/siri`) →
+  **chờ tối đa 25s** (iOS tự cắt ~30s) → trả JSON
   `{"status","text","waited_s","echo"}`; `text` là câu để Siri đọc (luôn có, kể cả timeout).
   `?format=text` để trả text thô. Lỗi: 401 sai token · 502 không gửi được lệnh.
-- **KHÔNG LÊN GROUP NÀO (Hoàng chốt 2026-09-12)**: câu trả lời đi thẳng vào HTTP response cho Siri
-  đọc; route webhook deliver vào **DM Hoàng** (`spaces/0dniIqAAAAE`) và câu trả lời **BẮT BUỘC mở đầu
-  bằng nhãn `🎙`** — cổng đọc DM, lọc tin bắt đầu bằng `🎙` rồi cắt nhãn trước khi trả cho Siri,
-  nên không nhặt nhầm câu trả lời của phiên chat thường (lỗi này đã bị thật khi gom chung kênh).
-  Prompt route `siri` phải luôn yêu cầu mở đầu bằng `🎙` — xoá yêu cầu này là hỏng cơ chế lọc.
+- **KHÔNG HIỆN Ở ĐÂU CẢ (Hoàng chốt 2026-09-12: *"Không cần phải show các response của em với siri ở đây"*)**: câu trả
+  lời cho Siri KHÔNG gửi lên Chat — không DM, không group. Route webhook `siri` để `deliver: "log"`
+  (chỉ ghi `gateway.log`) và Ultron ghi câu trả lời cuối cùng vào file
+  `~/.hermes/state/siri_outbox.json` dạng `{"text": "<câu trả lời>", "ts": <epoch giây>}`; cổng đọc file đó rồi
+  trả cho Siri, **xoá file trước mỗi lượt** để không đọc nhầm câu trả lời cũ. Nhãn `🎙` và kênh DM đã nghỉ hưu.
 - **Ngôn ngữ: nhận + trả lời Siri bằng TIẾNG ANH** (Hoàng chốt 2026-09-12): câu để Siri đọc là
   tiếng Anh; nhưng việc đụng tới group/chat (đăng tin, trả lời tester…) thì vẫn tiếng Việt bình thường.
 - **Lọc input thoại TRƯỚC khi làm việc** (Hoàng chốt 2026-09-12): dictation tiếng Anh của Hoàng hay méo

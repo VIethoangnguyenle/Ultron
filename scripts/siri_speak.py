@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Cổng "nói" cho Siri: nhận lệnh thoại → chuyển cho Ultron → ĐỢI câu trả lời → trả text cho Siri đọc.
 
-Vì sao cần: webhook của Hermes trả `{"status":"accepted"}` ngay (bất đồng bộ) và session webhook
-bị giới hạn tool (không có write_file), nên không có cách nào lấy câu trả lời qua đường webhook.
-Đường đi ở đây: cổng tự gửi lệnh sang webhook, rồi ĐỌC chính tin nhắn trả lời trong DM của Hoàng
-(qua Chat API, token read-only) và trả nguyên văn cho Shortcuts đọc to.
+Vì sao đi qua FILE chứ không qua tin nhắn Chat: webhook của Hermes trả 202 ngay (bất đồng bộ),
+nên cổng phải tự đi lấy câu trả lời. Trước đây lấy bằng cách đọc tin bot trong DM ⇒ câu trả lời
+hiện ra trong chat. Hoàng chốt 2026-09-12: "Không cần phải show các response của em với siri ở đây"
+⇒ route `siri` để `deliver: "log"` (chỉ ghi log, KHÔNG gửi lên Chat) và Ultron ghi câu trả lời
+cuối cùng vào file outbox dưới đây. Cổng đọc file, trả cho Siri; DM/group không thấy gì.
 
     POST /siri/say     header X-Gitlab-Token: <token>   body: {"text": "..."} (hoặc text thô)
-        → 200 text/plain: câu trả lời để Siri đọc
+        → 200 JSON {"status":"ok|timeout|empty|error","text":"...","waited_s":<float>,"echo":"..."}
+          (?format=text → text thô)
     GET  /health       → "ok"
 
 Bảo mật: chỉ mở trong tailnet (bind IP Tailscale), bắt buộc token, chặn body > 8KB.
@@ -17,23 +19,20 @@ from __future__ import annotations
 
 import hmac
 import json
-import subprocess
+import os
 import sys
-import tempfile
 import threading
 import time
 import urllib.request
-from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 HOME = Path.home()
-SCRIPTS = HOME / ".hermes" / "scripts"
-sys.path.insert(0, str(SCRIPTS))
-
-import gchat_dump as gc  # noqa: E402 — dùng lại creds()/text_of() (token read-only của Hoàng)
 
 TOKEN_PATH = HOME / ".hermes" / "state" / "siri_token.txt"
+OUTBOX_PATH = HOME / ".hermes" / "state" / "siri_outbox.json"   # Ultron ghi câu trả lời ở đây
+
+
 def _tailnet_ip() -> str:
     """IP tailnet hiện tại. Node tạo lại là IP đổi ⇒ đọc từ state, KHÔNG gắn cứng."""
     try:
@@ -47,65 +46,39 @@ TS_IP = _tailnet_ip()
 BIND_HOST = TS_IP               # IP Tailscale — chỉ trong tailnet
 PORT = 9444
 UPSTREAM = f"http://{TS_IP}:9443/webhooks/siri"
-OUTBOX_SPACE = "spaces/0dniIqAAAAE"      # DM Hoàng — kênh DUY NHẤT nhận câu trả lời Siri (nhãn 🎙); KHÔNG group
-DM_SPACE = "spaces/0dniIqAAAAE"          # (giữ tên cũ cho tương thích; nay cùng đích)
-MIC = "🎙"                               # nhãn phiên Siri — cổng lọc theo nhãn này để không nhặt nhầm chat thường
-SEND_SCRIPT = SCRIPTS / "gchat_send_text.py"
-VENV_PY = HOME / ".hermes" / "hermes-agent" / "venv" / "bin" / "python"
-BOT_ID = "users/107189931083311611240"   # Ultron
 MAX_BODY = 8192
-WAIT_SECONDS = 50.0
-POLL_EVERY = 1.2
-SKEW = timedelta(seconds=3)              # trừ hao lệch đồng hồ giữa máy này và Google
-TIMEOUT_MSG = "Still working on it — I'll report the result in your chat."
-SKIP_MARKERS = ("is thinking", "đang nghĩ")
-
-_SVC = None
+WAIT_SECONDS = 25.0  # iOS/Siri tự cắt sau ~30s ⇒ chờ 25s để không trả "request timeout" ở phía điện thoại
+POLL_EVERY = 0.7
+TIMEOUT_MSG = "Still working on it — ask me again in a moment."
 
 
 def read_token() -> str:
     return TOKEN_PATH.read_text().strip()
 
 
-def service():
-    global _SVC
-    if _SVC is None:
-        from googleapiclient.discovery import build
-        _SVC = build("chat", "v1", credentials=gc.creds(), cache_discovery=False)
-    return _SVC
+def wait_outbox(started: float, deadline: float) -> str:
+    """Chờ file outbox Ultron ghi câu trả lời cho phiên Siri này.
 
-
-def stamp(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-
-
-def newest_bot_text(after: str, deadline: float) -> str:
-    """Chờ tin trả lời của Ultron trong DM, mới hơn mốc `after`.
-
-    Ưu tiên tin có nhãn 🎙 (đúng phiên Siri). Chỉ khi không có mới dùng tin bot khác
-    làm phương án dự phòng — tránh nhặt nhầm câu trả lời của phiên chat thường.
+    Chỉ nhận file được ghi SAU khi lệnh được gửi (`started`) để không nhặt lại câu trả lời cũ.
     """
-    fallback = ""
     while time.time() < deadline:
         try:
-            page = service().spaces().messages().list(
-                parent=OUTBOX_SPACE, pageSize=8, orderBy="createTime desc").execute()
-            for m in page.get("messages") or []:
-                if ((m.get("sender") or {}).get("name")) != BOT_ID:
-                    continue
-                if (m.get("createTime") or "") <= after:
-                    continue
-                txt = gc.text_of(m).strip()
-                if not txt or any(k.lower() in txt.lower() for k in SKIP_MARKERS):
-                    continue
-                if txt.startswith(MIC):
-                    return txt[len(MIC):].strip()
-                if not fallback:
-                    fallback = txt
-        except Exception as exc:  # noqa: BLE001 — lỗi mạng/API thì thử lại lượt sau
-            sys.stderr.write(f"[siri-speak] poll lỗi: {type(exc).__name__}\n")
+            if OUTBOX_PATH.exists():
+                data = json.loads(OUTBOX_PATH.read_text(encoding="utf-8")) or {}
+                text = str(data.get("text", "")).strip()
+                if text and float(data.get("ts") or 0) >= started - 2:
+                    return text
+        except Exception as exc:  # noqa: BLE001 — file đang ghi dở/lỗi JSON thì thử lượt sau
+            sys.stderr.write(f"[siri-speak] đọc outbox lỗi: {type(exc).__name__}\n")
         time.sleep(POLL_EVERY)
-    return fallback
+    return ""
+
+
+def clear_outbox() -> None:
+    try:
+        OUTBOX_PATH.unlink(missing_ok=True)
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write(f"[siri-speak] xoá outbox lỗi: {type(exc).__name__}\n")
 
 
 def forward(text: str, token: str) -> int:
@@ -117,24 +90,8 @@ def forward(text: str, token: str) -> int:
         return resp.status
 
 
-def mirror_to_dm(answer: str) -> None:
-    """Gửi bản sao câu trả lời vào DM Hoàng — chạy nền, không làm chậm câu trả lời cho Siri."""
-    path = ""
-    try:
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as fh:
-            fh.write("🎙 (Siri) " + answer)
-            path = fh.name
-        subprocess.run([str(VENV_PY), str(SEND_SCRIPT), "--space", DM_SPACE, "--text-file", path],
-                       timeout=25, capture_output=True)
-    except Exception as exc:  # noqa: BLE001
-        sys.stderr.write(f"[siri-speak] mirror DM lỗi: {type(exc).__name__}\n")
-    finally:
-        if path:
-            Path(path).unlink(missing_ok=True)
-
-
 class Handler(BaseHTTPRequestHandler):
-    server_version = "siri-speak/3.0"
+    server_version = "siri-speak/4.0"
 
     def _reply(self, code: int, body: str, ctype: str = "text/plain; charset=utf-8") -> None:
         data = body.encode("utf-8")
@@ -163,10 +120,10 @@ class Handler(BaseHTTPRequestHandler):
         try:
             token = read_token()
         except Exception as exc:  # noqa: BLE001
-            self._reply(500, f"token lỗi: {exc}")
+            self._reply(500, f"token error: {exc}")
             return
         if not hmac.compare_digest(self.headers.get("X-Gitlab-Token", "") or "", token):
-            self._reply(401, "sai token")
+            self._reply(401, "bad token")
             return
         raw = self.rfile.read(min(int(self.headers.get("Content-Length") or 0), MAX_BODY))
         text = ""
@@ -182,16 +139,16 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         started = time.time()
-        marker = stamp(datetime.now(timezone.utc) - SKEW)
+        clear_outbox()          # dọn câu trả lời của lượt trước, tránh đọc nhầm
         try:
             status = forward(text, token)
         except Exception as exc:  # noqa: BLE001
             self._reply(502, json.dumps(
-                {"status": "error", "text": "Không gửi được lệnh cho Ultron ạ."},
+                {"status": "error", "text": "I couldn't reach Ultron just now."},
                 ensure_ascii=False), "application/json; charset=utf-8")
             sys.stderr.write(f"[siri-speak] lỗi forward: {exc}\n")
             return
-        answer = newest_bot_text(marker, started + WAIT_SECONDS)
+        answer = wait_outbox(started, started + WAIT_SECONDS)
         waited = round(time.time() - started, 1)
         sys.stderr.write(f"[siri-speak] fwd={status} len(text)={len(text)} "
                          f"wait={waited}s answer={'yes' if answer else 'timeout'}\n")
