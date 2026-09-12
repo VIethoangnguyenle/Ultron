@@ -28,3 +28,13 @@ LIVE  https://10.173.18.24/omni-sme/live/     (wifi: https://10.173.129.230/omni
 - Trình duyệt sẽ cảnh báo chứng chỉ (truy cập qua IP) → Advanced → Proceed.
 - IP có thể đổi khi đổi mạng → kiểm tra lại `ip -brief addr show eno2 wlo1` trước khi gửi cho tester.
 - Muốn chắc proxy còn sống: `curl -sk -o /dev/null -w "%{http_code}" https://10.173.18.24/omni-sme/` (200 = OK).
+
+## Tester ở NHÀ không vào được portal (VPN GlobalProtect)
+
+- Triệu chứng: `Test-NetConnection <portal> -Port 10443` → `PingSucceeded True` nhưng
+  `TcpTestSucceeded False` (ping thông, TCP bị chặn) → policy VPN lọc TCP, KHÔNG phải portal chết
+  và không phải sai link. Không tự sửa được từ phía mình.
+- Cách vòng (thay vì chờ mở rule VPN): dựng **Tailscale gateway** trên máy Hoàng bằng container
+  `tailscale` (node `vbsme-log-gw`), cấp auth key cho đúng máy tester → tester vào
+  `https://<ip-tailscale>:10443/omni-sme/` , không phụ thuộc VPN cty.
+  Chi tiết + lệnh + cách kiểm chứng: skill `tester-support` → `references/remote-access-for-testers.md`.

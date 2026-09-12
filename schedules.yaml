@@ -76,3 +76,12 @@ actions:
     days: [mon, tue, wed, thu, fri]
     script: team_post.py
     args: ["--kind", "evening", "--space", "spaces/AAAADv4ib6s"]
+
+  # One-shot: TẮT Tailscale gateway (đường riêng cho tester ở nhà đọc log UAT/LIVE) lúc 17h30
+  # ngày 12/09/2026 — Hoàng chốt: "Kết nối tailscale này sẽ kết thúc vào 17h30 ngày hôm nay".
+  # Script logout node + xoá container `tailscale` + xoá volume state, rồi DM báo Hoàng.
+  # Tự hết hạn sau ngày đó (không để lại rác). Chạy lại nhiều lần vô hại.
+  - id: tailscale-teardown
+    when: "17:30"
+    date: "2026-09-12"
+    script: tailscale_teardown.py

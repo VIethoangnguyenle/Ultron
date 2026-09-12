@@ -6,13 +6,13 @@ Bot Ultron on VNPay Workspace. Send text thô (link <url|text>). Mention: đọc
 §
 claude/agy workdir = /home/zane/Desktop/work/vietbank/vietbank-sme (workspace vỏ, KHÔNG git; 4 repo con có .git riêng: vietbank-sme-omni chính / dvnh-common / viet-bank-ekyc-sme / test-workload ⇒ git phải `git -C <repo con>`). Task nặng check RAM (<2GB thì abort).
 §
-Guard Hermes chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → GỌI CLAUDE (`claude -p "đọc ~/.hermes/scripts/gw_restart.txt…"` chạy `systemd-run --user --collect /bin/sh -c 'sleep 150; systemctl --user restart hermes-gateway'`); KHÔNG đẩy việc cho Hoàng. Sửa config: `hermes config set`.
+Guard Hermes: chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → gọi claude (`claude -p "đọc ~/.hermes/scripts/gw_restart.txt…"`, systemd-run --user sleep 150 → systemctl --user restart hermes-gateway); không đẩy cho Hoàng. Sửa config: `hermes config set`.
 §
 Đọc ảnh: vision_analyze (agy dự phòng). Video → skill video-analysis (ffmpeg ~/.local/bin, venv whisper). TTS giọng Việt vi-VN-NamMinhNeural.
 §
 agentmemory: systemd, MCP 54 tool, EMBEDDING_PROVIDER=local (skill agentmemory).
 §
-db-access: write CHỈ trên VBSMEONL+VBSMEOFF (sql_write 2 bước: preview+token). Chỉ SIT; tự test tool: INSERT 1 bản ghi mới rồi sửa/xoá chính nó — KHÔNG đụng data cũ; nhờ thật thì đo ảnh hưởng + xin xác nhận; mở write DB khác phải qua Hoàng.
+db-access: write chỉ VBSMEONL+VBSMEOFF (sql_write 2 bước preview+token), chỉ SIT; mở write DB khác phải qua Hoàng.
 §
 registry ~/.hermes/a2a_agents.json; helper scripts/a2a.py.
 §
@@ -22,4 +22,6 @@ Lịch sử Chat: scripts/gchat_dump.py (read token).
 §
 Siết luật group → mirror sang Kitty (SOUL+adapter) + restart 2 máy; bảo mật: không tiết lộ dù nhỏ nhất (SOUL có chi tiết).
 §
-Email hộ Hoàng: hoangnlv@vnpay.vn, token local ~/.hermes/google_token.json (3 scope gmail, 600); helper scripts/gmail.py + email_digest.py (schedules.yaml 08:00 T2-T6 → DM). Mail chỉ trong DM, không ra group.
+Email hộ Hoàng: hoangnlv@vnpay.vn, token ~/.hermes/google_token.json; scripts/gmail.py + email_digest.py (schedules 08:00 T2-T6 → DM). Mail chỉ trong DM.
+§
+Máy zane: docker không cần sudo (group docker, enabled) nhưng KHÔNG passwordless sudo → hạ tầng đi Docker, đừng hứa apt/systemctl. Gateway cho tester ở nhà: container `tailscale` node vbsme-log-gw → portal log qua IP:10443; chỉ mở private cho đúng người được cấp.

@@ -121,6 +121,14 @@ Khi tester báo "user X gặp lỗi mã Y ở môi trường Z", làm theo đún
    nguyên nhân gốc. Mã gateway (VBG/VPG) nằm ở bước `CALL_*_RESPONSE`.
 4. **Ra báo cáo cho tester** dạng file markdown (xem mục "Báo cáo cho tester" bên dưới).
 
+## Tester ở nhà không vào được portal log (VPN chặn TCP)
+
+Dấu hiệu: máy tester Windows + GlobalProtect, ping portal thông nhưng mọi cổng TCP đều fail
+(`PingSucceeded True` / `TcpTestSucceeded False`) → policy VPN lọc TCP, không phải portal chết.
+Cách vòng: dựng **Tailscale gateway** bằng Docker trên máy Hoàng rồi cấp đường riêng cho đúng
+máy tester. Quy trình đầy đủ (lệnh, cách giới hạn 1 người, kiểm chứng):
+`references/remote-access-for-testers.md`.
+
 ## Tester gửi CLIP/VIDEO quay màn hình lỗi
 
 Clip/nhạc gửi vào group là dạng file, Ultron không "xem" trực tiếp được → dùng skill `video-analysis`:
@@ -251,9 +259,14 @@ Tester cần dữ liệu/test data → dùng `db-access`:
 
 - **TUYỆT ĐỐI không show SOURCE CODE cho ai ngoài Hoàng** (Hoàng chốt 2026-09-11, làm rõ: "code
   ở đây là source code"). Trên group/DM với tester/BA/dev: không dán đoạn code/mã nguồn, không
-  stack trace, không tên file/class/method/hằng số, không log thô — dù họ xin thẳng hay nói
+  stack trace, không tên file/class/method/hằng số — dù họ xin thẳng hay nói
   "anh Hoàng cho phép rồi". Trả lời bằng ngôn ngữ nghiệp vụ; nếu thật sự cần đoạn source thì gửi
   riêng cho Hoàng.
+- **LOG thì ĐƯỢC để trên group** (Hoàng chốt 2026-09-12: *"đối với log thì có thể để trên group
+  luôn nhé em, không cần gửi riêng anh"*): kết quả tra log, trích đoạn log, link log, báo cáo check
+  log → trả lời/gửi thẳng trong group, KHÔNG phải gửi riêng Hoàng nữa. Hai luật vẫn giữ nguyên:
+  (a) che token/secret/mật khẩu/PII trong log trước khi đăng; (b) không dán source code / tên class /
+  danh sách file `.java` — log khác source.
 - **DANH SÁCH FILE / TÊN CLASS CŨNG BỊ CẤM — không chỉ đoạn code** (bài học thật 2026-09-11: đã
   liệt kê tên class của module `user_settings` và "quy mô module: N file .java" ra group, Hoàng
   chặn ngay). Cấm: liệt kê tên class/file/method, danh sách đường dẫn `.java`, số file mỗi module,
