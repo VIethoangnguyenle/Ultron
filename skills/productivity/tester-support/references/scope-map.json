@@ -2,7 +2,8 @@
   "projects": {
     "vietbanksme": {
       "spaces": [
-        "AAAADv4ib6s"
+        "AAAADv4ib6s",
+        "AAQAIj8eRac"
       ],
       "graph_source": "/home/zane/Desktop/work/vietbank/vietbank-sme/.ua",
       "log_source": {

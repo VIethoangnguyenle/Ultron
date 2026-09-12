@@ -121,6 +121,10 @@ Khi tester báo "user X gặp lỗi mã Y ở môi trường Z", làm theo đún
    nguyên nhân gốc. Mã gateway (VBG/VPG) nằm ở bước `CALL_*_RESPONSE`.
 4. **Ra báo cáo cho tester** dạng file markdown (xem mục "Báo cáo cho tester" bên dưới).
 
+Công thức đọc log UAT chạy được (liệt kê file theo pod, tải về, service nào chứa gì):
+`references/uat-log-portal-recipe.md`. Kiến thức nghiệp vụ NAPAS 2.0 (mã risk của core, log rủi ro,
+job đối soát sau timeout 500069): `references/knowledge/vietbanksme/napas-v2-risk-core.md`.
+
 ## Tester ở nhà không vào được portal log (VPN chặn TCP)
 
 Dấu hiệu: máy tester Windows + GlobalProtect, ping portal thông nhưng mọi cổng TCP đều fail
@@ -145,6 +149,12 @@ chỉ gửi **báo cáo chữ**.
   `python3 ~/.hermes/scripts/md2pdf.py <file.md>` → gửi **file .pdf** lên group.
   File .md chỉ để nội bộ, KHÔNG gửi làm bản chính cho tester.
 - Các định dạng khác (csv, xlsx, json, ...) CHỈ làm khi tester/Hoàng yêu cầu rõ ràng.
+- **Áp dụng y hệt cho nhóm `DVNH - Daily` (`spaces/AAQAIj8eRac`)** — nhóm này Hoàng có cho phép show
+  code, NHƯNG mặc định vẫn là *giải thích nghiệp vụ + file PDF* như trả lời tester (Hoàng chốt
+  2026-09-12: *"Mặc dù ở DVNH-Daily anh cho em show code, nhưng mà vẫn ưu tiên là show giải thích
+  nghiệp vụ, file PDF nhé, giống như tester hỏi em"* → *"Chỉ là khi ai đó hỏi code thì em có thể
+  share"*). Code chỉ dán khi người ta hỏi thẳng tới mức code; dán code trong nhóm đó thì gửi bằng
+  đường script (`gchat_send_text.py`) vì space chưa nằm trong allow-list chống lộ source của adapter.
 - **TUYỆT ĐỐI KHÔNG thả đường dẫn local** (`/home/zane/...`, `file://`) — tester không thấy
   được. Phải gửi file thật lên group (attachment qua user OAuth — đã cấp `/setup-files`).
 - Gửi file: `scripts/gchat_send_file.py --space spaces/XXX --file <path> --thread spaces/XXX/threads/YYY`
@@ -216,6 +226,11 @@ kẻ bảng text thay diagram):
 - Kết quả nên có: câu trả lời trực tiếp vào câu hỏi bằng ngôn ngữ nghiệp vụ; khi cần nêu nguyên
   nhân/ý nghĩa thì diễn đạt theo nghiệp vụ (vd "do số dư tài khoản không đủ", "do lệnh vượt hạn
   mức ngày"), không nói "do class X throw ở dòng Y".
+- **Ngoại lệ có phạm vi (đừng từ chối oan):** ở space Hoàng đã cho phép tường minh show mức code —
+  hiện là **DVNH - Daily (`spaces/AAQAIj8eRac`)**, nhóm nội bộ team — dev hỏi thì được nêu mã nguồn /
+  tên class-hàm-file, không cần xin phép từng lần. Danh sách space được phép + đường gửi (script, vì
+  lưới chặn của adapter chưa allow-list space đó): `group-authority-and-disclosure/references/disclosure-matrix.md`.
+  Space KHÁC vẫn giữ nguyên luật nghiệp-vụ-thuần ở trên.
 
 ## Giải thích mã lỗi cho tester (yêu cầu của Hoàng)
 

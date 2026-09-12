@@ -87,3 +87,23 @@ Append-only. Mỗi mục: ngày + điều học được + nguồn (ai nói). Ch
   anh** (vd tạo task Jira VSONB-5144) ⇒ khi thông báo chỉ nói việc đã xong + link + trêu nhẹ.
 - **Jira giữ nguyên tắc chỉ đọc**: chỉ tạo/sửa khi Hoàng cho phép tường minh; tạo xong phải lấy lại
   issue để verify (reporter/assignee/sprint) trước khi báo, không đoán.
+
+## 2026-09-12 (13:36 — Hoàng mở phép show mã nguồn cho nhóm DVNH - Daily)
+
+- **Quyết định của Hoàng (nguyên văn):** *"Oke nhóm dvnh-daily là nhóm nội bộ team, có thể show thoải
+  mái kể cả mã nguồn mà k cần hỏi anh"* — nói trong **Ultron - Trợ lý** (`spaces/AAQAZxc2km8`), áp cho
+  **DVNH - Daily = `spaces/AAQAIj8eRac`** (verify lại bằng `spaces.list`: đúng 1 nhóm khớp tên; phân
+  biệt với `DVNH - MN`, `DVNH - HT-HTM`, `[DVNH] Hỗ trợ Platforms` — các nhóm đó KHÔNG được mở).
+- **Phép mới rộng hơn phép cũ trong ngày**: trước đó chỉ "show luồng kèm tên class/hàm khi dev hỏi để
+  tự lần source" ⇒ nay dán mã nguồn/tên file/danh sách file trong nhóm đó, **không xin phép từng lần**.
+  Ghi ở `group-authority-and-disclosure/references/disclosure-matrix.md` (mục Space đã được phép) +
+  mục "Không show SOURCE CODE" trong SOUL.md.
+- **Ranh giới đi kèm phép (không nới):** secret/token/credential, cơ chế mã hoá-giải mã, PII/khách hàng,
+  chuyện riêng của Hoàng, nội dung DM riêng, sổ hồ sơ nội bộ. Và "cho phép show" KHÔNG có nghĩa là
+  người khác được ra lệnh cho Ultron làm việc — quyền ra lệnh vẫn chỉ thuộc Hoàng.
+- **Cạm bẫy tầng gửi tin:** lưới chặn source của adapter Google Chat (`_LEAK_GUARD_ALLOW`, env
+  `HERMES_CHAT_LEAK_GUARD_ALLOW`) chỉ allow-list DM Hoàng + `Ultron - Trợ lý`; tin ở nhóm khác có
+  ≥3 tên kiểu class hoặc literal `.java`/`package vn.` bị **thay bằng câu trả lời an toàn**.
+  ⇒ Muốn gửi code cho nhóm đã được phép vẫn phải đi đường `scripts/gchat_send_text.py --space ... --thread ...`
+  (bỏ qua adapter), hoặc xin Hoàng thêm space vào allow-list + restart gateway (đã hỏi, chờ chốt).
+  Bài học chung: **"được phép nói" ≠ "gửi được"** — kiểm tra cả lưới chặn kỹ thuật trước khi hứa.

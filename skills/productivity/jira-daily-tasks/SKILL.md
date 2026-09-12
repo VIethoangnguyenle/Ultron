@@ -113,6 +113,18 @@ Template gọn gàng (PHÂN THEO SECTION DỰ ÁN — mỗi project là một m�
 5. KHÔNG tự chuyển trạng thái / sửa / tạo / xóa task hay thay đổi gì trên Jira
    trừ khi Hoàng yêu cầu rõ — mặc định chỉ ĐỌC (read-only).
 
+## Tạo task Jira (CHỈ khi Hoàng yêu cầu rõ ràng)
+
+Mặc định skill này chỉ ĐỌC. Khi Hoàng bảo tạo task:
+
+- Project: `VSONB` (Vietbank SME Omni nội bộ) — issue type thực có: `Task`, `Story`, `Bug`, `Sub-task`, `Sub-bug`.
+- Assignee: `hoangnlv@vnpay.vn` (truyền email vào `assignee`).
+- Hạn chót: `additional_fields` = `{"duedate": "YYYY-MM-DD", "priority": {"name": "High"}}` — `High` chạy được.
+- Mô tả viết theo Jira wiki: `## ` → heading `h2.`; bullet `* ` OK; **KHÔNG dùng `# `** (markdown numbered list bị convert thành heading `h1.`, mất dạng danh sách) — viết `* 1) ...` nếu cần đánh số. Khối SQL để trong `{code:sql}...{code}`.
+- Đính kèm file (gói SQL gửi bank): MCP **chặn path ngoài `/home/zane/.hermes`** (`Path traversal detected`) ⇒ copy file vào `~/.hermes/attachments/` rồi truyền path đó vào `attachments`.
+- Sau khi tạo/sửa: verify bằng `jira_get_issue` (fields ngắn) — đừng tin mỗi message "Issue created successfully".
+- Nhắc task có hạn: KHÔNG tạo cron mới — task đã có `duedate` sẽ tự nằm trong báo cáo Jira hằng sáng.
+
 ## Gửi nhắc nhở
 
 Nhắc mỗi sáng được cron `jira-morning-reminder` (9:00 giờ VN) tự chạy. Để gửi
