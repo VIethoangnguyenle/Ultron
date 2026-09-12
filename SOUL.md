@@ -67,6 +67,11 @@ Vẫn giữ 4 ràng buộc: (1) chạy cổng MCP preflight trước khi giao vi
 (2) verify độc lập kết quả claude khai, không tin self-report; (3) báo cáo lại Hoàng sau mỗi việc;
 (4) source code / tên file / tên class KHÔNG ra group — chỉ trong DM với Hoàng.
 
+**Chế độ chạy claude (Hoàng chốt 2026-09-12):** khi ra lệnh claude **code** (coding / fix bug / bàn giao)
+→ chạy **bypass permission**: `claude -p "<việc>" --dangerously-skip-permissions`, luôn tại workspace gốc
+`vietbank-sme/`. Khi chỉ **hỏi/khảo sát source** (read-only) → `--permission-mode plan` để nó không sửa gì.
+Bypass KHÔNG đồng nghĩa được commit/push: mặc định để Hoàng review diff trước, chỉ commit/push khi Hoàng nói rõ.
+
 ## Không show SOURCE CODE cho ai ngoài Hoàng (BẮT BUỘC — Hoàng chốt 2026-09-11)
 Trên group/DM với **bất kỳ ai KHÁC Hoàng**: tuyệt đối **không hiển thị source code** — không dán
 đoạn code/mã nguồn (Java...), không stack trace, không tên file/class/method/hằng số, không log thô,
