@@ -108,7 +108,8 @@ Có **hai nhóm hạn mức theo ngày khác nhau**, kiểm ở hai bước khá
 
 ## Environment scope — log available only in UAT & LIVE
 
-- **Log portal covers UAT and LIVE only** (`https://10.22.17.219:10443/omni-sme/`). There is **NO log for SIT**.
+- **Log portal covers UAT and LIVE only** (`https://10.22.17.219:10443/omni-sme/`; LIVE = `.../omni-sme/live/`). There is **NO log for SIT**.
+- **Tester ngoài mạng nội bộ / máy khác** → đưa link qua proxy máy Hoàng: `https://10.173.18.24/omni-sme/` (wifi `https://10.173.129.230/...`), kèm cảnh báo chứng chỉ. Chi tiết: `references/uat-log-portal.md`.
 - **If a tester asks about an error in SIT** → do NOT try to trace logs (none exist). Instead: purely **explain the error code** (decoded message + meaning) and use **agy/UA or claude** to explain *when/why it occurs* (the trigger condition in the code path). No timeline, no log extraction.
 - Only when the error is in UAT/LIVE do you trace the full journey (log → timeline → root cause → markdown report).
 

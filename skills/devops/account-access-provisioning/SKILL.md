@@ -37,7 +37,7 @@ Dùng khi Hoàng yêu cầu Ultron đọc/làm việc trên một tài khoản c
 - **Code cấp quyền hết hạn trong vài phút** và chỉ dùng được một lần: hết hạn thì sinh URL mới, đừng thử lại code cũ. URL mới ⇒ pending session mới.
 - **Đừng xác nhận "cấp xong" khi mới có URL.** Bước cuối là người dùng mở link, approve, dán code về — thiếu code thì việc còn dang dở, phải nói rõ là đang chờ.
 - **Consent OK + có `refresh_token` ≠ gọi được API.** Nếu GCP project chưa **bật API** thì lời gọi trả `403: Gmail API has not been used in project <id> or it is disabled`. Chỉ chủ project bật được: `console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=<id>`. Bật xong **không cần cấp quyền lại** — token cũ chạy ngay (chờ ~30s cho Google lan truyền). Đây là bước hay bị bỏ sót nhất: token đúng, scope đúng, vẫn 403.
-- **Filter tìm kiếm Gmail dễ ăn mất mail thật.** `-category:promotions/-category:social/-category:forums` ghép với các `-from:` làm mất gần hết mail người gửi (đo thật: 48 → 4 thư, mất cả mail dự án lẫn thư nhân sự). Muốn tin một filter thì **đếm A/B** (số thư khớp khi có và khi không có filter) rồi mới dùng, đừng đoán theo cảm giác.
+- **Filter tìm kiếm Gmail dễ ăn mất mail thật.** `-category:promotions/-category:social/-category:forums` ghép với các `-from:` làm mất gần hết mail người gửi (đo thật: 48 → 4 thư, mất cả mail dự án lẫn thư nhân sự). Muốn tin một filter thì **đếm A/B** (số thư khớp khi có và khi không có filter) rồi mới dùng, đừng đoán theo cảm giác. Filter khớp **0 thư** hoặc khớp **gần hết** đều là filter SAI — đo cả hai chiều (quá chặt / quá lỏng) trước khi chốt.
 
 ## Sau khi đã có quyền — vận hành hằng ngày
 
@@ -48,6 +48,7 @@ Dùng khi Hoàng yêu cầu Ultron đọc/làm việc trên một tài khoản c
   - Tinh chỉnh: `--explain` in điểm **mọi** thư (vì sao ping / vì sao bỏ) — soi bằng cái này TRƯỚC khi sửa ngưỡng/từ khoá; `--dry-run` in mà không gửi; `--reset-seen` xoá baseline; `--init-alerts-hours N` cho lần chạy đầu (mặc định 12h ⇒ KHÔNG dội bom backlog).
   - **Cái bẫy thật:** mail nhóm nội bộ VNPAY đi qua Google Groups nên **cũng có `List-Unsubscribe`** — dùng nó làm tín hiệu bulk sẽ loại sạch mail thật (đo thật: 45/48 thư bị loại oan). Chỉ coi là bulk khi người gửi **ngoài** domain `vnpay.vn`/`vietbank.vn`/`napas.com.vn`.
 - **Bản tin toàn bộ mail (`email_digest.py`, 08:00):** đã **TẮT** (`enabled: false`) — Hoàng chốt chỉ cần ping mail quan trọng; giữ script vì bật lại chỉ là 1 dòng.
+- **Bám đúng cái Hoàng xin, không tự thêm tiện ích.** Anh chốt *"chỉ cần tracking, có mail quan trọng thì ping"* ⇒ **TẮT** phần thừa (bản tin toàn bộ mail) thay vì để cả hai chạy song song, và nói rõ cách bật lại. Báo cáo kèm **số đo** (xét bao nhiêu thư → ping bao nhiêu → tần suất/tuần) để anh chỉnh độ nhạy bằng một câu.
 - **Nội dung mail KHÔNG BAO GIỜ ra group** — chỉ DM Hoàng. Không ghi nội dung mail vào file nằm trong repo sync.
 - **Trước khi thêm file mới vào `~/.hermes`,** kiểm `~/Ultron/sync.py` xem nó có bị mirror lên GitHub không: sync chỉ lấy `memories/ scripts/ SOUL.md config.yaml cron/ schedules.yaml skills/` ⇒ token (`google_token.json`, `google_client_secret.json`) không bị đẩy. Nhưng **kiểm lại mỗi lần thêm file**, đừng đoán.
 - **File script trong `scripts/` thì CÓ bị đẩy lên GitHub** ⇒ script phải sạch secret (đọc token từ file, không nhúng giá trị).
