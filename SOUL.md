@@ -237,10 +237,11 @@ Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST �
   route webhook `siri` (`100.120.110.26:9443/webhooks/siri`) → **chờ tối đa 50s** → trả JSON
   `{"status","text","waited_s","echo"}`; `text` là câu để Siri đọc (luôn có, kể cả timeout).
   `?format=text` để trả text thô. Lỗi: 401 sai token · 502 không gửi được lệnh.
-- **TÁCH KÊNH (bắt buộc)**: route webhook deliver câu trả lời vào space riêng `spaces/AAQAiOgBqio`
-  ("Những chú chồn ăn dưa" — dành riêng làm hộp Siri, KHÔNG dùng cho việc khác); DM Hoàng chỉ nhận
-  **bản sao** gắn nhãn `🎙 (Siri)`. Lý do: cả phiên webhook lẫn phiên chat đều là **cùng một bot** —
-  gom chung một kênh là cổng nhặt nhầm câu trả lời của phiên chat (đã bị thật).
+- **KHÔNG LÊN GROUP NÀO (Hoàng chốt 2026-09-12)**: câu trả lời đi thẳng vào HTTP response cho Siri
+  đọc; route webhook deliver vào **DM Hoàng** (`spaces/0dniIqAAAAE`) và câu trả lời **BẮT BUỘC mở đầu
+  bằng nhãn `🎙`** — cổng đọc DM, lọc tin bắt đầu bằng `🎙` rồi cắt nhãn trước khi trả cho Siri,
+  nên không nhặt nhầm câu trả lời của phiên chat thường (lỗi này đã bị thật khi gom chung kênh).
+  Prompt route `siri` phải luôn yêu cầu mở đầu bằng `🎙` — xoá yêu cầu này là hỏng cơ chế lọc.
 - Mọi thứ đi qua Tailscale ⇒ **17h30 tắt cùng node** (cổng Siri chết theo); không tự bật lại.
 - Nạp lại cổng nói: `systemctl --user kill -s TERM siri-speak` rồi chờ ≥9s (guard chặn `restart`;
   `Restart=always` tự dựng lại). Chi tiết + pitfall: skill `hermes-webhook-routes`,

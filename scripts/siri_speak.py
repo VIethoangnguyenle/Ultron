@@ -37,8 +37,9 @@ TOKEN_PATH = HOME / ".hermes" / "state" / "siri_token.txt"
 BIND_HOST = "100.120.110.26"   # IP Tailscale — chỉ trong tailnet
 PORT = 9444
 UPSTREAM = "http://100.120.110.26:9443/webhooks/siri"
-OUTBOX_SPACE = "spaces/AAQAiOgBqio"      # hộp riêng của Siri — webhook deliver vào ĐÂY (sạch, không lẫn chat thường)
-DM_SPACE = "spaces/0dniIqAAAAE"          # DM Hoàng — nhận bản sao để có dấu vết
+OUTBOX_SPACE = "spaces/0dniIqAAAAE"      # DM Hoàng — kênh DUY NHẤT nhận câu trả lời Siri (nhãn 🎙); KHÔNG group
+DM_SPACE = "spaces/0dniIqAAAAE"          # (giữ tên cũ cho tương thích; nay cùng đích)
+MIC = "🎙"                               # nhãn phiên Siri — cổng lọc theo nhãn này để không nhặt nhầm chat thường
 SEND_SCRIPT = SCRIPTS / "gchat_send_text.py"
 VENV_PY = HOME / ".hermes" / "hermes-agent" / "venv" / "bin" / "python"
 BOT_ID = "users/107189931083311611240"   # Ultron
@@ -69,7 +70,12 @@ def stamp(dt: datetime) -> str:
 
 
 def newest_bot_text(after: str, deadline: float) -> str:
-    """Chờ tin nhắn trả lời của Ultron trong DM, mới hơn mốc `after`."""
+    """Chờ tin trả lời của Ultron trong DM, mới hơn mốc `after`.
+
+    Ưu tiên tin có nhãn 🎙 (đúng phiên Siri). Chỉ khi không có mới dùng tin bot khác
+    làm phương án dự phòng — tránh nhặt nhầm câu trả lời của phiên chat thường.
+    """
+    fallback = ""
     while time.time() < deadline:
         try:
             page = service().spaces().messages().list(
@@ -82,11 +88,14 @@ def newest_bot_text(after: str, deadline: float) -> str:
                 txt = gc.text_of(m).strip()
                 if not txt or any(k.lower() in txt.lower() for k in SKIP_MARKERS):
                     continue
-                return txt
+                if txt.startswith(MIC):
+                    return txt[len(MIC):].strip()
+                if not fallback:
+                    fallback = txt
         except Exception as exc:  # noqa: BLE001 — lỗi mạng/API thì thử lại lượt sau
             sys.stderr.write(f"[siri-speak] poll lỗi: {type(exc).__name__}\n")
         time.sleep(POLL_EVERY)
-    return ""
+    return fallback
 
 
 def forward(text: str, token: str) -> int:
@@ -177,7 +186,6 @@ class Handler(BaseHTTPRequestHandler):
         sys.stderr.write(f"[siri-speak] fwd={status} len(text)={len(text)} "
                          f"wait={waited}s answer={'yes' if answer else 'timeout'}\n")
         if answer:
-            threading.Thread(target=mirror_to_dm, args=(answer,), daemon=True).start()
             self._reply_result("ok", answer, waited_s=waited, echo=text)
         else:
             self._reply_result("timeout", TIMEOUT_MSG, waited_s=waited, echo=text)

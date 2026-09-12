@@ -55,6 +55,44 @@ Help testers inspect transaction/customer data in the VietBank SME databases. Qu
 
 `OMNI_CUSTOMER.STATUS` = CustomerStatus: 0=NONE, 1=INIT, 2=PENDING_APPROVE_REGISTER, 3=ACTIVE_STANDBY, 4=ACTIVE, 5=LOCK, 6=PENDING_LOCK, 7=PENDING_UNLOCK, 8=AUTO_LOCK, 9=TEMP_LOCK, 10=PENDING_UPDATE, 11=PENDING_APPROVAL_RESET_PASSWORD, 12=PENDING_RESEND_USERNAME, 13=PENDING_CANCEL, 14=CANCEL.
 
+## Hạn mức (limit) — "hạn mức lập lệnh"
+
+Tester hay hỏi "kiểm tra hạn mức lập lệnh của user X theo loại dịch vụ Y ngày Z". Ba bảng liên quan (đã kiểm chứng trên SIT 2026-09-12):
+
+| Bảng | Cấp | Khoá | Ý nghĩa cột |
+|---|---|---|---|
+| `AD_PACKAGE_SERVICE_TYPE_LIMIT` | Gói dịch vụ | PACKAGE_CODE + SERVICE_TYPE_CODE + CCY | `DAILY_CUS_TRANS_REQ_AMOUNT_LIMIT` = hạn mức lập lệnh tối đa của **nhân viên/ngày**; `DAILY_AMOUNT_LIMIT` = tổng tiền GD tối đa/ngày của DN theo loại dịch vụ |
+| `OMNI_DAILY_TRANS_REQ_LIMIT` | Doanh nghiệp | COMPANY_ID + SERVICE_TYPE_CODE + CCY + PACKAGE_CODE | `AMOUNT`/`MAX_AMOUNT` = hạn mức lập lệnh theo ngày (snapshot sinh ra từ gói) |
+| `OMNI_DAILY_CUS_TRANS_REQ_CHECK` | Nhân viên | CUSTOMER_ID + SERVICE_TYPE_CODE + CHECKED_DATE | `NUMBER_OF_TRANS_REQ` = số lệnh đã lập trong ngày; `AMOUNT` = số tiền đã lập trong ngày — dùng để đối chiếu với hạn mức |
+
+- `OMNI_CUSTOMER.PACKAGE_CODE` thường NULL → gói lấy từ `OMNI_COMPANY.PACKAGE_CODE` của `CUSTOMER.COMPANY_ID`.
+- Lọc cấu hình gói: `IS_ACTIVE = 1 AND STATUS = 1 AND CCY = 'VND'` (có thể tồn tại bản ghi cũ IS_ACTIVE=0 cùng khoá — nhớ lọc, không thì ra 2 dòng).
+- `CHECKED_DATE` là kiểu DATE → lọc `TRUNC(CHECKED_DATE) = DATE 'YYYY-MM-DD'`.
+- Bản ghi cấp doanh nghiệp cho một loại dịch vụ có thể **chưa tồn tại** (NULL) — khi đó nói rõ với tester là chưa khởi tạo, không kết luận lỗi.
+- Mã loại dịch vụ (`AD_SERVICE_TYPE.CODE`): 001 Tài khoản, 002 Chuyển khoản, 003 Gửi tiền tiết kiệm, 004 Thanh toán hoá đơn.
+
+Query mẫu (hạn mức lập lệnh + đã dùng + còn lại theo user/loại dịch vụ/ngày):
+
+```sql
+SELECT c.USERNAME AS "Tên đăng nhập", c.FULL_NAME AS "Nhân viên",
+       co.VN_NAME AS "Doanh nghiệp", co.PACKAGE_CODE AS "Gói dịch vụ",
+       st.CODE || ' - ' || st.VI_NAME AS "Loại dịch vụ",
+       pkg.DAILY_CUS_TRANS_REQ_AMOUNT_LIMIT AS "Hạn mức lập lệnh ngày (nhân viên)",
+       NVL(u.AMOUNT, 0) AS "Đã lập lệnh trong ngày",
+       NVL(u.NUMBER_OF_TRANS_REQ, 0) AS "Số lệnh đã lập trong ngày",
+       pkg.DAILY_CUS_TRANS_REQ_AMOUNT_LIMIT - NVL(u.AMOUNT, 0) AS "Hạn mức còn lại"
+FROM VBSMEONL.OMNI_CUSTOMER c
+JOIN VBSMEONL.OMNI_COMPANY co ON co.ID = c.COMPANY_ID
+LEFT JOIN VBSMEONL.AD_SERVICE_TYPE st ON st.CODE = '002'
+LEFT JOIN VBSMEONL.AD_PACKAGE_SERVICE_TYPE_LIMIT pkg
+       ON pkg.PACKAGE_CODE = co.PACKAGE_CODE AND pkg.SERVICE_TYPE_CODE = '002'
+      AND pkg.CCY = 'VND' AND pkg.IS_ACTIVE = 1 AND pkg.STATUS = 1
+LEFT JOIN VBSMEONL.OMNI_DAILY_CUS_TRANS_REQ_CHECK u
+       ON u.CUSTOMER_ID = c.ID AND u.SERVICE_TYPE_CODE = '002'
+      AND TRUNC(u.CHECKED_DATE) = DATE '2026-09-12'
+WHERE UPPER(c.USERNAME) = UPPER('facepay47');
+```
+
 ## Workflow when a tester asks
 
 **Never paste internal source code in the reply** — translate to business language only.

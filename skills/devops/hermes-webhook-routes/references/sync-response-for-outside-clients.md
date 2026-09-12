@@ -12,7 +12,7 @@ Các đường KHÔNG dùng được (đã kiểm chứng trong source `gateway/
 ## Cách chạy được: cổng "nói" đứng giữa (đã dựng: `~/.hermes/scripts/siri_speak.py`)
 ```
 Shortcuts --POST--> 100.120.110.26:9444/siri/say --> (forward) --> 100.120.110.26:9443/webhooks/siri
-                     bridge chờ câu trả lời, rồi trả nguyên văn text/plain trong response body
+                     bridge chờ câu trả lời, rồi trả JSON {"status","text","waited_s","echo"} trong response body
 ```
 - Bridge tự đẩy lệnh sang route webhook, ghi **mốc thời gian trước khi gửi** (trừ hao 3s lệch đồng hồ), rồi poll kênh `deliver`
   (ở đây: DM của Hoàng) qua Chat API read-only, lấy tin **của bot** mới hơn mốc, **bỏ qua tin marker** ("is thinking" / "đang nghĩ"), trả về text đầu tiên.
@@ -24,9 +24,8 @@ Shortcuts --POST--> 100.120.110.26:9444/siri/say --> (forward) --> 100.120.110.2
 ## TÁCH KÊNH NHẬN (bắt buộc — đã từng bắt lỗi thật)
 Đừng để route webhook deliver vào cùng space với chat thường: cả phiên webhook lẫn phiên chat đều là **cùng một bot**,
 bridge sẽ nhặt nhầm câu trả lời của phiên chat (thật gặp: `waited_s=1.3`, `text` = câu trả lời chat đang gõ dở).
-- Kênh Siri riêng: `spaces/AAQAiOgBqio` — route `siri` deliver vào **đây** (`deliver_extra = {"chat_id": ...}`), space này không dùng cho việc khác.
-- DM Hoàng (`spaces/0dniIqAAAAE`) chỉ nhận **bản sao** gắn nhãn `🎙 (Siri) ` do bridge tự gửi qua `scripts/gchat_send_text.py`
-  (service account) trong thread nền → không làm chậm câu trả lời cho Siri.
+- (ĐÃ BỎ) không tạo "space outbox" cho Siri nữa; cũng không cần `gchat_send_text.py` để mirror —
+  chính webhook đã deliver câu trả lời (có nhãn 🎙) vào DM.
 
 
 ## Pitfall prompt template của webhook
