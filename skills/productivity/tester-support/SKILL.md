@@ -119,6 +119,9 @@ Khi tester báo "user X gặp lỗi mã Y ở môi trường Z", làm theo đún
 3. **Phân tích log.** Dùng `vblog.py` (skill vnpay-log-analyzer) + MCP `understand-anything`
    để dựng timeline, tìm requestId, xác định mã lỗi nằm ở bước nào (REQUEST/CALL_*/RESPONSE),
    nguyên nhân gốc. Mã gateway (VBG/VPG) nằm ở bước `CALL_*_RESPONSE`.
+   - **Quy tắc (Hoàng chốt 12/09/2026): mã lỗi bắt đầu bằng `VBG` = lỗi của CORE BANK.**
+     Khi kết luận/khai báo một lỗi VBG, **luôn trích nguyên đoạn log `CALL_REST` gọi sang bank**
+     (URL + body request + response bank trả về) gửi kèm — đó là bằng chứng phía bank, không suy đoán.
 4. **Ra báo cáo cho tester** dạng file markdown (xem mục "Báo cáo cho tester" bên dưới).
 
 Công thức đọc log UAT chạy được (liệt kê file theo pod, tải về, service nào chứa gì):

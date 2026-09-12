@@ -1,6 +1,6 @@
 ---
 name: vbsme-reconciliation-triage
-description: "Use when a vbsme giao dịch treo chờ xử lý sau job đối soát."
+description: "Use when a vbsme giao dịch treo/chờ xử lý, hỏi job đối soát ghi lại thông tin gì, hoặc giao dịch có lưu mã risk của core không."
 version: 1.0.0
 author: Ultron
 license: MIT
@@ -13,7 +13,7 @@ metadata:
 
 # vbsme — giao dịch treo "Chờ xử lý" / job đối soát không đổi trạng thái
 
-Dùng khi tester hỏi kiểu: *"job chuyển tiền 247 chạy lúc HH:00 mà giao dịch <trace> vẫn chưa đổi trạng thái"*, *"giao dịch treo chờ xử lý"*, *"kiểm tra nguyên nhân"* cho một giao dịch 247, hoặc khách thấy mã **500069**.
+Dùng khi tester hỏi kiểu: *"job chuyển tiền 247 chạy lúc HH:00 mà giao dịch <trace> vẫn chưa đổi trạng thái"*, *"giao dịch treo chờ xử lý"*, *"kiểm tra nguyên nhân"* cho một giao dịch 247, khách thấy mã **500069**, hoặc *"sao chạy job thì cột mã phản hồi SME/nội dung không đổi mà bấm nút thì đổi"* (câu hỏi về **bộ thông tin mà job đối soát ghi lại** — xem mục dưới).
 
 Đây là quy trình riêng cho **trạng thái treo do đối soát**. Các nguồn chính vẫn là 2 skill nền (user-owned): `tester-support` (scope-map, quy tắc trả lời, báo cáo PDF) và `vbsme-error-diagnosis` (tra mã lỗi, trace journey). Chi tiết đầy đủ của lớp việc này: `references/pending-transaction-reconciliation.md`.
 
@@ -53,6 +53,50 @@ Bảng/trạng thái để kiểm chứng + cách chứng minh bằng dữ liệ
 
 Trong luồng tra soát chỉ có **đúng một điểm** ném `500004` ⇒ đừng gán các mã khác của cùng luồng (chống bấm nhanh ~30s, dịch vụ không hỗ trợ, lỗi quyền) cho cùng nguyên nhân, và luôn đọc trạng thái **cả tầng lệnh lẫn tầng giao dịch** — chính chỗ hai tầng lệch nhau là bằng chứng. Bảng mã theo trạng thái + cách đọc 2 tầng + quy trình chứng minh lỗi độ-dài-byte (mục 10–11): `references/tra-soat-giao-dich.md`.
 
+## Job đối soát và nút tra soát ghi lại KHÁC bộ trường (báo cáo sẽ tự mâu thuẫn)
+
+Cả hai đường đều hỏi đối tác theo TRN và **nhận cùng một kết quả**, nhưng **phần ghi lại khác nhau**:
+
+```
+Thông tin lưu trên giao dịch         Job đối soát     Nút cập nhật/tra soát
+-----------------------------------  ---------------  ----------------------
+Trạng thái giao dịch                 Có ghi           Có ghi
+Mã giao dịch core banking            Có ghi           Có ghi
+Mã phản hồi SME                      KHÔNG ghi lại    Có ghi (000 / 01)
+Nội dung phản hồi                    KHÔNG ghi lại    Có ghi (mã lõi, vd 00)
+Lịch sử bước xử lý (mốc đối soát)    Có ghi           Có ghi
+```
+
+Hệ quả nghiệp vụ: sau khi **job** chốt thành công, báo cáo chi tiết giao dịch vẫn hiển thị mã `500069` kèm câu *"…đang được xử lý…"* (giá trị cũ lưu từ bước duyệt cuối) ⇒ dòng báo cáo **tự mâu thuẫn** (trạng thái Thành công mà mã phản hồi là mã của trạng thái chờ), dễ bị đọc thành "giao dịch còn treo", và không phân biệt được giao dịch do job chốt hay do đối tác trả kết quả trực tiếp. Nhánh job chốt **thất bại** cũng y hệt.
+
+Cách trả lời chuẩn cho câu hỏi "sao chạy job thì 2 cột phản hồi không đổi, bấm nút thì đổi": (1) xác nhận tester quan sát **đúng**, đây là khác biệt thật của hệ thống chứ không phải lỗi thao tác/môi trường; (2) đưa bảng đối chiếu bộ trường được ghi; (3) nêu hệ quả (đọc báo cáo dễ kết luận sai); (4) nói rõ đây là điểm **chưa nhất quán cần dev/BA chốt** là thiếu sót cần bổ sung hay chủ đích — **không cam kết sửa, không hứa mốc**; (5) trong lúc chờ, muốn biết kết quả thật của giao dịch do job chốt thì đọc **mốc đối soát trong lịch sử bước xử lý** hoặc log lượt job chạy, **đừng** kết luận theo 2 cột phản hồi trên báo cáo; (6) khi sếp/dev hỏi thẳng *"đọc code xem có phải bug không"* → đưa **phán quyết** ngay trong group bằng ngôn ngữ nghiệp vụ kèm 2–3 căn cứ rút gọn (dữ liệu đã lấy về mà không ghi lại; đường còn lại ghi đủ từ đúng nguồn đó; hai đường lệch **cả hai chiều**), còn **vị trí code (file:line) gửi riêng Hoàng**, không đưa ra group. Ba phép thử để chốt bug hay chủ đích: `references/tra-soat-giao-dich.md` mục 12.1.
+
+Hai điểm phụ cần thống nhất với dev khi trả lời: ô **nội dung phản hồi ở đường nút** đang lưu **mã lõi** (vd `00`) chứ không phải câu thông báo (tên cột ≠ giá trị), và mã phản hồi ở đường nút dùng quy ước NAPAS `000`/`01` khác kiểu mã SME `5xxxxx` lưu lúc duyệt cuối. Bảng chi tiết + cách kiểm bằng dữ liệu: `references/tra-soat-giao-dich.md` (mục 12).
+
+## Thông tin risk core của một giao dịch (mã risk / bản ghi rủi ro)
+
+Tester thường đưa **mã tra cứu NAPAS (traceNo)** dạng `0162551445950xx` — KHÁC `napasRef`
+(`6255VNTTA2FF4HVR`). Grep traceNo trong log `napas-service` (pod mới nhất) để ra `transactionId`,
+rồi lấy `transactionId` làm khoá cho mọi bước sau (đừng grep theo `napasRef`).
+
+Giao dịch NAPAS 2.0 có **2 lớp thông tin risk**, trả lời phải tách rõ 2 lớp này:
+
+- **"Có lưu mã risk core không"** = trong thông tin lệnh lúc tạo có mã rule core trả về (vd
+  `VB_RULE_0001`) + nội dung cảnh báo vi/en (kiểu *"người nhận thuộc danh sách nghi ngờ rủi ro…"*).
+  Lớp này **luôn CÓ**, kể cả lệnh tạo lúc cấu hình kiểm tra risk đang tắt.
+- **"Có bản ghi rủi ro riêng không"** = đọc **cờ "đã kiểm tra risk" của chính giao dịch đó** tại bước
+  tạo lệnh (`checkRiskScore`; `true` = có bản ghi). Kiểm chứng chéo bằng log: bước xác nhận **không** có
+  warning `not found for transactionId: <id>`, và khi trạng thái GD được cập nhật thì có dòng
+  `Update NapasRiskTransactionModel status to <trạng thái> for txId=<id>` → bản ghi tồn tại và
+  **chạy theo vòng đời giao dịch** (GD sang thành công thì bản ghi theo luôn).
+
+Cấu hình quyết định lớp 2: `check_risk_score.enable` (bật/tắt) + bảng cấu hình theo mã rule
+(STOP → chặn ngay ở bước tạo lệnh; WARNING → cho tạo lệnh nhưng ghi nội dung cảnh báo + tạo bản ghi;
+không có cấu hình cho mã đó → xử như nhánh tắt).
+
+Câu hỏi kèm trạng thái GD (vd "cả 2 GD đều timeout 500069") → ghép luôn phần đối soát ở các mục trên:
+lệnh đã cập nhật trạng thái thành công thì nói rõ, lệnh còn "chờ xử lý" thì đừng mô tả là thất bại.
+
 ## Pitfalls
 
 - **Mã `VBG*` (VBG0408400, VBG040768) không có trong source vbsme và không có trong bảng mã lỗi AD_MESSAGE** — sinh ở tầng lõi/gateway. Đừng grep repo tìm định nghĩa (mất thời gian, không ra) — diễn giải nghiệp vụ: *"lõi báo không có bản ghi"* / *"lõi chưa có kết quả xử lý"*.
@@ -63,6 +107,9 @@ Trong luồng tra soát chỉ có **đúng một điểm** ném `500004` ⇒ đ�
 - **`500004` của tra soát ≠ mã chống bấm nhanh.** 500004 ném ra *trước* khi lock chống bấm nhanh được ghi, nên bấm lại nhiều lần vẫn ra 500004; mã chống bấm nhanh (`501015`) chỉ hiện khi lần trước đã qua được bước kiểm điều kiện. Tester hỏi "sao bấm mãi vẫn cùng một lỗi" → đó là dấu hiệu lỗi ở điều kiện trạng thái, không phải chống spam.
 - **Hỏi trạng thái một mã GD mà chỉ đọc bảng giao dịch là thiếu.** Luôn đọc kèm bảng lệnh đã hoàn tất (lệnh có thể đã "chờ đối soát" + có TRN trong khi giao dịch vẫn "chờ duyệt" + trống TRN/ngày tham chiếu); lệch tầng là *bằng chứng*, không phải chi tiết phụ.
 - **Giao dịch "đứng im" (`MODIFIED_DATE` đóng băng) trong khi bước trước báo thành công ⇒ nghi ghi DB thất bại âm thầm, đừng dừng ở "lệch trạng thái".** Kiểm độ dài BYTE của nội dung thông báo so với giới hạn cột (tiếng Việt 2–3 byte/ký tự; đường ghi chạy nền nên người dùng vẫn thấy thành công) — ô thông báo trên bảng lệnh/phase thường rộng hơn trên bảng giao dịch nên phase vẫn ghi được và che mất lỗi.
+- **Báo cáo (hoặc 2 tầng dữ liệu) hiển thị 2 cột mâu thuẫn — vd trạng thái *Thành công* mà mã phản hồi vẫn là mã *chờ xử lý* ⇒ so BỘ TRƯỜNG mà TỪNG đường ghi, đừng chỉ so kết quả nghiệp vụ.** Hai đường xử lý có thể lấy về **cùng** dữ liệu nhưng chỉ một đường persist đủ trường (bước ghi của đường kia bỏ qua trường đó) ⇒ cột giữ nguyên giá trị cũ. Đọc thẳng bước cập nhật của cả hai đường và đối chiếu danh sách trường được set, rồi kiểm chứng bằng dữ liệu (`RESPONSE_CODE` / `RESPONSE_MESSAGE` trên bảng giao dịch) — kết luận "hệ thống không có dữ liệu đó" là sai, dữ liệu **đã được lấy về nhưng không được ghi lại**.
+- **Kết luận "có/không bản ghi rủi ro" phải dựa vào cờ kiểm tra risk của CHÍNH giao dịch, KHÔNG dựa vào mốc giờ bật/tắt cấu hình.** Cấu hình bị đội test bật/tắt liên tục (nạp lại hàng chục lần/ngày) ⇒ hai giao dịch cùng ngày có thể khác nhau: lệnh tạo trước lúc bật thì không có bản ghi rủi ro, dù được xác nhận sau đó. Gặp chênh lệch → giải thích đúng cơ chế này cho tester ("khác nhau vậy là bình thường"), đừng để bị hiểu là bug.
+- **Nhãn cột hiển thị trên màn hình/báo cáo (tiếng Việt, kiểu "mã phản hồi SME", "Báo cáo chi tiết giao dịch chuyển khoản") KHÔNG nằm trong repo backend** — grep theo nhãn trả 0 kết quả và rất tốn thời gian. Muốn map nhãn → trường thật: xác định bảng/cột DB (đối chiếu entity hoặc `sql_get_columns`) rồi mới đọc luồng nghiệp vụ theo tên trường.
 
 ## Verification
 

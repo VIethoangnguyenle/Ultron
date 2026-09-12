@@ -123,3 +123,74 @@ WHERE OWNER = 'VBSMEONL'
 - Dùng `SYS.ALL_TAB_COLUMNS` (lọc `OWNER`) — `VBSMEONL.USER_TAB_COLUMNS` báo `ORA-00942` vì tool buộc tiền tố schema mà view này không thuộc schema đang kết nối.
 - `CHAR_USED = 'B'` ⇒ giới hạn tính theo **byte**; so bằng `LENGTHB()`, đừng so bằng `LENGTH()`.
 - Muốn biết "cột có bao giờ chứa giá trị dài chưa": `SELECT MAX(LENGTHB(<cột>)), MAX(LENGTH(<cột>)), COUNT(*) FROM <bảng> WHERE <cột> IS NOT NULL`.
+
+## 12. Hai đường chốt trạng thái ghi lại khác bộ trường
+
+Đường **job đối soát** và đường **nút cập nhật/tra soát** đều hỏi đối tác theo TRN và nhận cùng kết quả, nhưng phần **ghi lại** khác nhau:
+
+| Trường trên giao dịch (`OMNI_TRANSACTION`) | Job đối soát | Nút cập nhật/tra soát |
+|---|---|---|
+| Trạng thái | ghi | ghi |
+| Mã giao dịch core banking (REF_NO) | ghi | ghi |
+| `RESPONSE_CODE` (mã phản hồi SME) | **không ghi lại** ⇒ **đã fix 12/09/2026**: ghi `00` = thành công, mã lỗi lõi = thất bại | ghi: `000` = thành công, `01` = thất bại |
+| `RESPONSE_MESSAGE` (nội dung phản hồi) | **không ghi lại** ⇒ **đã fix**: `Thành công` khi thành công, mã lỗi lõi khi thất bại | ghi: **mã lõi** trả về (vd `00`) |
+| Lịch sử bước xử lý (`OMNI_TRANSACTION_PHASE`) | ghi mốc đối soát | ghi mốc đối soát |
+| Bảng rủi ro NAPAS / hoàn hạn mức khi thất bại | có | có |
+
+- Dấu hiệu nhận biết sớm: dữ liệu **đã được lấy về** (đối tác trả kết quả, payload có cả mã lẫn nội dung) nhưng bước cập nhật **không dùng** những trường đó ⇒ DB giữ nguyên giá trị cũ chứ không phải "không lấy được".
+- Hệ quả tester thấy: giao dịch do job chốt thành công vẫn hiển thị `500069` + *"…đang được xử lý…"* ⇒ **thông tin tự mâu thuẫn** trên báo cáo chi tiết giao dịch chuyển khoản.
+- Kết luận nghiệp vụ: "hai cách chốt trạng thái chưa ghi lại cùng bộ thông tin; cần dev xác nhận là thiếu sót hay chủ đích, và thống nhất quy ước mã giữa 2 đường". **Cập nhật 12/09/2026: đã kết luận là thiếu sót, Hoàng đã chốt quy ước và đã fix đường job (xem mục 12.2).** Khi trả lời tester: đừng hứa sửa thay dev, chỉ nêu hiện trạng + việc đã/đang làm. Muốn biết kết quả thật của giao dịch do job chốt → đọc mốc đối soát trong lịch sử bước xử lý hoặc log lượt job, **không** đọc 2 cột phản hồi trên báo cáo.
+- Kiểm chứng bằng dữ liệu (SIT, db-access):
+
+```sql
+SELECT ID, CODE, STATUS, REF_NO, RESPONSE_CODE, RESPONSE_MESSAGE, MODIFIED_DATE
+FROM VBSMEONL.OMNI_TRANSACTION
+WHERE CODE = '<trace>';
+```
+
+So 2 giao dịch cùng kết cục nhưng khác đường chốt (một cái để job chốt, một cái bấm nút) — chênh lệch nằm đúng ở 2 cột phản hồi là bằng chứng đủ để dev không hỏi lại.
+
+Ảnh/báo cáo tester gửi có thể thuộc **UAT** (báo cáo chi tiết giao dịch chuyển khoản trên màn VietinBank) — db-access chỉ đọc được các DB SIT ⇒ tra trace/REF_NO đó ở `VBSMEONL` sẽ **không ra dòng nào**. Khi đó lấy ảnh + đọc code làm bằng chứng, đừng kết luận "không tìm thấy giao dịch".
+
+### 12.1 Ba phép thử để kết luận "bug (thiếu sót)" hay "chủ đích"
+
+1. **Dữ liệu có đi theo luồng không**: đối tác trả kết quả → bước trung gian **đã set** cả mã lẫn nội dung phản hồi vào đối tượng mang sang bước ghi, nhưng bước ghi **không đọc** 2 trường đó ⇒ kết luận "hệ thống không có dữ liệu" là sai; trường tồn tại mà không ai dùng là dấu hiệu làm thiếu.
+2. **Đường khác có ghi cùng dữ liệu từ đúng nguồn đó không**: nút cập nhật ghi đủ 2 trường từ chính câu trả lời đó ⇒ hai đường lấy cùng dữ liệu mà một đường bỏ ⇒ không thể là quy ước nghiệp vụ.
+3. **Có ghi "giá trị thay thế" ở tầng khác không**: bước ghi của job vẫn ghi mã/nội dung **cố định** cho mốc lịch sử (thành công sau đối soát = mã thành công của hệ thống; thất bại = mã lỗi hệ thống + mô tả tiếng Anh) thay vì mã lõi thật ⇒ có ý định ghi nhận kết quả nhưng ghi ở **tầng lịch sử**, bỏ tầng giao dịch.
+
+⇒ Lệch **hai chiều** (job chỉ ghi tầng lịch sử, nút chỉ ghi tầng giao dịch, mỗi bên bỏ trường của bên kia) = **thiếu sót cần bổ sung**, không phải chủ đích. Đề xuất fix: bước ghi của job set thêm 2 trường từ kết quả lõi — nhưng **xin Hoàng chốt quy ước giá trị trước khi sửa** (`000`/`01` kiểu NAPAS như đường nút, hay mã thành công của hệ thống như job đang mang sẵn); hai đường đang dùng 2 kiểu giá trị khác nhau nên không tự chọn.
+
+### 12.2 Quy ước giá trị đã chốt (Hoàng chốt 12/09/2026)
+
+Hai đường dùng 2 kiểu giá trị khác nhau ⇒ Hoàng đã chốt lấy **convention chung của hệ thống** làm chuẩn:
+
+- **Ca thành công**: `RESPONSE_CODE` = `00` (mã thành công của hệ thống) + `RESPONSE_MESSAGE` = *"Thành công"*.
+  Căn cứ: DB SIT có **2.018 dòng** thành công đều là `00`/`Thành công`; **không có dòng nào** dùng `000` ⇒ `000` là giá trị lạ chỉ đường nút sinh ra.
+- **Ca thất bại**: `RESPONSE_CODE`/`RESPONSE_MESSAGE` lấy từ kết quả tra soát của lõi; nếu rỗng thì fallback mã lỗi hệ thống `99`.
+- Đường **nút cập nhật** (`000`/`01` + mã lỗi thô ở cột nội dung) được xác nhận là **chỗ cần sửa ở task sau (backlog riêng)** — KHÔNG sửa trong task job đối soát.
+- Còn 1 điểm cần task riêng: bước tra soát đặt *nội dung phản hồi* của ca thất bại = **mã lỗi**, không phải câu mô tả ⇒ muốn đọc được như convention DB phải tra bảng thông điệp (`AD_MESSAGE`).
+
+Cách kiểm chứng nhanh giá trị nào là chuẩn (đừng tin tên hằng số trong code):
+
+```sql
+SELECT RESPONSE_CODE, RESPONSE_MESSAGE, COUNT(*) FROM VBSMEONL.OMNI_TRANSACTION
+GROUP BY RESPONSE_CODE, RESPONSE_MESSAGE ORDER BY COUNT(*) DESC;
+```
+
+### 12.3 Nhận biết giao dịch được chốt bởi đường nào, từ lịch sử bước xử lý
+
+`OMNI_TRANSACTION_PHASE` (cột `PHASE` số, `NAME`, `OMNI_RESPONSE_CODE`, `OMNI_RESPONSE_MESSAGE`, `TRANSACTION_ID`, `CREATED_DATE`):
+
+- Mốc do **job** tạo mang thêm mã/nội dung **cố định** nói rõ "sau đối soát" (kiểu `Success after reconciliation` / `Failed after reconciliation`).
+- Mốc do **nút cập nhật** tạo **không** set 2 ô đó (NULL) — quan sát đúng như vậy trên SIT.
+- Tên mốc lưu bằng **tiếng Việt** (kiểu "Tra soát thành công, Giao dịch thành công", "Duyệt lệnh cuối timeout, chờ tra soát") ⇒ lọc theo tên phải dùng chuỗi tiếng Việt, đừng lọc theo tên enum trong code.
+
+```sql
+SELECT * FROM (
+  SELECT t.ID, t.STATUS, t.RESPONSE_CODE, t.RESPONSE_MESSAGE,
+         p.NAME, p.OMNI_RESPONSE_CODE, p.OMNI_RESPONSE_MESSAGE, p.CREATED_DATE
+  FROM VBSMEONL.OMNI_TRANSACTION t
+  JOIN VBSMEONL.OMNI_TRANSACTION_PHASE p ON p.TRANSACTION_ID = t.ID
+  WHERE p.NAME LIKE '%Tra soát%'
+  ORDER BY p.CREATED_DATE DESC) WHERE ROWNUM <= 15;
+```

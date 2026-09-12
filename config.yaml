@@ -240,6 +240,12 @@ approvals:
 platforms:
   google_chat:
     typing_status_text: Ultron đang nghĩ đã… 🤖💭
+  webhook:
+    enabled: true
+    extra:
+      port: 9443
+      host: 100.120.110.26
+      secret: 1IKN4e6CimOIFusSCTwET4u-FWmC9VK4ZvWyJtzy0JQ
 auxiliary:
   vision:
     provider: custom

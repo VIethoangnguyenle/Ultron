@@ -126,6 +126,15 @@ Quy trình đã chạy trót lọt (nhánh `pilot_hotfix_13_08_cve`, 2026-09-11)
    `git show --name-only HEAD` (đúng file, không có .env), và chạy lại dependencyInsight/gradle cho vài module.
 5. Dọn worktree (`git worktree remove --force`) và file tạm ở /tmp; local branch giữ lại.
 
+Bổ sung (2026-09-12) — đẩy nhánh + mở MR (đã chạy trót lọt cho nhánh `feature/g3.1-napas2.0/bugs`):
+- **Không có token API GitLab**: `~/.git-credentials` chỉ chứa user/password git (gọi `/api/v4/user` → 401). Đừng hứa tạo MR bằng API — dùng **push option của GitLab**:
+  `git push -u origin <new> -o merge_request.create -o merge_request.target=<base> -o merge_request.title="..." -o merge_request.description="..."`
+  Remote in ra `View merge request for <branch>: <url>` ⇒ MR được tạo ngay với target đúng, không cần token.
+  Description phải **một dòng** (push option không nhận newline) — phân tách ý bằng ` | `.
+- Verify sau push: `git ls-remote origin refs/heads/<new>` == `git rev-parse HEAD`. Trang MR trả **302** khi chưa đăng nhập ⇒ không đọc ngược được target branch — nói rõ điểm này khi báo cáo Hoàng.
+- Verify code đã compile: `./gradlew :<service>:compileJava --offline` báo `UP-TO-DATE` **vẫn là bằng chứng hợp lệ** (Gradle so content hash, không phải mtime) miễn là có lần build thành công SAU lần sửa cuối. Chốt cứng bằng bytecode: `javap -p -c <module>/build/classes/java/main/<path>/<X>.class | grep TransactionModelBuilder.<field>`.
+- Worktree: giữ lại khi biết còn vòng review (Hoàng duyệt MR sau) — chỉ `git worktree remove --force` khi việc đã chốt.
+
 Bổ sung (2026-09-11):
 - **Ghim đúng nhánh theo lời Hoàng**, đừng suy ra từ `git branch --show-current`. Báo cáo quét CVE ghi rõ
   `jar <tên>.jar/BOOT-INF/lib/<lib>-<ver>.jar` ⇒ dò ngược version trong từng nhánh để biết báo cáo thuộc
@@ -168,14 +177,17 @@ Máy soi lệch tài liệu (exit 1 = còn lệch, cắm được vào CI) — c
 Pitfall khi sửa doc: ghi chú kiểu "bản cũ ghi `/api/v1/app/auth/login`" sẽ bị chính máy soi báo lệch →
 viết `.../app/auth/login` (bỏ tiền tố `/api/v1`) hoặc mô tả bằng lời.
 
-## Ranh giới với repo code (Hoàng chốt 2026-09-11)
+## Ranh giới với repo code (cập nhật 2026-09-12 — thay cho luật read-only 2026-09-11)
 
-Hoàng **chưa dạy workflow coding** → trong mọi repo vbsme Ultron ở chế độ **read-only**:
-- Được: đọc file, grep, chạy lệnh phân tích chỉ-đọc (vd `dependencyInsight --offline`), dựng worktree tạm
-  ở `/tmp` để soi nhánh khác rồi xoá ngay.
-- KHÔNG: sửa/xoá file source, `git add/commit/push`, đổi nhánh/`stash` working tree của người khác,
-  mở MR. Muốn thay đổi thì **đề xuất bằng lời** (nêu file/dòng + lý do) để người khác tự làm.
-- Chỉ khi Hoàng yêu cầu trực tiếp và rõ ràng mới được ghi vào repo.
+Hoàng đã giao **toàn quyền** cho Ultron giao `claude` đọc source / coding / fix bug / bàn giao trên
+vietbank-sme, **không cần xin từng lần**, kèm 4 ràng buộc:
+1. Chạy `python3 ~/.hermes/scripts/claude_mcp_preflight.py` trước khi giao việc code — exit 1 thì KHÔNG dispatch.
+2. Tự verify kết quả claude khai (diff độc lập, build/bytecode) — không tin self-report.
+3. Báo cáo lại Hoàng sau mỗi việc.
+4. Source code / tên file / tên class **KHÔNG ra group** — chỉ trong DM với Hoàng.
+
+Mặc định vẫn KHÔNG commit/push/MR. Chỉ khi Hoàng nói rõ (vd "tạo PR vào <base>, thứ 2 anh duyệt")
+mới push + mở MR — và **không merge** cho tới khi Hoàng chốt.
 
 ## Pitfalls
 
