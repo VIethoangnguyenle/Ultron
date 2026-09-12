@@ -60,7 +60,11 @@ actions:
 
   # Bản tin email sáng cho Hoàng — 08:00 ngày làm việc, gửi vào DM riêng.
   # Lọc bot JIRA/bản tin/đào tạo, chỉ liệt kê mail NGƯỜI gửi; im lặng nếu không có gì mới.
+  # Bản tin email sáng — TẮT 2026-09-12: Hoàng chốt chỉ cần theo dõi + ping mail QUAN TRỌNG
+  # (email_watch.py + cron ultron-email-watch), không cần bản tin toàn bộ mail.
+  # Bật lại: đổi enabled -> true (hoặc nhắn Ultron).
   - id: email-digest
+    enabled: false
     when: "08:00"
     days: [mon, tue, wed, thu, fri]
     script: email_digest.py
