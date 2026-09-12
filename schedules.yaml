@@ -77,11 +77,13 @@ actions:
     script: team_post.py
     args: ["--kind", "evening", "--space", "spaces/AAAADv4ib6s"]
 
-  # One-shot: TẮT Tailscale gateway (đường riêng cho tester ở nhà đọc log UAT/LIVE) lúc 17h30
-  # ngày 12/09/2026 — Hoàng chốt: "Kết nối tailscale này sẽ kết thúc vào 17h30 ngày hôm nay".
-  # Script logout node + xoá container `tailscale` + xoá volume state, rồi DM báo Hoàng.
-  # Tự hết hạn sau ngày đó (không để lại rác). Chạy lại nhiều lần vô hại.
+  # TẮT MỌI KẾT NỐI TAILSCALE sau 17h30 — luật chung, chạy MỖI NGÀY (Hoàng chốt 2026-09-12:
+  # "Chú ý tất cả các kết nối tailscale đều phải tắt sau 17h30 nhé" + "Và phải xoá log
+  # talescale trên hệ thống"). Node vbsme-log-gw (đường tester đọc log + cổng Siri bridge)
+  # phải chết sau giờ làm, không để lại dấu vết qua đêm.
+  # Script: logout node + stop/rm container + xoá volume state + XOÁ LOG tailscale
+  # (log container, file log tên 'tailscale' ở /tmp và ~/.hermes) rồi DM báo Hoàng.
+  # Chạy lại nhiều lần vô hại. Muốn mở lại ban ngày: nhắn Ultron (không tự bật).
   - id: tailscale-teardown
     when: "17:30"
-    date: "2026-09-12"
     script: tailscale_teardown.py

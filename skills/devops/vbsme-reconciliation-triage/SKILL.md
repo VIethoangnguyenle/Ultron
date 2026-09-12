@@ -1,6 +1,6 @@
 ---
 name: vbsme-reconciliation-triage
-description: "Use when a vbsme giao dịch treo/chờ xử lý, hỏi job đối soát ghi lại thông tin gì, hoặc giao dịch có lưu mã risk của core không."
+description: "Use when a vbsme giao dịch treo/chờ xử lý, hỏi job đối soát ghi lại thông tin gì, hoặc hỏi mã TRN / mã risk core của một giao dịch."
 version: 1.0.0
 author: Ultron
 license: MIT
@@ -73,6 +73,27 @@ Cách trả lời chuẩn cho câu hỏi "sao chạy job thì 2 cột phản h�
 
 Hai điểm phụ cần thống nhất với dev khi trả lời: ô **nội dung phản hồi ở đường nút** đang lưu **mã lõi** (vd `00`) chứ không phải câu thông báo (tên cột ≠ giá trị), và mã phản hồi ở đường nút dùng quy ước NAPAS `000`/`01` khác kiểu mã SME `5xxxxx` lưu lúc duyệt cuối. Bảng chi tiết + cách kiểm bằng dữ liệu: `references/tra-soat-giao-dich.md` (mục 12).
 
+## Tra cứu nhanh 1 giao dịch theo mã tester đưa + "mã TRN" là gì
+
+Tester dán thẳng mã họ đọc trên app (`016254144594843`) và hỏi *"check giao dịch này"*, *"check mã TRN"*,
+*"chi tiết mã X"*. Mã đó là **`traceNo`** trong log `napas-service` — KHÁC `napasRef` và KHÔNG phải
+`transactionId`: grep `traceNo` → lấy `transactionId` (số) làm khoá truy mọi bước sau (tạo / duyệt /
+từ chối / xác nhận / cập nhật trạng thái). **Chỉ grep `traceNo` là chưa đủ** để biết lệnh có đi tiếp
+không — phải grep tiếp `transactionId`, vì các bước sau log theo id này.
+
+**"Mã TRN" tester hỏi = `napasRef`** (`6254VNTTA2FFCPNC`) lưu trên thông tin lệnh, kèm **ngày cấp TRN**
+(`napasRefDate`). TRN được cấp ở bước **tra tên người hưởng**, sớm hơn mốc tạo lệnh vài giây ⇒ mốc TRN
+luôn đứng trước mốc tạo lệnh, đừng coi là bất thường.
+
+- **Có TRN KHÔNG có nghĩa lệnh đã sang "Chờ xử lý"**: lệnh còn "Chờ duyệt" vẫn có TRN. Dấu hiệu lệnh
+  đã thực thi là có **mã giao dịch lõi** (`coreRef`)/ngày tham chiếu — không phải TRN.
+- TRN có thời gian sống (`...napas_v2.trn.ttl_hours`) nên TRN lúc tạo khác TRN lúc duyệt cuối là bình
+  thường ⇒ khi trả TRN cho tester **luôn kèm ngày cấp**, và đừng khẳng định một con số TTL cụ thể.
+
+Trả lời dạng này là **tra cứu nhanh**: 1–2 giao dịch thì trả thẳng trong group bằng bảng bọc code block
+(trạng thái, TRN + ngày cấp, số tiền, người hưởng, mã risk nếu tester đang hỏi risk) — **KHÔNG cần dựng
+PDF**; chỉ báo cáo/điều tra nhiều bước mới xuất PDF (đừng bắt tester chờ PDF cho một tra cứu 30 giây).
+
 ## Thông tin risk core của một giao dịch (mã risk / bản ghi rủi ro)
 
 Tester thường đưa **mã tra cứu NAPAS (traceNo)** dạng `0162551445950xx` — KHÁC `napasRef`
@@ -110,6 +131,8 @@ lệnh đã cập nhật trạng thái thành công thì nói rõ, lệnh còn "
 - **Báo cáo (hoặc 2 tầng dữ liệu) hiển thị 2 cột mâu thuẫn — vd trạng thái *Thành công* mà mã phản hồi vẫn là mã *chờ xử lý* ⇒ so BỘ TRƯỜNG mà TỪNG đường ghi, đừng chỉ so kết quả nghiệp vụ.** Hai đường xử lý có thể lấy về **cùng** dữ liệu nhưng chỉ một đường persist đủ trường (bước ghi của đường kia bỏ qua trường đó) ⇒ cột giữ nguyên giá trị cũ. Đọc thẳng bước cập nhật của cả hai đường và đối chiếu danh sách trường được set, rồi kiểm chứng bằng dữ liệu (`RESPONSE_CODE` / `RESPONSE_MESSAGE` trên bảng giao dịch) — kết luận "hệ thống không có dữ liệu đó" là sai, dữ liệu **đã được lấy về nhưng không được ghi lại**.
 - **Kết luận "có/không bản ghi rủi ro" phải dựa vào cờ kiểm tra risk của CHÍNH giao dịch, KHÔNG dựa vào mốc giờ bật/tắt cấu hình.** Cấu hình bị đội test bật/tắt liên tục (nạp lại hàng chục lần/ngày) ⇒ hai giao dịch cùng ngày có thể khác nhau: lệnh tạo trước lúc bật thì không có bản ghi rủi ro, dù được xác nhận sau đó. Gặp chênh lệch → giải thích đúng cơ chế này cho tester ("khác nhau vậy là bình thường"), đừng để bị hiểu là bug.
 - **Nhãn cột hiển thị trên màn hình/báo cáo (tiếng Việt, kiểu "mã phản hồi SME", "Báo cáo chi tiết giao dịch chuyển khoản") KHÔNG nằm trong repo backend** — grep theo nhãn trả 0 kết quả và rất tốn thời gian. Muốn map nhãn → trường thật: xác định bảng/cột DB (đối chiếu entity hoặc `sql_get_columns`) rồi mới đọc luồng nghiệp vụ theo tên trường.
+- **Mốc giờ trong ngữ cảnh tin nhắn group lệch 7 giờ so với log**: mốc tin nhắn hiện theo UTC, còn autoindex + header log theo giờ VN (+07) ⇒ giao dịch tester hỏi lúc `07:5x` nằm ở `14:3x` trong log. Đừng kết luận "log ghi giờ tương lai" hay chọn nhầm pod — cộng 7 tiếng rồi mới khoanh vùng thời gian.
+- **Trước khi kết luận "sau đó lệnh không có hoạt động nào"**: xác nhận file log đang đọc phủ từ **lúc lệnh tạo tới hiện tại** (đọc mốc dòng đầu/dòng cuối file). Pod đang chạy gộp nhiều ngày vào **một** file, pod cũ là file riêng; cửa sổ không phủ thì phải lấy thêm pod / `worker-service` rồi mới kết luận.
 
 ## Verification
 

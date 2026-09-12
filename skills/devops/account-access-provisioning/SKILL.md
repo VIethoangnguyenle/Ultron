@@ -56,3 +56,4 @@ Dùng khi Hoàng yêu cầu Ultron đọc/làm việc trên một tài khoản c
 ## References
 
 - `references/google-oauth-scope-sets.md` — bảng service → scope, lệnh setup, xử lý lỗi consent thường gặp.
+- `references/tailscale-lifecycle.md` — luật tắt hết kết nối Tailscale sau 17h30 + xoá log (script `tailscale_teardown.py`, action hằng ngày trong `schedules.yaml`, cách bật lại). Cổng nào bind vào IP tailnet thì chết theo lịch này — xem skill `hermes-webhook-routes`.

@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-"""Tắt & dọn Tailscale gateway (node log UAT/LIVE) — dùng cho lịch one-shot trong schedules.yaml.
+"""Tắt & dọn Tailscale gateway (node log UAT/LIVE) — chạy theo lịch trong schedules.yaml.
 
-Vì sao: node `vbsme-log-gw` mở đường riêng cho tester ở nhà đọc log, chỉ sống trong một buổi.
-Hết giờ thì logout khỏi tailnet + xoá container + xoá state để không còn đường vào nào.
+Vì sao: node `vbsme-log-gw` mở đường riêng cho tester ở nhà đọc log + cổng Siri bridge.
+Hoàng chốt 2026-09-12: **mọi kết nối Tailscale phải tắt sau 17h30** và **phải xoá log
+Tailscale trên hệ thống** — không để lại dấu vết đường vào nào qua đêm.
 
     tailscale_teardown.py [--dry-run] [--no-notify]
 
-- `--dry-run`: chỉ in ra sẽ làm gì, KHÔNG đụng gì.
-- `--no-notify`: không gửi DM báo Hoàng.
-- An toàn: không đụng container/service nào khác (vd `omni-sme-proxy`); chỉ xoá đúng 2 tài nguyên
-  của Tailscale. Chạy lại nhiều lần vô hại (idempotent).
+Dọn gì:
+  1. logout node khỏi tailnet
+  2. stop + rm container (docker rm -v xoá luôn log json của container)
+  3. xoá volume `tailscale-state` (state + log của tailscaled)
+  4. xoá file log có TÊN chứa "tailscale" (trừ script/skill — đó là công cụ, không phải log)
+  5. SCRUB mọi dòng có dấu vết tailscale trong log chung (gateway.log, agent.log, *.txt/*.json
+     ở ~/.hermes + /tmp). File mà sau khi scrub không còn dòng nào → xoá hẳn.
+
+An toàn: không đụng container/service nào khác (vd `omni-sme-proxy`). Chạy lại nhiều lần vô hại.
 """
 from __future__ import annotations
 
@@ -21,8 +27,33 @@ from pathlib import Path
 
 CONTAINER = "tailscale"
 VOLUME = "tailscale-state"
+SPEAK_UNIT = "siri-speak"  # cổng "nói" cho Siri — cũng chết khi tailnet tắt
 DM_SPACE = "spaces/AAQAZxc2km8"  # DM riêng của Hoàng
 NOTIFY_SCRIPT = Path.home() / ".hermes" / "scripts" / "gchat_send_text.py"
+VENV_PY = Path.home() / ".hermes" / "hermes-agent" / "venv" / "bin" / "python"
+
+# Nơi có thể còn log/dấu vết. KHÔNG quét ~/.hermes/scripts và ~/.hermes/skills
+# (script/skill là công cụ để bật lại — xoá là tự bắn vào chân).
+SCAN_ROOTS = [
+    Path("/tmp"),
+    Path.home() / ".hermes",
+    Path.home() / ".hermes" / "reports",
+    Path.home() / ".hermes" / "logs",
+    Path.home() / ".hermes" / "state",
+]
+SKIP_PREFIXES = [
+    str(Path.home() / ".hermes" / "scripts"),
+    str(Path.home() / ".hermes" / "skills"),
+]
+# Dấu vết cần xoá: IP node, tên node, tên phần mềm. (Không quét .yaml/.md — config & tài liệu
+# bật lại phải giữ, nếu không thì hôm sau không dựng lại được.)
+MARKERS = ("100.120.110.26", "vbsme-log-gw", "tailscale", "Tailscale", "tailscaled")
+# CHỈ scrub file log. KHÔNG đụng .json/.yaml: `webhook_subscriptions.json` là định nghĩa route
+# Siri, scrub vào là hỏng cổng (đã bắt được ở dry-run 2026-09-12) — config không phải log.
+SCAN_SUFFIXES = {".log", ".txt", ".out", ".err"}
+# Chốt an toàn cuối: dù có bị thêm vào danh sách quét cũng không bao giờ được đụng.
+PROTECTED_NAMES = {"webhook_subscriptions.json", "config.yaml", "state.db", "siri_token.txt"}
+SCAN_MAX_BYTES = 3_000_000
 
 
 def sh(cmd: list[str], timeout: int = 60) -> tuple[int, str]:
@@ -41,12 +72,79 @@ def container_exists() -> bool:
     return code == 0 and CONTAINER in out.split()
 
 
+def _candidates() -> list[Path]:
+    """File log/dấu vết đáng soi (bỏ script, skill, file không phải text-log)."""
+    out: list[Path] = []
+    seen: set[str] = set()
+    for root in SCAN_ROOTS:
+        if not root.is_dir():
+            continue
+        for path in sorted(root.glob("*")):
+            real = str(path)
+            if real in seen or not path.is_file():
+                continue
+            if path.suffix.lower() not in SCAN_SUFFIXES:
+                continue
+            if path.name in PROTECTED_NAMES:
+                continue
+            if any(real.startswith(pref) for pref in SKIP_PREFIXES):
+                continue
+            try:
+                if path.stat().st_size > SCAN_MAX_BYTES:
+                    continue
+            except OSError:
+                continue
+            seen.add(real)
+            out.append(path)
+    return out
+
+
+def purge_traces(dry_run: bool) -> dict[str, list[str]]:
+    """Xoá/scrub dấu vết tailscale. Trả {'deleted': [...], 'scrubbed': ['file (N dòng)']}."""
+    deleted: list[str] = []
+    scrubbed: list[str] = []
+
+    for path in _candidates():
+        try:
+            text = path.read_text(errors="replace")
+        except Exception:  # noqa: BLE001
+            continue
+        lines = text.splitlines()
+        hits = [ln for ln in lines if any(m in ln for m in MARKERS)]
+        if not hits:
+            continue
+        keep = [ln for ln in lines if not any(m in ln for m in MARKERS)]
+        if not [ln for ln in keep if ln.strip()]:
+            deleted.append(f"{path} ({len(hits)} dòng, toàn bộ là dấu vết)")
+            if not dry_run:
+                try:
+                    path.unlink()
+                except Exception as exc:  # noqa: BLE001
+                    deleted[-1] += f" LỖI: {exc}"
+            continue
+        scrubbed.append(f"{path} ({len(hits)}/{len(lines)} dòng)")
+        if not dry_run:
+            try:
+                path.write_text("\n".join(keep) + ("\n" if text.endswith("\n") else ""))
+            except Exception as exc:  # noqa: BLE001
+                scrubbed[-1] += f" LỖI: {exc}"
+    return {"deleted": deleted, "scrubbed": scrubbed}
+
+
 def notify(text: str) -> None:
     if not NOTIFY_SCRIPT.exists():
         return
-    code, out = sh([sys.executable, str(NOTIFY_SCRIPT), "--space", DM_SPACE, "--text", text], timeout=60)
+    py = str(VENV_PY) if VENV_PY.exists() else sys.executable
+    code, out = sh([py, str(NOTIFY_SCRIPT), "--space", DM_SPACE, "--text", text], timeout=60)
     log = "đã gửi DM" if code == 0 else f"gửi DM lỗi (exit {code}: {out[:120]})"
     print(f"[notify] {log}")
+
+
+def stop_speak_bridge() -> None:
+    """Cổng Siri (bind IP tailnet) không thể sống khi tailnet chết — stop hẳn để khỏi crash-loop."""
+    code, out = sh(["systemctl", "--user", "stop", SPEAK_UNIT], timeout=30)
+    print("→ đã stop cổng Siri (siri-speak)" if code == 0
+          else f"→ cổng Siri: bỏ qua ({out[:100] or 'không chạy'})")
 
 
 def main() -> int:
@@ -58,37 +156,63 @@ def main() -> int:
     stamp = datetime.now().strftime("%H:%M:%S")
     print(f"[{stamp}] Tailscale teardown — container={CONTAINER} volume={VOLUME}")
 
-    if not container_exists():
-        print("→ container không tồn tại (đã tắt trước đó) — không làm gì.")
-        return 0
+    had_container = container_exists()
+    if not had_container:
+        print("→ container không tồn tại (đã tắt trước đó)")
+
+    log_lines = 0
+    if had_container:
+        code, out = sh(["docker", "logs", CONTAINER])
+        log_lines = len(out.splitlines()) if code == 0 else 0
+
+    traces = purge_traces(args.dry_run)
 
     if args.dry_run:
-        code, out = sh(["docker", "ps", "-a", "--filter", f"name={CONTAINER}", "--format", "{{.Names}} | {{.Status}}"])
+        code, out = sh(["docker", "ps", "-a", "--filter", f"name={CONTAINER}",
+                        "--format", "{{.Names}} | {{.Status}}"])
         print(f"→ DRY-RUN: sẽ logout node + stop/rm container {CONTAINER} + xoá volume {VOLUME}")
         print(f"   hiện trạng: {out or '(không đọc được)'}")
+        print(f"   log container sẽ mất cùng container: {log_lines} dòng")
+        print(f"   file xoá hẳn ({len(traces['deleted'])}):")
+        for f in traces["deleted"] or ["(không có)"]:
+            print(f"     - {f}")
+        print(f"   → sẽ stop cổng Siri ({SPEAK_UNIT}) vì nó bind IP tailnet")
+        print(f"   file scrub dòng dấu vết ({len(traces['scrubbed'])}):")
+        for f in traces["scrubbed"] or ["(không có)"]:
+            print(f"     - {f}")
         return 0
 
-    code, out = sh(["docker", "exec", CONTAINER, "tailscale", "logout"], timeout=45)
-    print(f"→ logout: {'OK' if code == 0 else f'bỏ qua (exit {code}: {out[:120]})'}")
+    stop_speak_bridge()
+    if had_container:
+        code, out = sh(["docker", "exec", CONTAINER, "tailscale", "logout"], timeout=45)
+        print(f"→ logout: {'OK' if code == 0 else f'bỏ qua (exit {code}: {out[:120]})'}")
 
-    code, out = sh(["docker", "stop", CONTAINER], timeout=90)
-    if code != 0:
-        print(f"LỖI: không stop được container → {out[:200]}")
-        return 1
-    print("→ đã stop container")
+        code, out = sh(["docker", "stop", CONTAINER], timeout=90)
+        if code != 0:
+            print(f"LỖI: không stop được container → {out[:200]}")
+            return 1
+        print("→ đã stop container")
 
-    code, out = sh(["docker", "rm", CONTAINER], timeout=60)
-    print("→ đã xoá container" if code == 0 else f"cảnh báo: xoá container lỗi ({out[:120]})")
+        code, out = sh(["docker", "rm", "-v", CONTAINER], timeout=60)
+        print("→ đã xoá container (kèm log)" if code == 0
+              else f"cảnh báo: xoá container lỗi ({out[:120]})")
 
-    code, out = sh(["docker", "volume", "rm", VOLUME], timeout=60)
-    print("→ đã xoá volume state" if code == 0 else f"cảnh báo: xoá volume lỗi ({out[:120]})")
+        code, out = sh(["docker", "volume", "rm", VOLUME], timeout=60)
+        print("→ đã xoá volume state (state + log của tailscaled)" if code == 0
+              else f"cảnh báo: xoá volume lỗi ({out[:120]})")
 
     if not args.no_notify:
-        notify(
-            "🔒 Đã tắt Tailscale gateway (vbsme-log-gw) theo lịch 17h30 hôm nay.\n"
-            "Node đã logout khỏi tailnet, container + state đã xoá sạch — không còn đường vào nào.\n"
-            "Cần mở lại cho tester đọc log thì nhắn em ạ."
-        )
+        lines = [f"🔒 Đã tắt Tailscale theo luật 17h30 (log đã xoá):"]
+        lines.append(f"• Node vbsme-log-gw: logout + container + state đã xoá" if had_container
+                     else "• Node: trước đó đã tắt")
+        lines.append(f"• Log container: {log_lines} dòng đã xoá")
+        lines.append(f"• File log xoá hẳn: {len(traces['deleted'])}"
+                     + (f" ({', '.join(Path(d).name for d in traces['deleted'][:4])})"
+                        if traces["deleted"] else ""))
+        lines.append(f"• Dòng dấu vết scrub trong log chung: {len(traces['scrubbed'])} file")
+        lines.append("• Cổng Siri (siri-speak): đã stop — muốn dùng lại thì bảo em bật lại")
+        lines.append("Không còn đường vào nào từ ngoài. Cần mở lại thì nhắn em ạ.")
+        notify("\n".join(lines))
 
     print("XONG.")
     return 0

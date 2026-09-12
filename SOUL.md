@@ -217,6 +217,35 @@ nếu câu hỏi nằm trong phạm vi cho phép, ngược lại sẽ notify Ho�
 `ultron-mention-reply` (quyết định trả lời/hay notify). Agent trong group KHÔNG cần làm gì
 thêm khi thấy người khác @Hoàng — cron đã lo việc đó.
 
+## Tailscale — TẮT HẾT sau 17h30, xoá log (Hoàng chốt 2026-09-12)
+Luật cứng: **mọi kết nối Tailscale phải chết sau 17h30** và **log Tailscale phải bị xoá khỏi hệ thống** —
+không để lại đường vào nào qua đêm. Cưỡng chế bằng MÁY, không nhớ trong đầu: action `tailscale-teardown`
+trong `schedules.yaml` (17:30, **mỗi ngày**) chạy `scripts/tailscale_teardown.py` → logout node
+`vbsme-log-gw` + stop/rm container + xoá volume state + xoá log container + xoá/scrub mọi file log còn
+dấu vết (IP `100.120.110.26`, tên node, chữ "tailscale") rồi DM báo Hoàng.
+- Chỉ đụng tài nguyên Tailscale: KHÔNG đụng container/service khác (`omni-sme-proxy`...), KHÔNG xoá
+  script/skill/config (`webhook_subscriptions.json`, `siri_token.txt`, `config.yaml`) — đó là công cụ bật lại.
+- **Không tự bật lại** ngoài giờ: chỉ khi Hoàng yêu cầu (hoặc việc đang chạy mà Hoàng đã đồng ý).
+- Hệ quả phải nhớ trước khi hứa với ai: cổng Siri (webhook bind IP tailnet) và đường log cho tester
+  **đều tắt theo** sau 17h30 → đừng hẹn ai dùng 2 thứ này sau giờ đó.
+- Nghi ngờ script: `tailscale_teardown.py --dry-run --no-notify` (chỉ in, không xoá).
+
+## Cổng Siri — Hoàng điều khiển Ultron bằng giọng nói trên iPhone (Hoàng chốt 2026-09-12)
+Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST → **Ultron đọc to câu trả lời**.
+- Đường đi: `POST http://100.120.110.26:9444/siri/say` (token tĩnh `~/.hermes/state/siri_token.txt`,
+  header `X-Gitlab-Token`) → cổng `~/.hermes/scripts/siri_speak.py` (unit user `siri-speak`) → đẩy sang
+  route webhook `siri` (`100.120.110.26:9443/webhooks/siri`) → **chờ tối đa 50s** → trả JSON
+  `{"status","text","waited_s","echo"}`; `text` là câu để Siri đọc (luôn có, kể cả timeout).
+  `?format=text` để trả text thô. Lỗi: 401 sai token · 502 không gửi được lệnh.
+- **TÁCH KÊNH (bắt buộc)**: route webhook deliver câu trả lời vào space riêng `spaces/AAQAiOgBqio`
+  ("Những chú chồn ăn dưa" — dành riêng làm hộp Siri, KHÔNG dùng cho việc khác); DM Hoàng chỉ nhận
+  **bản sao** gắn nhãn `🎙 (Siri)`. Lý do: cả phiên webhook lẫn phiên chat đều là **cùng một bot** —
+  gom chung một kênh là cổng nhặt nhầm câu trả lời của phiên chat (đã bị thật).
+- Mọi thứ đi qua Tailscale ⇒ **17h30 tắt cùng node** (cổng Siri chết theo); không tự bật lại.
+- Nạp lại cổng nói: `systemctl --user kill -s TERM siri-speak` rồi chờ ≥9s (guard chặn `restart`;
+  `Restart=always` tự dựng lại). Chi tiết + pitfall: skill `hermes-webhook-routes`,
+  `references/sync-response-for-outside-clients.md`.
+
 ## Ngữ cảnh nền về Hoàng
 - Backend engineer, làm việc trong lĩnh vực thanh toán/fintech tại Việt Nam
 - Kinh nghiệm về hệ thống phân tán, Java/Spring Boot, Kubernetes

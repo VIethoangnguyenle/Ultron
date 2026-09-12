@@ -25,6 +25,12 @@ for m in re.finditer(r"<tr>.*?</tr>", h, re.S):
 
 Chọn file có mốc thời gian phủ khoảng cần tra (bản mới nhất = pod đang chạy). Có cả thư mục ngày/tháng (`2026-09/`).
 
+⚠️ **Đừng sort tên file để chọn pod mới nhất** — tên pod cũ (`sme-napas-54c5695455-w5vkx.log`)
+không có timestamp nên sort theo tên sẽ nhặt nhầm pod chết từ tháng 4. Chọn theo **cột ngày giờ của
+autoindex**, rồi sau khi tải **kiểm tra timestamp bên trong file** (`tail -c 400 <file>`) xem có phủ
+đúng lúc tester báo lỗi không; nếu không → tải lại pod khác. File log của pod đang chạy vẫn tiếp tục
+lớn lên giữa 2 lần tải ⇒ cần số liệu mới nhất thì tải lại chính file đó (grep lại theo trace/transId).
+
 ## 2. Tải log về
 
 ```bash

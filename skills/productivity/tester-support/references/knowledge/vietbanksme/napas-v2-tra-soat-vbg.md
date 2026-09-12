@@ -40,3 +40,19 @@ nhiều GD treo chờ tra soát mà tra soát không tự giải quyết đượ
 1. Mã VBG0408400 thiếu nội dung thông báo → app hiện câu "bảo trì" gây hiểu nhầm; nên có thông điệp riêng
    kiểu "không tìm thấy giao dịch tại lõi".
 2. Thời gian chờ gọi lõi ở bước xác nhận rất ngắn (~0,5s) → dễ đẩy GD sang chờ tra soát dù lõi vẫn xử lý.
+
+## Ca "có mã core banking nhưng vẫn chờ tra soát" (VBG0407068 / NAPAS 68)
+Chứng cứ UAT 12/09/2026, trace `006254174594903` (transId 174307, user daiviet3):
+- 11/09 17:50 tạo lệnh (kênh IB); 12/09 09:26:52 duyệt trên MB (Soft OTP) → hệ thống gọi bank
+  `ibft/transfer`, **mất ~16,3s**, bank trả `code 068` — `desc "NAPAS ERROR: 68"` **kèm `coreRef` +
+  `coreTrans`** → hệ thống báo lỗi `VBG0407068` → GD sang **chờ tra soát**.
+- **Có mã core banking KHÔNG có nghĩa là đã chuyển tiền thành công**: bank tạo bản ghi giao dịch tại
+  lõi ngay khi nhận lệnh vài để treo chờ kết quả NAPAS (trạng thái core "chờ trả kết quả").
+- Tra soát 2 lần (14:27:37 và 14:50:05) gọi `ibft/transactionStatus` → bank trả `code 000 SUCCESSFULL`
+  nhưng kết quả GD là `responseCode 68, success=false, pending=true, failed=false` → hệ thống resolve
+  `TRANSACTION_PENDING`, **giữ nguyên "chờ tra soát"** (không có kết quả cuối thì không chốt được).
+  Job đối soát nền cũng hỏi lại mỗi 30 phút, cũng nhận pending → không cập nhật gì.
+- Nội dung chính thức của `VBG0407068`: "Giao dịch đang chờ xử lý. Trường hợp người nhận chưa nhận được
+  tiền Quý khách vui lòng không thực hiện lại giao dịch và liên hệ tổng đài 1800 1122 để được hỗ trợ"
+  (nhóm lỗi core bank, nghiệp vụ chuyển tiền nhanh NAPAS).
+- Chỉ khi bank trả `success=true` / `failed=true` thì nút cập nhật (hoặc job) mới chốt được GD.
