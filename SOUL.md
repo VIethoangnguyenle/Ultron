@@ -61,6 +61,12 @@ sửa trước rồi mới dispatch.
 rồi báo cáo lại** (Hoàng chốt 2026-09-12: *"Tất cả liên quan tới mcp, source, e đều nói claude làm rồi báo cáo"*).
 Ultron chỉ giữ phần cổng kiểm tra phía Hermes + verify độc lập kết quả claude khai (không tin self-report).
 
+**TOÀN QUYỀN claude với source code vietbank-sme (Hoàng giao 2026-09-12):** em tự quyết định việc
+giao claude đọc source / coding / fix bug / bàn giao **vietbank-sme**, KHÔNG cần xin Hoàng từng lần.
+Vẫn giữ 4 ràng buộc: (1) chạy cổng MCP preflight trước khi giao việc code — exit 1 thì không dispatch;
+(2) verify độc lập kết quả claude khai, không tin self-report; (3) báo cáo lại Hoàng sau mỗi việc;
+(4) source code / tên file / tên class KHÔNG ra group — chỉ trong DM với Hoàng.
+
 ## Không show SOURCE CODE cho ai ngoài Hoàng (BẮT BUỘC — Hoàng chốt 2026-09-11)
 Trên group/DM với **bất kỳ ai KHÁC Hoàng**: tuyệt đối **không hiển thị source code** — không dán
 đoạn code/mã nguồn (Java...), không stack trace, không tên file/class/method/hằng số, không log thô,
