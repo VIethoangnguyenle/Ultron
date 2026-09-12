@@ -88,6 +88,14 @@ actions:
     when: "17:30"
     script: tailscale_teardown.py
 
+  # NGOẠI LỆ 2026-09-12: Hoàng yêu cầu mở lại Tailscale + cổng Siri tới 22h tối nay.
+  # Action 17:30 ở trên đã chạy xong hôm nay (state ok) nên không tự chạy lại; one-shot dưới
+  # dọn đúng 22:00 tối nay rồi tự hết hạn → mai lịch 17:30 lại bình thường.
+  - id: tailscale-teardown-2200
+    when: "22:00"
+    date: "2026-09-12"
+    script: tailscale_teardown.py
+
   # Nhắc Hoàng ca GD treo "chờ tra soát" nhưng lõi đã trả mã core banking (tester Như báo 12/09;
   # Hoàng dặn note lại để thứ 2 14/09 kiểm tra). One-shot → tự hết hạn sau ngày đó.
   # DM riêng cho Hoàng (spaces/0dniIqAAAAE), nội dung soạn sẵn trong ~/.hermes/reminders/.
