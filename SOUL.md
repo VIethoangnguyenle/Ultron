@@ -259,8 +259,9 @@ Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST �
   Hành vi **y như Google Chat**: đầy đủ, tiếng Việt, bảng bọc code block, được tạo file cho client tải
   (`~/.hermes/state/siri_chat_files/` → `GET /files/<tên>`). **KHÔNG áp luật "1 câu văn nói"** của kênh nói.
   Nhớ ngữ cảnh theo `conversation` (cổng tự ghép các lượt trước vào payload); quá `wait` thì `status=timeout` +
-  lấy lại bằng `GET /chat/last?conv=<mã>`. Dùng chung token `~/.hermes/state/siri_token.txt`; cả 2 cổng bind IP
-  tailnet nên **chết theo lúc teardown 17:30** (script đã stop cả 2). Chi tiết: skill `hermes-webhook-routes`,
+  lấy lại bằng `GET /chat/last?conv=<mã>`. Dùng chung token `~/.hermes/state/siri_token.txt`; **2 cổng luôn sống ở
+  local** (`127.0.0.1:9444` / `127.0.0.1:9445`), khi node Tailscale mở thì tự có mặt thêm trên `ultron:9444` /
+  `ultron:9445` — teardown 17:30 chỉ tắt *node* (cửa tailnet), KHÔNG tắt 2 cổng. Chi tiết: skill `hermes-webhook-routes`,
   `references/siri-chat-channel.md`.
 - **Ngôn ngữ: nhận + trả lời Siri bằng TIẾNG ANH** (Hoàng chốt 2026-09-12): câu để Siri đọc là
   tiếng Anh; nhưng việc đụng tới group/chat (đăng tin, trả lời tester…) thì vẫn tiếng Việt bình thường.
@@ -298,7 +299,12 @@ Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST �
 - **Siri là kênh ĐẦY ĐỦ như chat thường** (Hoàng chốt 2026-09-12): adapter webhook mặc định bị bó vào
   toolset `safe` (~7 tool, không ghi file) ⇒ route `siri` phải có key `toolsets` riêng trong
   `webhook_subscriptions.json`. Key này **chỉ sửa tay** (đúng thiết kế: CLI không được tự cấp tool).
-- Mọi thứ đi qua Tailscale ⇒ **17h30 tắt cùng node** (cổng Siri chết theo); không tự bật lại.
+- Mọi thứ đi qua Tailscale ⇒ **17h30 tắt cùng node** (cửa tailnet — nhưng 2 cổng Siri vẫn sống ở local);
+  không tự bật lại.
+- **2 kênh Siri ĐỘC LẬP với đường Google Chat** (Hoàng chốt 2026-09-13: *"tránh việc fix này lỗi cái khác"*):
+  việc sửa/vá kênh Siri chỉ được đụng tiến trình + route + file trạng thái của chính kênh đó; KHÔNG đổi
+  `platforms.webhook.*`, KHÔNG restart gateway, KHÔNG sửa adapter Chat trong cùng một việc — đường Google
+  Chat phải chạy y nguyên trước/sau.
 - Nạp lại cổng nói: `systemctl --user kill -s TERM siri-speak` rồi chờ ≥9s (guard chặn `restart`;
   `Restart=always` tự dựng lại). Chi tiết + pitfall: skill `hermes-webhook-routes`,
   `references/sync-response-for-outside-clients.md`.

@@ -13,18 +13,26 @@ Khác cổng "nói" (siri_speak.py, câu trả lời NGẮN để đọc to):
     GET  /files/<tên>           → tải file Ultron tạo cho kênh chat
     GET  /health                → "ok"
 
-Bảo mật: bind IP Tailscale (chỉ trong tailnet), bắt buộc token, chặn body > 32KB, không log
-token/nội dung lệnh. Kênh trả lời = file outbox (route `sirichat` để deliver=log ⇒ KHÔNG đăng gì lên Chat).
+Mạng (2026-09-13, Hoàng chốt "cứ online ở local, tailscale mở thì forward về domain ultron"):
+cổng LUÔN nghe ở 127.0.0.1:9445 nên sống cả khi máy không có node Tailscale; dò được IP tailnet
+thì nghe THÊM ở đó để client cũ gọi http://ultron:9445 y như trước. Listener tailnet hỏng/IP đổi
+chỉ ghi log — watchdog nền mở lại, listener local không bao giờ chết theo.
+
+Bảo mật: bắt buộc token, chặn body > 32KB, không log token/nội dung lệnh. Kênh trả lời = file
+outbox (route `sirichat` để deliver=log ⇒ KHÔNG đăng gì lên Chat).
 """
 from __future__ import annotations
 
+import errno
 import hmac
 import json
 import os
 import re
 import subprocess
 import sys
+import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -38,7 +46,15 @@ OUTBOX_PATH = STATE / "siri_chat_outbox.json"     # Ultron ghi {text, conv, ts} 
 CONV_DIR = STATE / "siri_chat"                    # lịch sử từng hội thoại (<id>.jsonl)
 FILES_DIR = STATE / "siri_chat_files"             # file Ultron gửi cho client
 
+LOCAL_HOST = "127.0.0.1"          # cổng LUÔN nghe ở đây — không phụ thuộc Tailscale
 PORT = int(os.environ.get("SIRI_CHAT_PORT") or 9445)
+GATEWAY_PORT = 9443
+ROUTE = "sirichat"
+IP_FILE = STATE / "tailnet_ip.txt"
+TAILNET_RETRY_SECONDS = 25.0      # watchdog dò lại IP tailnet / mở lại listener phụ
+FAILOVER_TIMEOUT = 5.0            # chờ tối đa ở một địa chỉ gateway khi còn địa chỉ khác để thử
+FAILOVER_ERRNOS = {errno.ECONNREFUSED, errno.EHOSTUNREACH, errno.ENETUNREACH,
+                   errno.EADDRNOTAVAIL, errno.ECONNRESET}
 MAX_BODY = 32768
 DEFAULT_CONV = "default"
 HIST_TURNS = 12          # số lượt nhồi lại làm ngữ cảnh
@@ -48,33 +64,108 @@ MAX_WAIT = 180.0
 POLL_EVERY = 0.7
 
 
-def _tailnet_ip() -> str:
-    """IP tailnet hiện tại: env → state file → hỏi node → fallback localhost."""
+_ip_lock = threading.Lock()
+_tailnet_ip = ""                  # IP tailnet đang biết; "" = máy không có tailnet lúc này
+
+
+def detect_tailnet_ip() -> str:
+    """IP tailnet hiện tại: env → state file → hỏi node. Trả "" khi không có node.
+
+    KHÔNG fallback 127.0.0.1 như bản cũ: loopback đã có listener riêng, nên "" ở đây nghĩa là
+    "chưa có tailnet", không phải "dùng localhost".
+    """
     ip = (os.environ.get("TAILNET_IP") or "").strip()
     if not ip:
         try:
-            ip = (STATE / "tailnet_ip.txt").read_text().strip()
+            ip = IP_FILE.read_text().strip()
         except Exception:  # noqa: BLE001
             ip = ""
     if not ip:
         try:
             out = subprocess.run(["docker", "exec", "tailscale", "tailscale", "ip", "-4"],
-                                 capture_output=True, text=True, timeout=15)
+                                 capture_output=True, text=True, timeout=10)
             ip = (out.stdout or "").strip().splitlines()[0] if out.stdout.strip() else ""
         except Exception:  # noqa: BLE001
             ip = ""
     if ip:
         try:
-            (STATE / "tailnet_ip.txt").write_text(ip + "\n")
+            IP_FILE.write_text(ip + "\n")
         except Exception:  # noqa: BLE001
             pass
-    return ip or "127.0.0.1"
+    return ip
 
 
-BIND_HOST = (os.environ.get("SIRI_CHAT_BIND") or "").strip() or _tailnet_ip()
-UPSTREAM = f"http://{_tailnet_ip()}:9443/webhooks/sirichat"
-if BIND_HOST == "127.0.0.1":  # node tắt ⇒ vẫn chạy được trong máy để thử
-    UPSTREAM = "http://127.0.0.1:9443/webhooks/sirichat"
+def tailnet_ip() -> str:
+    with _ip_lock:
+        return _tailnet_ip
+
+
+def remember_tailnet_ip(ip: str) -> None:
+    global _tailnet_ip
+    with _ip_lock:
+        _tailnet_ip = ip
+
+
+def serve_on(host: str, tag: str) -> tuple[ThreadingHTTPServer, threading.Thread]:
+    """Bind + phục vụ trong thread nền. Ném OSError nếu không bind được."""
+    srv = ThreadingHTTPServer((host, PORT), Handler)
+    th = threading.Thread(target=srv.serve_forever, name=f"http-{tag}", daemon=True)
+    th.start()
+    return srv, th
+
+
+def tailnet_watchdog() -> None:
+    """Giữ listener PHỤ trên IP tailnet: node lên thì mở, IP đổi thì đóng cái cũ mở cái mới.
+
+    Node tắt (dò ra "") thì GIỮ NGUYÊN listener cũ: socket trỏ IP đã mất là vô hại và dùng lại
+    được khi node quay lại đúng IP. Mọi lỗi ở đây chỉ log — listener local không dính gì.
+    """
+    srv: ThreadingHTTPServer | None = None
+    th: threading.Thread | None = None
+    bound = ""
+    while True:
+        try:
+            ip = detect_tailnet_ip()
+            remember_tailnet_ip(ip or bound)
+            if srv and ((ip and ip != bound) or not th.is_alive()):
+                sys.stderr.write(f"[siri-chat] đóng listener tailnet {bound}:{PORT} (IP mới: {ip or 'chưa có'})\n")
+                srv.shutdown()
+                srv.server_close()
+                srv, th, bound = None, None, ""
+            if ip and not srv:
+                srv, th = serve_on(ip, "tailnet")
+                bound = ip
+                sys.stderr.write(f"[siri-chat] nghe THÊM tại http://{ip}:{PORT}/chat\n")
+        except OSError as exc:
+            srv, th, bound = None, None, ""
+            sys.stderr.write(f"[siri-chat] chưa mở được listener tailnet ({exc}) — "
+                             f"local vẫn chạy, thử lại sau {TAILNET_RETRY_SECONDS:.0f}s\n")
+        except Exception as exc:  # noqa: BLE001
+            sys.stderr.write(f"[siri-chat] watchdog tailnet lỗi: {type(exc).__name__}: {exc}\n")
+        time.sleep(TAILNET_RETRY_SECONDS)
+
+
+def upstream_urls() -> list[str]:
+    """Địa chỉ gateway theo thứ tự thử: loopback trước, IP tailnet sau.
+
+    Gateway có thể bind loopback hoặc bind IP tailnet — thử lần lượt nên kiểu nào cũng tới.
+    """
+    out = []
+    for host in (LOCAL_HOST, tailnet_ip()):
+        url = f"http://{host}:{GATEWAY_PORT}/webhooks/{ROUTE}"
+        if host and url not in out:
+            out.append(url)
+    return out
+
+
+def should_failover(exc: OSError) -> bool:
+    """Đúng khi KHÔNG chạm được tới địa chỉ đó ⇒ đáng thử địa chỉ kế tiếp."""
+    if isinstance(exc, urllib.error.HTTPError):
+        return False              # đã tới gateway, nó trả lỗi HTTP ⇒ đổi địa chỉ cũng vô ích
+    err = exc.reason if isinstance(exc, urllib.error.URLError) else exc
+    if isinstance(err, TimeoutError):
+        return True
+    return isinstance(err, OSError) and err.errno in FAILOVER_ERRNOS
 
 
 def read_token() -> str:
@@ -132,13 +223,27 @@ def build_payload(conv: str, text: str) -> str:
             f"LỆNH TỪ CLIENT: {text}")
 
 
+def post_upstream(url: str, data: bytes, token: str, timeout: float) -> int:
+    req = urllib.request.Request(
+        url, data=data,
+        headers={"Content-Type": "application/json", "X-Gitlab-Token": token}, method="POST")
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.status
+
+
 def forward(payload: str, token: str) -> int:
     data = json.dumps({"text": payload}).encode("utf-8")
-    req = urllib.request.Request(
-        UPSTREAM, data=data,
-        headers={"Content-Type": "application/json", "X-Gitlab-Token": token}, method="POST")
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return resp.status
+    urls = upstream_urls()
+    for idx, url in enumerate(urls):
+        last = idx == len(urls) - 1
+        try:
+            return post_upstream(url, data, token, 15.0 if last else FAILOVER_TIMEOUT)
+        except OSError as exc:
+            if last or not should_failover(exc):
+                raise
+            sys.stderr.write(f"[siri-chat] gateway {url} không nhận ({getattr(exc, 'reason', exc)}) "
+                             f"— thử địa chỉ kế tiếp\n")
+    raise OSError("không có địa chỉ gateway nào để thử")
 
 
 def read_outbox(conv: str, started: float) -> str:
@@ -286,7 +391,7 @@ class Handler(BaseHTTPRequestHandler):
         if answer:
             append_turn(conv, "ultron", answer)
         files = new_files(started)
-        host = self.headers.get("Host") or f"{BIND_HOST}:{PORT}"
+        host = self.headers.get("Host") or f"{LOCAL_HOST}:{PORT}"
         for f in files:
             f["url"] = f"http://{host}/files/{urllib.parse.quote(f['name'])}"
         sys.stderr.write(f"[siri-chat] fwd={status} conv={conv_slug(conv)} len(text)={len(text)} "
@@ -307,11 +412,14 @@ def main() -> int:
             sys.stderr.write(f"[siri-chat] không tạo được {d}: {exc}\n")
             return 1
     try:
-        srv = ThreadingHTTPServer((BIND_HOST, PORT), Handler)
+        srv = ThreadingHTTPServer((LOCAL_HOST, PORT), Handler)
     except OSError as exc:
-        sys.stderr.write(f"[siri-chat] không bind được {BIND_HOST}:{PORT} — {exc}\n")
+        sys.stderr.write(f"[siri-chat] không bind được {LOCAL_HOST}:{PORT} — {exc}\n")
         return 1
-    sys.stderr.write(f"[siri-chat] nghe tại http://{BIND_HOST}:{PORT}/chat → {UPSTREAM}\n")
+    threading.Thread(target=tailnet_watchdog, name="tailnet-watchdog", daemon=True).start()
+    sys.stderr.write(f"[siri-chat] nghe tại http://{LOCAL_HOST}:{PORT}/chat → gateway "
+                     f"127.0.0.1:{GATEWAY_PORT} (fallback IP tailnet); "
+                     f"listener tailnet: watchdog thử mỗi {TAILNET_RETRY_SECONDS:.0f}s\n")
     srv.serve_forever()
     return 0
 

@@ -4,7 +4,7 @@ Bot Ultron on VNPay Workspace. Send text thô (link <url|text>). Mention: đọc
 §
 'chồn ăn dưa'=AAQAiOgBqio (test riêng)
 §
-Tên gọi Hoàng đặt: Jarvis=claude CLI, Matcha=agy ("gọi Jarvis fix code" = dispatch claude). Matcha (agy) cạn quota ⇒ ULTRON TỰ LÀM bằng MCP understand-anything + read/search + vision_analyze, KHÔNG dừng việc (Hoàng chốt 13/09).
+Tên gọi Hoàng đặt: Jarvis=claude CLI, Matcha=agy ("gọi Jarvis fix code" = dispatch claude). VIỆC VIẾT CODE mới (script/tool/cổng) ⇒ luôn giao claude, Ultron không tự viết (Hoàng chốt 13/09). Matcha (agy) cạn quota ⇒ ULTRON TỰ LÀM bằng MCP understand-anything + read/search + vision_analyze, KHÔNG dừng việc.
 §
 Guard Hermes: chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → gọi claude đọc ~/.hermes/scripts/gw_restart.txt (hẹn 150s rồi restart); không đẩy cho Hoàng. Sửa config: `hermes config set`.
 §

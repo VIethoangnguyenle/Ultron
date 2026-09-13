@@ -17,6 +17,10 @@ Dọn gì:
   5. SCRUB mọi dòng có dấu vết tailscale trong log chung (gateway.log, agent.log, *.txt/*.json
      ở ~/.hermes + /tmp). File mà sau khi scrub không còn dòng nào → xoá hẳn.
 
+KHÔNG đụng 2 cổng Siri (siri-speak :9444, siri-chat :9445): từ 2026-09-13 chúng nghe ở
+127.0.0.1 nên là dịch vụ LOCAL, chạy 24/7. Socket phụ trên IP tailnet chết theo node là vô hại
+và tự dùng lại được khi node lên lại đúng IP — stop chúng chỉ làm mất kênh local.
+
 An toàn: không đụng container/service nào khác (vd `omni-sme-proxy`). Chạy lại nhiều lần vô hại.
 """
 from __future__ import annotations
@@ -29,8 +33,6 @@ from pathlib import Path
 
 CONTAINER = "tailscale"
 VOLUME = "tailscale-state"
-SPEAK_UNIT = "siri-speak"  # cổng "nói" cho Siri — cũng chết khi tailnet tắt
-CHAT_UNIT = "siri-chat"    # cổng "chat" qua endpoint (client ngoài) — bind IP tailnet nên chết theo
 DM_SPACE = "spaces/AAQAZxc2km8"  # DM riêng của Hoàng
 NOTIFY_SCRIPT = Path.home() / ".hermes" / "scripts" / "gchat_send_text.py"
 VENV_PY = Path.home() / ".hermes" / "hermes-agent" / "venv" / "bin" / "python"
@@ -153,14 +155,6 @@ def notify(text: str) -> None:
     print(f"[notify] {log}")
 
 
-def stop_speak_bridge() -> None:
-    """Cổng Siri (bind IP tailnet) không thể sống khi tailnet chết — stop hẳn để khỏi crash-loop."""
-    for unit in (SPEAK_UNIT, CHAT_UNIT):
-        code, out = sh(["systemctl", "--user", "stop", unit], timeout=30)
-        print(f"→ đã stop cổng {unit}" if code == 0
-              else f"→ cổng {unit}: bỏ qua ({out[:100] or 'không chạy'})")
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
@@ -190,13 +184,12 @@ def main() -> int:
         print(f"   file xoá hẳn ({len(traces['deleted'])}):")
         for f in traces["deleted"] or ["(không có)"]:
             print(f"     - {f}")
-        print(f"   → sẽ stop cổng Siri ({SPEAK_UNIT}) + cổng chat ({CHAT_UNIT}) vì chúng bind IP tailnet")
+        print("   → 2 cổng Siri (:9444 nói, :9445 chat) KHÔNG bị đụng — chúng nghe ở 127.0.0.1, chạy tiếp")
         print(f"   file scrub dòng dấu vết ({len(traces['scrubbed'])}):")
         for f in traces["scrubbed"] or ["(không có)"]:
             print(f"     - {f}")
         return 0
 
-    stop_speak_bridge()
     if had_container:
         code, out = sh(["docker", "exec", CONTAINER, "tailscale", "down"], timeout=45)
         print(f"→ down node (giữ danh tính/IP): {'OK' if code == 0 else f'bỏ qua (exit {code}: {out[:120]})'}")
@@ -230,8 +223,8 @@ def main() -> int:
                      + (f" ({', '.join(Path(d).name for d in traces['deleted'][:4])})"
                         if traces["deleted"] else ""))
         lines.append(f"• Dòng dấu vết scrub trong log chung: {len(traces['scrubbed'])} file")
-        lines.append("• Cổng Siri (siri-speak :9444) + cổng chat (:9445): đã stop — muốn dùng lại thì bảo em bật lại")
-        lines.append("Không còn đường vào nào từ ngoài. Cần mở lại thì nhắn em ạ.")
+        lines.append("• Cổng nói (:9444) + cổng chat (:9445): vẫn chạy ở local (127.0.0.1), không stop")
+        lines.append("Không còn đường vào nào TỪ NGOÀI; trong máy thì 2 cổng vẫn dùng được bình thường.")
         notify("\n".join(lines))
 
     print("XONG.")
