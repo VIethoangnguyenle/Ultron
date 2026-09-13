@@ -19,6 +19,7 @@ It reuses the two Siri gates as backend; **never build a new server**.
 - **VOICE mode = ONLY the corner avatar icon.** Never expand the 280x400 panel in voice mode — the avatar itself (ring colour + pulse) IS the whole UI: listening / thinking / speaking. Click = start or cancel listening.
 - **TEXT mode = the 280x400 panel** is the interface (message bubbles + input row + send).
 - Mode is remembered across runs (`state.json: mode`).
+- **Bị hỏi về hành vi ⇒ grep code trước, không kể theo trí nhớ.** Hợp đồng đã kiểm trong code: `open_panel()` thoát sớm khi mode = voice ⇒ chế độ nói KHÔNG bao giờ mở panel, nhưng lượt nói VẪN ghi vào panel đang ẩn (mở panel sau thấy nguyên hội thoại). Bấm icon: text ⇒ mở/đóng panel, voice ⇒ bật/tắt nghe. Nút trên panel đổi TEXT↔VOICE (sang voice ⇒ panel tự đóng); phím tắt toàn cục và chuột phải → 'chat' mở panel, đang voice thì tự về text trước.
 
 ## Voice conversation contract (mic → STT → gate → TTS)
 - **Half-duplex is mandatory.** Never keep the mic open while TTS plays: output device and mic are the SAME machine, so the widget hears itself. Wait for playback to end + ~300ms before reopening.
@@ -43,6 +44,9 @@ It reuses the two Siri gates as backend; **never build a new server**.
 ## Video demo cho chủ máy (khi không quay được màn hình)
 - Cách đúng: render khung THẬT bằng `grab()` của `UltronIcon`/`ChatPanel` ở chế độ offscreen với `XDG_CONFIG_HOME` tạm (không đụng state thật), script chỉ vẽ nền + dòng chú thích; `scripts/make_demo_video.py --audio <wav>` ⇒ `demo/ultron_demo.mp4` (h264+aac, cạnh chẵn, ép 48 kHz vì bản thu 96 kHz dễ bị trình phát bỏ track tiếng).
 - Nói thẳng với chủ máy đâu là render, đâu là quay thật: clip ghép khung + tiếng thật KHÁC với quay màn hình. Muốn quay thật thì cửa sổ widget vẫn bắt được bằng `xwd -id <wid>` khi phiên đang khoá (xem mục Verification pitfalls).
+- **Chương dựng để minh hoạ phải được nói rõ ngay trong caption/lời nhắn** — đoạn 'mở panel / kéo panel' trong clip rất dễ bị chủ máy đọc thành hành vi thật của chế độ nói (đã bị hỏi đúng câu "khi em rep bằng giọng nói em cũng mở khung chat lên hả").
+- **Clip quay THẬT khi phiên khoá:** chụp liên tiếp cửa sổ (`xwd -silent -id <wid>`, ~0.35s/khung, 12–16 khung) rồi encode (`ffmpeg -framerate 3 -i f%02d.xwd -vf "scale=iw*4:ih*4:flags=neighbor" -c:v libx264 -pix_fmt yuv420p out.mp4`) ⇒ đoạn phim sống thật của icon đang chạy. Widget VẪN vẽ khi phiên khoá ⇒ kiểm chuyển động bằng `cmp -s f01.xwd f08.xwd`; **cùng kích thước file KHÔNG nghĩa là cùng nội dung** (16 khung cùng 23915 byte mà khác nhau thật) — đừng kết luận 'đứng im' từ `ls -l`.
+- **Nghiệm thu video do người/agent khác dựng: `ffprobe` xác nhận codec/duration/kích thước, rồi BÓC KHUNG TỪ CHÍNH FILE mp4 ra soi bằng vision.** Không chấp nhận lời kể 'tôi đã xem lại khung hình'.
 
 ## Global hotkey — check what the OS already owns
 - Verify a feature EXISTS before describing it: `grep -ri hotkey <repo>` + `git log -S '<symbol>'`. A hotkey in the plan is not a hotkey in the code.

@@ -25,6 +25,7 @@ Dùng khi Hoàng yêu cầu Ultron đọc/làm việc trên một tài khoản c
 4. **Vệ sinh secret khi cấp quyền.**
    - Chỉ *mã dùng-một-lần* (code trong URL redirect) được đi qua chat. Refresh token ở lại máy: `~/.hermes/google_token.json`, `chmod 600`, KHÔNG bao giờ in giá trị ra (kể cả cho Hoàng).
    - Chỉ xin App Password/long-lived secret qua chat khi không còn đường nào khác, và nhắc revoke/đổi lại sau khi xong.
+   - **KHÔNG nhận mật khẩu/token khi chính Hoàng gửi "cho tiện"** (mở khoá màn hình, chạy hộ lệnh…), kể cả kèm lời hứa "em báo nhận rồi anh xoá": tin nhắn chat đã nằm vĩnh viễn trong lịch sử máy chủ, xoá tin không xoá được bản lưu. Từ chối ngắn + đưa đường KHÔNG cần secret (anh tự mở khoá rồi em làm / render offscreen / chờ anh có mặt), và không lưu giá trị đó ở bất kỳ đâu.
    - Trước khi sửa file credential: backup, và không đưa giá trị secret vào báo cáo/log.
 5. **Verify + báo cáo.** Sau khi exchange code: gọi thật lần nữa, ghi lại **tài khoản nào** đã kết nối (email/UID), rồi báo Hoàng: xin scope gì → nhận được gì → token nằm ở đâu → đã thử việc gì để chứng minh. Chưa có lời gọi thật trả dữ liệu thì chưa nói "xong".
 

@@ -5,9 +5,10 @@ Vì sao có: mấy việc widget chạy nền bằng `claude -p` mất 20-40 ph�
 thì Hoàng phải tự đi ngó `ps` với `git log`. Script này gom đúng 4 thứ đáng nhìn (việc đang
 chạy, commit mới nhất, artifact mới nhất, tải máy) thành một tin ngắn.
 
-Im lặng là mặc định: không đổi gì so với lần gửi trước thì không gửi. Ba lượt liên tiếp không
-có việc nào chạy thì báo đúng một câu "xong rồi, chờ việc tiếp" rồi câm hẳn cho tới khi có việc
-mới — để không biến thành cái máy spam mỗi 15 phút.
+Im lặng là mặc định: không đổi gì so với lần gửi trước thì không gửi. Chỉ gửi khi việc đang
+chạy có tiến triển thật. Ba lượt liên tiếp không có việc nào chạy thì bật cờ quiet và câm hẳn
+cho tới khi có việc mới. Hết việc thì KHÔNG gửi tin nào cả: một câu thông báo rảnh rỗi bật ra
+giữa Chat, không dính vào việc gì, chỉ làm người đọc hoang mang.
 
     widget_progress.py              # tick thật: gửi nếu có thay đổi
     widget_progress.py --dry-run    # chỉ in nội dung, không gửi, không ghi state
@@ -359,9 +360,9 @@ def main() -> int:
     else:
         idle_rounds += 1
 
-    idle_notice = (not running) and (not changed) and idle_rounds >= IDLE_ROUNDS_BEFORE_QUIET
-    text = ("Em xong phần này rồi, đang chờ việc tiếp ạ." if idle_notice
-            else build(jobs, head, artifact))
+    if (not running) and (not changed) and idle_rounds >= IDLE_ROUNDS_BEFORE_QUIET:
+        quiet = True                # hết việc -> chỉ câm, không gửi tin nào
+    text = build(jobs, head, artifact)
 
     now = datetime.now()
     night = now.hour >= QUIET_FROM or now.hour < QUIET_TO
@@ -371,8 +372,6 @@ def main() -> int:
         reason = "--force"
     elif quiet:
         reason = None
-    elif idle_notice:
-        reason = "3 lượt không có việc nào chạy"
     elif changed:
         reason = "có thay đổi"
     else:
@@ -402,8 +401,6 @@ def main() -> int:
         save_state(state)
         return 1
 
-    if idle_notice:
-        quiet = True                # đã báo xong việc -> câm cho tới khi có việc mới
     state.update({
         "signature": sig,
         "sent_at": now.isoformat(timespec="seconds"),
