@@ -74,8 +74,11 @@ Khi đó làm theo thứ tự:
 2. **Chờ reset**: log thật cho thấy một account hết lúc 23:25 rồi dùng lại được trong vài giờ ⇒ cửa sổ ≈ vài giờ, KHÔNG hứa con số cụ thể.
 3. **Thêm account**: `hagy add` (cần người dùng đăng nhập account mới).
 4. **Đổi model rẻ hơn** (`flash`/`flash-high` thay Opus) — hạn mức có thể tách theo nhóm model (chưa đo được, đừng khẳng định).
-5. Việc đọc ảnh khi Matcha cạn: hỏi Hoàng trước khi đưa cho claude — luật 2026-09-10 là "đọc ảnh dùng agy, KHÔNG claude".
-6. Job dài đang dở: DM Hoàng nêu việc + account đã thử + hướng xử lý, rồi **hẹn tự thử lại** (schedules.yaml) thay vì để việc treo im lặng.
+5. **LUẬT (Hoàng chốt 2026-09-13): "Nếu Matcha không làm được, em phải làm đó" — Matcha cạn quota KHÔNG phải lý do dừng việc, cũng không bắt Hoàng chờ.** Đường Ultron tự làm:
+   - đọc source / bản đồ nghiệp vụ: gọi thẳng MCP `understand-anything` (`list_projects`, `query_nodes`/`search_by_file_path`, `get_domain_overview`, `get_domain_flow_detail`, `trace_call_chain`, `get_node_source`) + `read_file`/`search_files`.
+   - ảnh: `vision_analyze` trước; model vision bị chặn 403 → đưa ảnh cho Jarvis (claude) đọc. Quyết định 2026-09-10 "đọc ảnh dùng agy" là *ưu tiên*, KHÔNG phải lệnh cấm khi Matcha cạn.
+   - việc nặng/dài: chia nhỏ làm từng phần, ghi kết quả ra file, không đợi quota.
+6. Chỉ DM Hoàng khi cần anh *quyết định* (thêm account, đổi model, phạm vi việc) — không phải để báo "Matcha hết quota nên em không làm được". Job Matcha làm dở vẫn được hẹn chạy tiếp (schedules.yaml) để phần còn lại hoàn tất.
 
 ## Quota management
 
