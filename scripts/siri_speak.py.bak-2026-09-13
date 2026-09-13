@@ -8,20 +8,9 @@ hiện ra trong chat. Hoàng chốt 2026-09-12: "Không cần phải show các r
 cuối cùng vào file outbox dưới đây. Cổng đọc file, trả cho Siri; DM/group không thấy gì.
 
     POST /siri/say     header X-Gitlab-Token: <token>   body: {"text": "...", "wait": <giây>}
-        → 200 JSON {"status":"ok|timeout|empty|error","text":"...","waited_s":<float>,"echo":"...",
-                    "source":"phone|desktop"}
+        → 200 JSON {"status":"ok|timeout|empty|error","text":"...","waited_s":<float>,"echo":"..."}
           (?format=text → text thô)
     GET  /health       → "ok"
-
-Cờ NGUỒN (`source`) — cổng này dùng chung cho mọi client, không riêng iPhone:
-nhận theo thứ tự ưu tiên query `?source=` → field JSON `"source"` → header `X-Ultron-Source`.
-Chỉ "phone" và "desktop" là hợp lệ (không phân biệt hoa thường); THIẾU cờ ⇒ "phone" nên điện
-thoại không phải đổi gì, giá trị lạ ⇒ cũng coi là "phone" + một dòng log (không trả lỗi).
-Nguồn được trả lại trong JSON và gửi kèm lên Ultron trong payload forward.
-
-Loa laptop: CHỈ nguồn "desktop" mới phát câu trả lời ra loa (edge-tts → mp3 → ffmpeg → paplay),
-chạy trong thread nền nên không làm chậm response. Nguồn "phone" KHÔNG chạm tới bất kỳ lệnh
-audio nào — Hoàng chốt 2026-09-13: "siri từ điện thoại anh thì không cần speak trên laptop".
 
 Bắt tay với Ultron (req_id):
 cổng sinh `req_id` ngẫu nhiên cho TỪNG lượt và gửi kèm payload; chỉ nhận outbox có ĐÚNG `req_id`
@@ -46,15 +35,12 @@ import json
 import math
 import os
 import secrets
-import shutil
 import socket
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -83,28 +69,10 @@ MAX_WAIT = 120.0
 POLL_EVERY = 0.7
 TIMEOUT_MSG = "Still working on it — ask me again in a moment."
 
-SOURCE_PHONE = "phone"            # iPhone của Hoàng — KHÔNG phát loa (mặc định khi thiếu cờ)
-SOURCE_DESKTOP = "desktop"        # client chạy ngay trên máy này — phát câu trả lời ra loa
-VALID_SOURCES = (SOURCE_PHONE, SOURCE_DESKTOP)
-SOURCE_HEADER = "X-Ultron-Source"
-
-VOICE_VI = "vi-VN-NamMinhNeural"  # câu trả lời có dấu tiếng Việt
-VOICE_EN = "en-US-AndrewNeural"   # còn lại
-SPEAK_MAX_CHARS = 600             # câu nói dài hơn thế là đọc mãi không hết — cắt cho gọn
-TTS_TIMEOUT = 45.0                # edge-tts gọi mạng (đo: câu ~240 ký tự mất ~18s); treo thì bỏ
-                                  # lượt phát, KHÔNG ảnh hưởng response đã trả cho client
-PLAY_TIMEOUT = 120.0
-VI_CHARS = frozenset("ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩị"
-                     "óòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ")
-
 _ip_lock = threading.Lock()
 _tailnet_ip = ""                  # IP tailnet đang biết; "" = máy không có tailnet lúc này
 _hist_lock = threading.Lock()
 _slots = threading.BoundedSemaphore(MAX_CONCURRENT)
-_speak_lock = threading.Lock()    # chỉ MỘT lượt phát tại một thời điểm
-_speak_state = threading.Lock()   # bảo vệ hai biến ngay dưới
-_speak_gen = 0                    # số thứ tự lượt phát mới nhất (lượt cũ hơn tự bỏ)
-_speak_proc: subprocess.Popen | None = None   # tiến trình đang phát, để câu mới cắt câu cũ
 
 
 def log(msg: str) -> None:
@@ -276,8 +244,8 @@ def post_upstream(url: str, payload: bytes, secret: str, timeout: float) -> int:
         return resp.status
 
 
-def forward(text: str, req_id: str, source: str) -> int:
-    payload = json.dumps({"text": text, "req_id": req_id, "source": source}).encode("utf-8")
+def forward(text: str, req_id: str) -> int:
+    payload = json.dumps({"text": text, "req_id": req_id}).encode("utf-8")
     secret = route_secret()
     urls = upstream_urls()
     if not urls:
@@ -374,199 +342,6 @@ def log_history(cmd: str, answer: str) -> None:
             log(f"ghi history lỗi: {type(exc).__name__}")
 
 
-# --- cờ nguồn: phone (mặc định) vs desktop --------------------------------------------------
-
-def normalize_source(raw, where: str) -> str:
-    """Chuẩn hoá cờ nguồn. Thiếu ⇒ phone; giá trị lạ ⇒ phone + một dòng log, KHÔNG trả lỗi."""
-    value = str(raw or "").strip().lower()
-    if not value:
-        return SOURCE_PHONE
-    if value in VALID_SOURCES:
-        return value
-    log(f"nguồn lạ {value!r} (từ {where}) — coi như {SOURCE_PHONE}, không phát loa")
-    return SOURCE_PHONE
-
-
-def request_source(path: str, body: dict, headers) -> str:
-    """Cờ nguồn của lượt này: query → JSON body → header, cái nào có trước thì thắng.
-
-    Ba đường vì mỗi client gửi được một kiểu: Shortcut dán query dễ nhất, app desktop gửi JSON,
-    client cũ không sửa được body thì đặt header. Cái nào cũng ra cùng một kết quả.
-    """
-    query = urllib.parse.parse_qs(urllib.parse.urlparse(path).query).get("source") or [""]
-    for raw, where in ((query[0], "query"), (body.get("source"), "body"),
-                       (headers.get(SOURCE_HEADER), "header")):
-        if str(raw or "").strip():
-            return normalize_source(raw, where)
-    return SOURCE_PHONE
-
-
-# --- phát loa laptop: CHỈ cho nguồn desktop -------------------------------------------------
-
-def has_vietnamese(text: str) -> bool:
-    """Câu trả lời có dấu tiếng Việt? (chọn giọng đọc; chữ không dấu đọc bằng giọng Anh)"""
-    return any(ch in VI_CHARS for ch in text.lower())
-
-
-def speak_env() -> dict:
-    """Unit systemd user KHÔNG có sẵn phiên âm thanh ⇒ tự trỏ vào PulseAudio của user.
-
-    XDG_RUNTIME_DIR thiếu thì dựng lại từ uid; PULSE_SERVER chỉ đặt khi chưa ai đặt (để còn
-    override được lúc test).
-    """
-    env = dict(os.environ)
-    runtime = (env.get("XDG_RUNTIME_DIR") or "").strip() or f"/run/user/{os.getuid()}"
-    env["XDG_RUNTIME_DIR"] = runtime
-    env.setdefault("PULSE_SERVER", f"unix:{runtime}/pulse/native")
-    return env
-
-
-def tts_command() -> str:
-    """edge-tts: ưu tiên PATH (test shim được), rồi tới venv đang chạy script này."""
-    found = shutil.which("edge-tts")
-    if found:
-        return found
-    local = Path(sys.executable).parent / "edge-tts"
-    return str(local) if local.exists() else ""
-
-
-def run_step(cmd: list[str], timeout: float) -> bool:
-    """Một bước dựng audio (tts / decode). Lỗi chỉ ghi log rồi trả False — không ném ra ngoài."""
-    name = Path(cmd[0]).name
-    try:
-        out = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True,
-                             timeout=timeout, env=speak_env())
-    except subprocess.TimeoutExpired:
-        log(f"{name} quá {timeout:.0f}s — bỏ lượt phát")
-        return False
-    except Exception as exc:  # noqa: BLE001 — thiếu lệnh / không exec được
-        log(f"chạy {name} lỗi: {type(exc).__name__}: {exc}")
-        return False
-    if out.returncode != 0:
-        detail = (out.stderr or b"").decode("utf-8", "replace").strip()[:200]
-        log(f"{name} rc={out.returncode}: {detail}")
-        return False
-    return True
-
-
-def made_file(path: Path) -> bool:
-    return path.exists() and path.stat().st_size > 0
-
-
-def speak_generation() -> int:
-    with _speak_state:
-        return _speak_gen
-
-
-def stop_playback() -> None:
-    """Cắt câu đang phát để nhường cho câu mới (barge-in)."""
-    with _speak_state:
-        proc = _speak_proc
-    if proc is None or proc.poll() is not None:
-        return
-    proc.siri_cut = True   # paplay thoát rc=0 khi nhận SIGTERM ⇒ phải tự nhớ là mình cắt
-    try:
-        proc.terminate()
-    except Exception as exc:  # noqa: BLE001
-        log(f"không cắt được lượt phát cũ: {type(exc).__name__}")
-
-
-def play_tracked(cmd: list[str], gen: int) -> None:
-    """Chạy trình phát, có ghi lại tiến trình để câu sau cắt được câu này."""
-    global _speak_proc
-    name = Path(cmd[0]).name
-    try:
-        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                stderr=subprocess.PIPE, env=speak_env())
-    except Exception as exc:  # noqa: BLE001
-        log(f"không chạy được {name}: {type(exc).__name__}: {exc}")
-        return
-    with _speak_state:
-        _speak_proc = proc
-    try:
-        _, err = proc.communicate(timeout=PLAY_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.communicate()
-        log(f"{name} phát quá {PLAY_TIMEOUT:.0f}s — cắt")
-        return
-    finally:
-        with _speak_state:
-            if _speak_proc is proc:
-                _speak_proc = None
-    if getattr(proc, "siri_cut", False) or proc.returncode < 0:
-        log(f"lượt phát gen={gen} bị cắt để nhường câu mới")
-        return
-    if proc.returncode == 0:
-        log(f"đã phát xong bằng {name} (gen={gen})")
-        return
-    detail = (err or b"").decode("utf-8", "replace").strip()[:200]
-    log(f"{name} rc={proc.returncode}: {detail}")
-
-
-def play_audio(mp3: Path, workdir: Path, gen: int) -> None:
-    """paplay không đọc được mp3 ⇒ ffmpeg giải mã sang wav trước; không có paplay thì thử ffplay."""
-    paplay = shutil.which("paplay")
-    ffplay = shutil.which("ffplay")
-    ffmpeg = shutil.which("ffmpeg")
-    wav = workdir / "say.wav"
-    if paplay and ffmpeg and run_step([ffmpeg, "-y", "-loglevel", "error", "-i", str(mp3),
-                                       str(wav)], TTS_TIMEOUT) and made_file(wav):
-        play_tracked([paplay, str(wav)], gen)
-        return
-    if ffplay:
-        play_tracked([ffplay, "-nodisp", "-autoexit", "-loglevel", "error", str(mp3)], gen)
-        return
-    log("không phát được: cần paplay+ffmpeg hoặc ffplay — bỏ lượt phát")
-
-
-def synth_and_play(text: str, gen: int) -> None:
-    tts = tts_command()
-    if not tts:
-        log("không tìm thấy edge-tts — bỏ lượt phát")
-        return
-    workdir = Path(tempfile.mkdtemp(prefix="siri-speak-"))
-    try:
-        script = workdir / "say.txt"
-        script.write_text(text, encoding="utf-8")   # qua FILE, không nhét câu vào argv
-        mp3 = workdir / "say.mp3"
-        voice = VOICE_VI if has_vietnamese(text) else VOICE_EN
-        if not run_step([tts, "--voice", voice, "--file", str(script),
-                         "--write-media", str(mp3)], TTS_TIMEOUT) or not made_file(mp3):
-            log("edge-tts không tạo được audio — bỏ lượt phát")
-            return
-        play_audio(mp3, workdir, gen)
-    finally:
-        shutil.rmtree(workdir, ignore_errors=True)
-
-
-def speak_worker(text: str, gen: int) -> None:
-    stop_playback()                      # câu mới CẮT câu cũ, không xếp hàng chờ đọc hết
-    with _speak_lock:
-        if gen != speak_generation():    # trong lúc chờ đã có câu mới hơn ⇒ bỏ lượt này
-            log(f"bỏ lượt phát gen={gen} (đã có câu mới hơn)")
-            return
-        try:
-            synth_and_play(text, gen)
-        except Exception as exc:  # noqa: BLE001 — loa hỏng không được làm sập cổng
-            log(f"phát loa lỗi: {type(exc).__name__}: {exc}")
-
-
-def maybe_speak(source: str, text: str) -> None:
-    """CỬA DUY NHẤT dẫn tới lệnh audio. Nguồn phone thoát ở đây ⇒ không có edge-tts/paplay/ffplay."""
-    global _speak_gen
-    if SOURCE_DESKTOP != source:
-        return
-    spoken = text.strip()[:SPEAK_MAX_CHARS]
-    if not spoken:
-        return
-    with _speak_state:
-        _speak_gen += 1
-        gen = _speak_gen
-    threading.Thread(target=speak_worker, args=(spoken, gen),
-                     name=f"speak-{gen}", daemon=True).start()
-
-
 # --- HTTP ---------------------------------------------------------------------------------
 
 class BadRequest(Exception):
@@ -640,22 +415,18 @@ class Handler(BaseHTTPRequestHandler):
             raise BadRequest(400, "body ngắn hơn Content-Length")
         return body
 
-    def _parse(self, raw: bytes) -> tuple[str, float, str]:
-        """JSON body → (text, wait, source). Không bao giờ lấy body thô làm lệnh gửi cho Ultron.
-
-        Body rỗng vẫn phải đọc cờ nguồn: client có thể gửi cờ bằng query hoặc header.
-        """
-        body: dict = {}
-        if raw:
-            try:
-                body = json.loads(raw.decode("utf-8"))
-            except Exception:  # noqa: BLE001
-                raise BadRequest(400, "body phải là JSON") from None
-            if not isinstance(body, dict):
-                raise BadRequest(400, "JSON phải là object")
+    def _parse(self, raw: bytes) -> tuple[str, float]:
+        """JSON body → (text, wait). Không bao giờ lấy body thô làm lệnh gửi cho Ultron."""
+        if not raw:
+            return "", WAIT_SECONDS
+        try:
+            body = json.loads(raw.decode("utf-8"))
+        except Exception:  # noqa: BLE001
+            raise BadRequest(400, "body phải là JSON") from None
+        if not isinstance(body, dict):
+            raise BadRequest(400, "JSON phải là object")
         text = str(body.get("text") or "").strip()
-        return (text, parse_wait(body.get("wait"), WAIT_SECONDS),
-                request_source(self.path, body, self.headers))
+        return text, parse_wait(body.get("wait"), WAIT_SECONDS)
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path.split("?")[0] in ("/health", "/"):
@@ -671,7 +442,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             raw = self._read_body()
-            text, wait_s, source = self._parse(raw)
+            text, wait_s = self._parse(raw)
         except BadRequest as bad:
             self._reply_json(bad.code, {"status": "error", "text": bad.message}, close=True)
             return
@@ -680,44 +451,41 @@ class Handler(BaseHTTPRequestHandler):
             self._reply_json(400, {"status": "error", "text": "request không đọc được"}, close=True)
             return
         if not text:
-            self._reply_result("empty", "I didn't get any command.", source=source)
+            self._reply_result("empty", "I didn't get any command.")
             return
         if not _slots.acquire(blocking=False):
             self._reply_json(503, {"status": "error",
                                    "text": "Too many requests in flight, try again shortly."})
             return
         try:
-            self._handle(text, wait_s, source)
+            self._handle(text, wait_s)
         finally:
             _slots.release()
 
-    def _handle(self, text: str, wait_s: float, source: str) -> None:
+    def _handle(self, text: str, wait_s: float) -> None:
         req_id = secrets.token_hex(8)
         started = time.time()
         try:
-            status = forward(text, req_id, source)
+            status = forward(text, req_id)
         except UpstreamUnreachable as exc:
             log(f"ERROR không tới được gateway nào ({', '.join(upstream_urls()) or 'không có địa chỉ'}): {exc}")
             self._reply_json(502, {"status": "error", "text": "I couldn't reach Ultron just now.",
-                                   "reason": str(exc), "source": source})
+                                   "reason": str(exc)})
             return
         except Exception as exc:  # noqa: BLE001
             log(f"ERROR lỗi forward: {type(exc).__name__}: {exc}")
             self._reply_json(502, {"status": "error", "text": "I couldn't reach Ultron just now.",
-                                   "reason": f"{type(exc).__name__}: {exc}", "source": source})
+                                   "reason": f"{type(exc).__name__}: {exc}"})
             return
         answer = wait_outbox(req_id, started, started + wait_s)
         waited = round(time.time() - started, 1)
-        log(f"fwd={status} req={req_id} src={source} len(text)={len(text)} "
+        log(f"fwd={status} req={req_id} len(text)={len(text)} "
             f"wait={waited}s answer={'yes' if answer else 'timeout'}")
         log_history(text, answer or TIMEOUT_MSG)
         if answer:
-            # Trả response TRƯỚC, phát loa sau (và trong thread nền) — loa không được giữ chân client.
-            self._reply_result("ok", answer, waited_s=waited, echo=text, source=source)
-            maybe_speak(source, answer)
+            self._reply_result("ok", answer, waited_s=waited, echo=text)
             return
-        # Timeout thì KHÔNG phát: "Still working on it" đọc ra loa chỉ tổ ồn, câu thật sẽ tới ở lượt sau.
-        self._reply_result("timeout", TIMEOUT_MSG, waited_s=waited, echo=text, source=source)
+        self._reply_result("timeout", TIMEOUT_MSG, waited_s=waited, echo=text)
 
 
 def parse_wait(value, default: float) -> float:

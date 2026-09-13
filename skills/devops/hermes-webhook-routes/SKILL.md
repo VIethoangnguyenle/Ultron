@@ -22,6 +22,8 @@ Recipe chi tiết (iOS Shortcuts 4 bước, biến thể bind): `references/exte
 Hai kênh endpoint tách biệt — NÓI (đọc to) vs CHAT (như Google Chat): `references/siri-chat-channel.md`.
 Cả 2 cổng nay là **local-first** (bind `127.0.0.1` trước, tailnet chỉ là cửa phụ) — trạng thái đã kiểm
 chứng + cách nạp lại cổng: `references/siri-channels-local-first.md`.
+Cổng NÓI phân biệt **NGUỒN** request (điện thoại / desktop / widget): cờ `source`, luật "chỉ desktop mới
+phát loa máy chủ", cách chứng minh bằng âm thanh thật: `references/siri-origin-flag.md`.
 
 ## Quy trình
 
@@ -67,6 +69,8 @@ grep -E "\[webhook\] POST|inbound message: platform=webhook|response ready" ~/.h
 - **Log cổng phải ghi ra FILE, không để trong journald.** `journalctl --vacuum` cần `sudo` ⇒ dấu vết
   (IP tailnet, tên node) nằm lại qua đêm, phá luật "xoá log Tailscale sau 17h30". Cổng ghi
   `~/.hermes/logs/siri-speak.log` / `siri-chat.log` (quyền user, scrub giữ nguyên inode) thì dọn được.
+  Hệ quả khi soi lỗi: `journalctl --user -u siri-speak` trả **"No entries"** là bình thường, không phải cổng
+  chết — đọc file log trước khi kết luận bất cứ điều gì về lượt vừa gọi.
 - **`/files/<conv>/<tên>` lọc theo hội thoại nhưng KHÔNG phải phân quyền.** Chỉ có một token dùng chung ⇒
   client đã xác thực mà biết tên hội thoại + tên file vẫn tải được file của hội thoại khác. Muốn chặn thật
   phải cấp token/khoá riêng theo hội thoại — việc đó ĐỔI hợp đồng với client nên phải để Hoàng quyết;
@@ -98,7 +102,15 @@ grep -E "\[webhook\] POST|inbound message: platform=webhook|response ready" ~/.h
   `references/tailscale-lifecycle.md`. Cổng bind loopback trước rồi mới mở thêm listener tailnet ⇒ sau
   teardown tiến trình vẫn sống, gọi `127.0.0.1:9444/9445` (widget, script trên máy) vẫn chạy; nhưng
   client ngoài (Siri/iPhone) vẫn phải trong khung giờ tailnet mở. Cần 24/7 thì đi tunnel công khai + token (rate-limit, chỉ route
-  chỉ-đọc) và chỉ dựng khi Hoàng yêu cầu rõ.
+  chỉ route chỉ-đọc) và chỉ dựng khi Hoàng yêu cầu rõ.
+  - **Local-first chỉ đúng tới CỔNG — hop chuyển tiếp vào gateway vẫn chết theo node.** `platforms.webhook.extra.host`
+    bị ghim vào IP Tailscale ⇒ gateway chỉ nghe `<IP tailnet>:9443`, KHÔNG nghe loopback; cổng thử `127.0.0.1:9443`
+    trước rồi mới fallback sang IP tailnet ⇒ sau mốc teardown, client TRÊN CHÍNH MÁY (widget, script) cũng mất
+    đường vào dù cổng vẫn sống và vẫn trả lời. Kiểm bằng `ss -ltnp | grep -E '9443|9444|9445'` trước khi hứa
+    "chạy được cả tối". Muốn local-first thật thì phải cho webhook nghe thêm loopback: trong code `DEFAULT_HOST = None`
+    = bind MỌI họ địa chỉ, host rỗng/không pin cũng vậy (`gateway/platforms/webhook.py`); `INSECURE_NO_AUTH` chỉ
+    hợp lệ khi bind loopback. ĐỔI CẤU HÌNH ⇒ phải Hoàng đồng ý, restart gateway đưa cho claude, và sau restart phải
+    verify lại kênh Google Chat (kênh này KHÔNG đi qua route động — `webhook_subscriptions.json` chỉ có route khai tay).
 - **Địa chỉ endpoint phải là TÊN MagicDNS, không phải IP tailnet.** IP đổi mỗi lần node được dựng lại,
   còn Shortcut/cấu hình giữ IP cũ thì request rơi vào hư không và client chỉ báo *"Request timed out"* —
   cổng KHÔNG hề nhận được gì. Lấy tên từ chính node chứ đừng đoán:
@@ -112,6 +124,10 @@ grep -E "\[webhook\] POST|inbound message: platform=webhook|response ready" ~/.h
   iOS/Siri tự cắt ở ~30s ⇒ 25s là trần thực tế; đặt 50s thì câu trả lời lâu biến thành lỗi timeout ở phía
   người dùng dù cổng vẫn chạy bình thường. Quá 25s: trả ngay câu "đang xử lý, kết quả báo trong chat" rồi
   để phiên webhook đăng phần dài vào DM.
+- **Cổng NÓI: nguồn `phone` (mặc định khi thiếu cờ) tuyệt đối KHÔNG được gọi lệnh phát âm thanh**; chỉ
+  `source=desktop` mới phát loa máy chủ. Cổng dùng chung cho iPhone / desktop / widget nên thiếu cờ phải rơi
+  về hành vi cũ (im) — đổi mặc định là làm iPhone của chủ máy tự dưng có tiếng. Kiểm bằng cách GHI monitor
+  rồi đo dB, đừng tin "exit 0": hợp đồng cờ + recipe: `references/siri-origin-flag.md`.
 - **URL/token/endpoint: CHỈ DM Hoàng.** Không thả link hay token vào group, kể cả group nội bộ.
 - **Bàn giao cho người dùng cuối bằng ngôn ngữ nghiệp vụ**: cài app VPN (nếu bind tailnet) → đăng nhập
   → tạo Shortcut (Dictate Text tiếng Việt → Get Contents of URL → Show Result) → thử; kèm *một* cách tự
