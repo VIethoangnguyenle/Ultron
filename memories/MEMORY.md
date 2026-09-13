@@ -4,7 +4,7 @@ Bot Ultron on VNPay Workspace. Send text thô (link <url|text>). Mention: đọc
 §
 'chồn ăn dưa'=AAQAiOgBqio (test riêng)
 §
-claude/agy workdir = /home/zane/Desktop/work/vietbank/vietbank-sme (workspace vỏ, KHÔNG git; 4 repo con có .git riêng: vietbank-sme-omni chính / dvnh-common / viet-bank-ekyc-sme / test-workload ⇒ git phải `git -C <repo con>`). Task nặng check RAM (<2GB thì abort).
+Tên gọi Hoàng đặt: Jarvis=claude CLI, Matcha=agy ("gọi Jarvis fix code" = dispatch claude). claude/agy workdir
 §
 Guard Hermes: chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → gọi claude đọc ~/.hermes/scripts/gw_restart.txt (hẹn 150s rồi restart); không đẩy cho Hoàng. Sửa config: `hermes config set`.
 §

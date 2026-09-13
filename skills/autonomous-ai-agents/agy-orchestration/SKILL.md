@@ -13,7 +13,7 @@ metadata:
 
 # Orchestrating agy (Antigravity CLI)
 
-Run `agy` for high-token source-code reasoning (domain-graph enrichment via Understand-Anything). Hoàng's rule: coding→claude, reasoning/UA→agy.
+Run `agy` for high-token source-code reasoning (domain-graph enrichment via Understand-Anything). Hoàng's rule: coding→claude, reasoning/UA→agy. **Tên gọi của Hoàng (2026-09-12): agy = *Matcha*** (claude = *Jarvis*) — nghe "Matcha đọc source/soi graph" nghĩa là chạy agy; luật ủy quyền không đổi: chỉ Hoàng nói trực tiếp mới kích hoạt.
 
 ## Three gotchas that WILL break a run
 
@@ -64,6 +64,18 @@ echo "exit=$?"; tail -c 1500 /tmp/agy_out.txt
   hay timeout 3 phút không ra gì). Danh sách: `agy models` (tên ngắn `gemini-3.8-flash-medium`).
 - Ảnh trong cache của Hermes nằm ở `~/.hermes/cache/images/` → `--add-dir` đúng thư mục đó.
 - Hoàng chốt (2026-09-10): đọc ảnh dùng **agy**, KHÔNG giao cho claude.
+
+## Khi CẢ 2 account đều hết quota (hành vi thật của wrapper)
+
+Wrapper print mode (`agy` → `agy.real` + guard) thử tối đa `MAX_RETRIES=2` lần: gặp pattern quota thì `hagy next --quiet` + chạy lại; **hết lượt thử thì nó `exit` và trả NGUYÊN văn lỗi quota** — không có đường lui thông minh nào. Nên gặp lỗi quota lần 2 ⇒ dừng, đừng chạy lại vô ích (mỗi lần thử vẫn tốn quota/CPU).
+
+Khi đó làm theo thứ tự:
+1. `hagy who` + `tail ~/.antigravity_sw/logs/rotation.log` để xác nhận đúng là hết quota (không đoán). `hagy status` báo quota API thường `403 Forbidden` ⇒ không đọc được số còn lại, chỉ biết qua lỗi thật.
+2. **Chờ reset**: log thật cho thấy một account hết lúc 23:25 rồi dùng lại được trong vài giờ ⇒ cửa sổ ≈ vài giờ, KHÔNG hứa con số cụ thể.
+3. **Thêm account**: `hagy add` (cần người dùng đăng nhập account mới).
+4. **Đổi model rẻ hơn** (`flash`/`flash-high` thay Opus) — hạn mức có thể tách theo nhóm model (chưa đo được, đừng khẳng định).
+5. Việc đọc ảnh khi Matcha cạn: hỏi Hoàng trước khi đưa cho claude — luật 2026-09-10 là "đọc ảnh dùng agy, KHÔNG claude".
+6. Job dài đang dở: DM Hoàng nêu việc + account đã thử + hướng xử lý, rồi **hẹn tự thử lại** (schedules.yaml) thay vì để việc treo im lặng.
 
 ## Quota management
 
