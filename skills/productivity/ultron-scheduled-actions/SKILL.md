@@ -77,3 +77,11 @@ Các tin này **không @mention ai** (réo tên cả team = chuông báo, mất 
   chạy* vẫn báo "tới giờ" (test giả xanh, đã dính). Truyền `today` vào thay vì đọc đồng hồ hệ thống.
 - **Đổi máy:** `schedules.yaml` đã được thêm vào `~/Ultron/sync.py`, nếu tạo file config mới ở
   cấp thư mục `~/.hermes/` thì kiểm tra lại sync, không là mất khi restore.
+- **`cronjob_manage action='run'` KHÔNG phải là "chạy thử rồi tự gửi hộ".** Nó chạy job trong nền
+  (một delegation, ~2 phút) rồi trả kết quả về phiên cha, **đồng thời job vẫn tự gửi bản cuối tới
+  `deliver` của nó** — chỉ là chậm hơn vài chục giây. Vì vậy: đã trigger `run` thì **chờ ít nhất
+  2–3 phút rồi hãy kết luận "chưa gửi"**, và **tuyệt đối không tự relay nội dung hộ** (làm vậy
+  người nhận thấy 2 bản y hệt nhau — đã dính 2026-09-13 với job đúc kết cuối ngày).
+- **Job LLM cron có sẵn sentinel `[SILENT]`:** nếu prompt yêu cầu trả lời đúng chuỗi `[SILENT]`
+  khi không có gì mới, hệ thống sẽ bỏ luôn lượt gửi đó (không vào chat). Dùng cái này thay cho kiểu
+  "nhắn một dòng cho có" khi muốn im lặng tuyệt đối.

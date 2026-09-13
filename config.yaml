@@ -80,6 +80,7 @@ display:
   platforms:
     google_chat:
       tool_progress: false
+  memory_notifications: 'off'
 stt:
   enabled: true
   language: en

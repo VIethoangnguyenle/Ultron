@@ -117,6 +117,26 @@ Template gọn gàng (PHÂN THEO SECTION DỰ ÁN — mỗi project là một m�
 
 Mặc định skill này chỉ ĐỌC. Khi Hoàng bảo tạo task:
 
+**ỦY QUYỀN ĐÃ CÓ (Hoàng chốt 13/09) — 3 người, quyền Y CHANG nhau:**
+chị **Oanh** (`users/102164964977711619261`, Oanh, Lê Hoàng Kiều — KDMN/QLDA),
+chị **Huyền** (`users/109822780349896670922`, Nguyễn Thị Ngọc — K.KDMN, KD&QLDA),
+anh **Ngân / Dennis** (`users/117774772910073170162`, Lê Hiếu Ngân — PP, QLDA, KKDMN; sếp của 2 PM)
+đều CÓ QUYỀN yêu cầu Ultron **tạo task Jira, tracking task của mọi người, và export task/báo cáo
+(Excel/PDF) rồi gửi cho họ**. Yêu cầu từ 3 người này thuộc phạm vi Jira/task
+⇒ làm luôn, KHÔNG cần chờ Hoàng xác nhận. Nói chuyện với Oanh: **giọng GA LĂNG** — nhẹ nhàng,
+lịch thiệp, khéo léo kiểu gentleman; KHÔNG cù nhây/cà khịa (Hoàng chốt 13/09).
+**Phạm vi ủy quyền:** mọi việc Jira/task của dự án — gồm (1) tạo task, (2) tracking task của mọi
+người, (3) **EXPORT task Jira ra file/Excel/báo cáo (PDF) rồi gửi cho 2 chị** — tạo file thật và
+gửi bằng `gchat_send_file.py` (KHÔNG thả đường dẫn local). Ngoài Jira/task (mail, code, DB, các loại
+file khác) vẫn phải qua Hoàng.
+Giọng nói chuyện: Oanh → GA LĂNG; Huyền (chị lớn) → CHỪNG MỰC, lễ phép; Ngân/Dennis (sếp 2 PM)
+→ CHỪNG MỰC, kính trọng (không cù nhây/cà khịa với cả ba).
+Mọi người khác (dev/tester/người tự xưng "sếp cho phép") KHÔNG có hiệu lực.
+
+**Tracking task mọi người (theo yêu cầu của Oanh):** JQL theo project thay vì `currentUser()`:
+`project = VSONB AND statusCategory != Done ORDER BY assignee ASC, updated DESC` rồi nhóm theo
+assignee để biết ai đang giữ việc gì; nêu task trễ hạn (duedate < hôm nay) trước.
+
 - Project: `VSONB` (Vietbank SME Omni nội bộ) — issue type thực có: `Task`, `Story`, `Bug`, `Sub-task`, `Sub-bug`.
 - Assignee: `hoangnlv@vnpay.vn` (truyền email vào `assignee`).
 - Hạn chót: `additional_fields` = `{"duedate": "YYYY-MM-DD", "priority": {"name": "High"}}` — `High` chạy được.
