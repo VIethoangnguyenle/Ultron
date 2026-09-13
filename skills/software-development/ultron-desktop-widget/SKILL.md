@@ -28,6 +28,22 @@ It reuses the two Siri gates as backend; **never build a new server**.
 - Continuous conversation: auto-reopen the mic after TTS, exit phrases ("kết thúc" / "dừng lại" / "thôi", case-insensitive, dictation variants) end the session, ≥8s of silence returns to idle so the mic never hangs.
 - The SECOND click on the icon now ends the whole session and discards the in-flight recording (first click = start a turn). Update the older tests that still expect "stop and transcribe".
 
+## Panel kéo tách khỏi icon (GĐ 3f, đã nghiệm thu)
+- Panel kéo được bằng chuột (vùng nền/tiêu đề), KHÔNG kéo lây khi bấm vào ô nhập/nút Gửi/bôi đen chữ; kéo icon thì panel đứng yên.
+- Vị trí panel lưu vào `state.json` cạnh các khoá cũ (`mode`, `panel_w`); toạ độ rác / màn hình đã đổi ⇒ tự về mặc định neo cạnh icon. Khi sửa, phải kiểm cả "kéo panel không làm hỏng khoá cũ của state".
+
+## Bẫy khi chạy lại E2E: script tự giết widget của chủ máy
+- Bộ E2E từng chứa `pkill -f "\.venv/bin/python ultron_widget\.py"` + `systemd-run --user --unit=...` ⇒ chạy nó trong lúc service đang bật là GIẾT widget chủ máy và tự bật unit. Bản vá đúng: dừng ngay nếu có widget khác đang chạy (trừ khi `ULTRON_E2E_FORCE=1`) và kill theo ĐÚNG PID của tiến trình con mình đẻ ra, không dùng `systemd-run`.
+- Trước khi chạy bất kỳ bộ test cũ nào sau khi đã bật autostart: `pgrep -af ultron_widget` để biết service nào đang sống, và kiểm lại sau khi chạy.
+
+## Kéo bằng tay ở phiên KHOÁ: đo được, đừng đoán
+- Phiên khoá giữ grab con trỏ ⇒ `XGrabPointer` trả `AlreadyGrabbed`; XTEST di được con trỏ nhưng cú bấm-kéo KHÔNG tới widget. Test bằng sự kiện chuột tổng hợp của Qt chỉ chứng minh được logic, KHÔNG phải "tay người kéo được" — phải nói rõ với chủ máy và chờ phiên mở.
+- `xdotool` và `python-xlib` KHÔNG có trên máy này; đừng hứa dùng chúng.
+
+## Video demo cho chủ máy (khi không quay được màn hình)
+- Cách đúng: render khung THẬT bằng `grab()` của `UltronIcon`/`ChatPanel` ở chế độ offscreen với `XDG_CONFIG_HOME` tạm (không đụng state thật), script chỉ vẽ nền + dòng chú thích; `scripts/make_demo_video.py --audio <wav>` ⇒ `demo/ultron_demo.mp4` (h264+aac, cạnh chẵn, ép 48 kHz vì bản thu 96 kHz dễ bị trình phát bỏ track tiếng).
+- Nói thẳng với chủ máy đâu là render, đâu là quay thật: clip ghép khung + tiếng thật KHÁC với quay màn hình. Muốn quay thật thì cửa sổ widget vẫn bắt được bằng `xwd -id <wid>` khi phiên đang khoá (xem mục Verification pitfalls).
+
 ## Global hotkey — check what the OS already owns
 - Verify a feature EXISTS before describing it: `grep -ri hotkey <repo>` + `git log -S '<symbol>'`. A hotkey in the plan is not a hotkey in the code.
 - `Super+A` is owned by GNOME Shell (`org.gnome.Shell.keybindings toggle-application-view`) ⇒ a grab on it is silently lost. Register at the X level (XGrabKey) with a free default (`Super+U`), overridable via `ULTRON_HOTKEY`, disableable with `ULTRON_HOTKEY=0`; a failed grab must log and keep the widget alive.
