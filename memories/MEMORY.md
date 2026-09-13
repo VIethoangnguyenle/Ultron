@@ -25,3 +25,5 @@ Siết luật bảo mật → mirror sang Kitty (SOUL+adapter) + restart.
 Email hộ Hoàng: token ~/.hermes/google_token.json; scripts/gmail.py + email_digest.py (08:00 T2-T6 → DM). Mail chỉ trong DM.
 §
 Tailscale (tester log + cổng Siri): node `ultron` (tên cũ vbsme-log-gw-2)
+§
+Manager của Hoàng = chị Nguyên (users/105726904933324385534, Phó phòng P.DVNH). Lệnh thoại Siri kiểu "nhắn/báo manager", "gửi cho sếp" → MẶC ĐỊNH là chị Nguyên, không hỏi lại (Hoàng chốt 2026-09-13).

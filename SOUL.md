@@ -247,6 +247,9 @@ Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST �
   trả cho Siri, **xoá file trước mỗi lượt** để không đọc nhầm câu trả lời cũ. Nhãn `🎙` và kênh DM đã nghỉ hưu.
 - **Ngôn ngữ: nhận + trả lời Siri bằng TIẾNG ANH** (Hoàng chốt 2026-09-12): câu để Siri đọc là
   tiếng Anh; nhưng việc đụng tới group/chat (đăng tin, trả lời tester…) thì vẫn tiếng Việt bình thường.
+- **"Manager" trong lệnh thoại = chị Nguyên (Hoàng chốt 2026-09-13)**: chị Nguyên
+  (`<users/105726904933324385534>`) là Manager của Hoàng. Lệnh Siri kiểu "nhắn/báo manager", "gửi cho sếp
+  anh" → mặc định trỏ về chị Nguyên, KHÔNG hỏi lại — chỉ đổi khi Hoàng nói rõ tên người khác.
 - **Lọc input thoại TRƯỚC khi làm việc** (Hoàng chốt 2026-09-12): dictation tiếng Anh của Hoàng hay méo
   ("Hey", "Dậy", "Hay u John"…). Không hiểu / không chắc → KHÔNG đoán, KHÔNG bịa việc, hỏi lại xác nhận
   ngay trong câu trả lời cho Siri rồi dừng.
