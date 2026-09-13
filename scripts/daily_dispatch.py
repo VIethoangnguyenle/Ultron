@@ -23,6 +23,12 @@ Usage:
 
 Action fields: id (required), when "HH:MM", script, args[], enabled, days[], date (one-shot),
 until (expiry), catch_up_minutes (default 120), retry (attempts per day, default 1).
+
+Repeating actions: `every_minutes: 15` runs the action every 15 minutes instead of once at a
+fixed `when`, optionally fenced to `between: ["07:00", "22:30"]` (default: all day). The day is
+cut into fixed slots anchored at midnight, and each slot fires at most once — so several ticks
+inside the same minute do nothing, and a dispatcher that was down for two hours fires ONCE when
+it comes back instead of replaying every slot it missed.
 """
 import argparse
 import json
@@ -101,6 +107,69 @@ def _parse_hhmm(value: str):
     return int(hh), int(mm)
 
 
+def _interval_slot(every: int, now: datetime) -> int:
+    """Which fixed slot of the day `now` falls in. Anchored at midnight so the firing times are
+    stable and predictable (every_minutes: 15 -> :00 :15 :30 :45), not drifting from whenever
+    the action happened to run first."""
+    return (now.hour * 60 + now.minute) // every
+
+
+def _in_window(action: dict, now: datetime) -> tuple:
+    """`between: ["07:00", "22:30"]` fences a repeating action to part of the day.
+
+    No `between` = all day. A window whose end is before its start (["22:00", "06:00"]) is read
+    as crossing midnight.
+    """
+    between = action.get("between")
+    if not between:
+        return True, ""
+    if isinstance(between, str):
+        between = [p.strip() for p in between.split("-")]
+    if not isinstance(between, (list, tuple)) or len(between) != 2:
+        return False, "between phải là 2 mốc HH:MM"
+    try:
+        (sh, sm), (eh, em) = _parse_hhmm(between[0]), _parse_hhmm(between[1])
+    except Exception:
+        return False, f"between không đọc được: {between!r}"
+    cur, start, end = now.hour * 60 + now.minute, sh * 60 + sm, eh * 60 + em
+    inside = (start <= cur <= end) if start <= end else (cur >= start or cur <= end)
+    if inside:
+        return True, ""
+    return False, f"ngoài khung {between[0]}-{between[1]}"
+
+
+def _is_due_interval(action: dict, now: datetime, st: dict) -> tuple:
+    """Decision for an `every_minutes` action — one firing per slot.
+
+    Deliberately does NOT reuse the daily "đã chạy hôm nay" / retry-budget logic: those exist to
+    stop a once-a-day action running twice, and would freeze a repeating action after its first
+    firing. A failed slot simply waits for the next one; escalation is still once a day.
+    """
+    try:
+        every = int(action.get("every_minutes"))
+    except (TypeError, ValueError):
+        return False, f"every_minutes không phải số: {action.get('every_minutes')!r}"
+    if every < 1:
+        return False, "every_minutes phải >= 1"
+    ok, why = _in_window(action, now)
+    if not ok:
+        return False, why
+    if st.get("slot") == _interval_slot(every, now):
+        return False, f"đã chạy trong ô {every}' này"
+    return True, f"tới lượt (mỗi {every}')"
+
+
+def _mark_slot(action: dict, st: dict, now: datetime) -> None:
+    """Stamp the slot a repeating action just fired in, so the rest of that slot stays quiet."""
+    if not action.get("every_minutes"):
+        return
+    try:
+        st["slot"] = _interval_slot(int(action["every_minutes"]), now)
+    except (TypeError, ValueError):
+        return
+    st["last_run"] = now.strftime("%H:%M")
+
+
 def is_due(action: dict, now: datetime, state: dict) -> tuple:
     """-> (due: bool, reason: str). Pure decision from config + state + clock."""
     aid = action.get("id")
@@ -121,6 +190,9 @@ def is_due(action: dict, now: datetime, state: dict) -> tuple:
             return False, f"không thuộc {sorted(allowed)}"
 
     st = _st(state, aid, today.isoformat())
+    if action.get("every_minutes"):
+        return _is_due_interval(action, now, st)
+
     max_tries = max(1, int(action.get("retry", 1)))
     if st.get("date") == today.isoformat():
         if st.get("ok"):
@@ -205,15 +277,17 @@ def cmd_tick(actions: list, state: dict, dry_run: bool) -> int:
             if not dry_run:
                 st = _st(state, aid, now.date().isoformat())
                 st.update({"tries": st.get("tries", 0) + 1, "ok": True})
+                _mark_slot(action, st, now)
                 state[aid] = st
                 save_state(state)
         else:
             problems.append(f"{aid}: {output}")
             log(f"FAILED {aid} -> {output[:300]!r}")
             if not dry_run:
-                st = _st(state, aid)
+                st = _st(state, aid, now.date().isoformat())
                 first_alert = st.get("alerted") != now.date().isoformat()
                 st.update({"tries": st.get("tries", 0) + 1, "ok": False})
+                _mark_slot(action, st, now)   # đã bắn ô này rồi -> đợi ô sau, không bắn lại mỗi tick
                 if first_alert:
                     st["alerted"] = now.date().isoformat()
                     escalate(action, "chạy lỗi", output)
@@ -234,7 +308,7 @@ def cmd_list(actions: list, state: dict) -> int:
     if not actions:
         print(f"(chưa có action nào trong {CONFIG})")
         return 0
-    print(f"{'id':26} {'giờ':6} {'bật':6} {'hôm nay':10} điều kiện")
+    print(f"{'id':26} {'giờ':9} {'bật':6} {'hôm nay':12} điều kiện")
     for a in actions:
         aid = a.get("id", "?")
         cond = []
@@ -244,13 +318,26 @@ def cmd_list(actions: list, state: dict) -> int:
             cond.append(f"đến {a['until']}")
         if a.get("days"):
             cond.append("/".join(a["days"]) if isinstance(a["days"], list) else str(a["days"]))
+        every = a.get("every_minutes")
+        if every:
+            between = a.get("between")
+            if isinstance(between, (list, tuple)) and len(between) == 2:
+                cond.append(f"trong {between[0]}-{between[1]}")
+            elif between:
+                cond.append(f"trong {between}")
+            else:
+                cond.append("cả ngày")
+        sched = f"mỗi {every}'" if every else str(a.get("when") or a.get("at") or "09:00")
+
         st = _st(state, aid)
-        if st.get("date") == today:
-            why = {True: "đã chạy", False: f"lỗi (thử {st.get('tries')}x)"}.get(st.get("ok"), "-")
-        else:
+        if st.get("date") != today:
             why = "-"
-        print(f"{aid:26} {str(a.get('when') or a.get('at') or '09:00'):6} "
-              f"{str(a.get('enabled', True)):6} {why:10} {', '.join(cond) or 'mỗi ngày'}")
+        elif every:
+            why = f"chạy {st['last_run']}" if st.get("last_run") else "-"
+        else:
+            why = {True: "đã chạy", False: f"lỗi (thử {st.get('tries')}x)"}.get(st.get("ok"), "-")
+        print(f"{aid:26} {sched:9} {str(a.get('enabled', True)):6} {why:12} "
+              f"{', '.join(cond) or 'mỗi ngày'}")
     return 0
 
 
@@ -280,6 +367,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default=str(CONFIG))
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--tick", action="store_true", help="chạy một lượt tick (mặc định, nêu cho rõ)")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--run", metavar="ID")
     ap.add_argument("--prune", action="store_true")

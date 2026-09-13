@@ -111,3 +111,14 @@ actions:
     date: "2026-09-14"
     script: gchat_send_text.py
     args: ["--space", "spaces/0dniIqAAAAE", "--text-file", "/home/zane/.hermes/reminders/20260914-napas-treo-corebanking.txt"]
+
+  # Báo cáo tiến độ công việc nền cho Hoàng, mỗi 15 phút (Hoàng yêu cầu 2026-09-13:
+  # "Báo cáo anh tiến độ mỗi 15ph nhé"). Thuần script = 0 token.
+  # - Chỉ gửi khi có THAY ĐỔI thật (chữ ký: git hash + file mới + pid đang chạy).
+  # - 3 lượt không có gì chạy và không đổi ⇒ gửi 1 tin "xong" rồi tự im (cờ quiet).
+  # - Im lặng 22:00–06:00. Hết hạn 20/09 để không thành rác; muốn dùng tiếp thì gia hạn.
+  - id: widget-progress
+    every_minutes: 15
+    between: ["07:00", "22:30"]
+    until: "2026-09-20"
+    script: widget_progress.py

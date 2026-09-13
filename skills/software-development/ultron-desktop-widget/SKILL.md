@@ -41,9 +41,12 @@ STT: faster-whisper models small/medium/large-v3 already cached in `~/.cache/hug
 ## Phases (report + real screenshot after each; user tests before proceeding)
 1. Floating icon + drag + position memory + panel skeleton (no backend)
 2. Text chat over HTTP
-3. Mode toggle + STT
-4. TTS + continuous voice conversation (stop on "kết thúc" or stop button)
-5. Global hotkey
+3. Animation + mood layer (ring colours, breathing, sonar, orbit, blink) WITH the idle-CPU budget held
+4. Emotion face: eyes + mouth driven by state/mood
+5. Mode toggle + mic/STT
+6. TTS + continuous voice conversation (stop on "kết thúc" or stop button)
+7. Global hotkey
+Write the NEXT phase's spec file to disk before the current dispatch returns — an idle pipeline is the only real waste here, and Hoàng's standing instruction is "cứ làm với nhau, anh mong kết quả", i.e. do not ask per step, land evidence per step.
 
 ## Verification pitfalls (learned on this box)
 - Screenshot: `ffmpeg -y -loglevel error -f x11grab -i :0 -frames:v 1 out.png` — `-frames:v` must come AFTER `-i`, else it is read as an input option and fails.
@@ -54,16 +57,21 @@ STT: faster-whisper models small/medium/large-v3 already cached in `~/.cache/hug
 - Drive + test the widget with no human present: `systemd-run --user --unit=wtest --collect -p WorkingDirectory=/home/zane/ultron-widget -p Environment="DISPLAY=:0 ULTRON_START_OPEN=1" ./.venv/bin/python ultron_widget.py`, read geometry with `xwininfo -root -tree | grep '"Ultron"'`, stop with `systemctl --user stop wtest`. Verified: default 48x48@(1848,1008) margin 24px, restores saved pos, clamps 9999/-500 → on-screen, panel 280x400 anchored to icon.
 - `systemd-run -p Environment=` SPLITS ON SPACES: a value with a space (e.g. a test message) kills the unit instantly with `Invalid environment block` and no window ever appears — looks like a widget bug but is not. Quote inside the string: `-p 'Environment=DISPLAY=:0 "ULTRON_TEST_SEND=ping widget"'`, or use underscores. Before blaming widget code for a silent no-start, check the unit started.
 - NEVER `pkill -f "<name>.py"` from a shell whose own command line contains that literal — the regex matches the running bash and the whole verification dies of SIGTERM. Kill via the systemd unit or by exact PID.
+- NEVER `ps -eo pid,etime,cmd | grep ultron_widget` while a claude dispatch is alive: claude's own cmdline IS the whole spec (thousands of chars), so the grep floods the context. Use `pgrep -af pattern | cut -c1-80` or filter by name only (`ps -eo pid,comm`), and check the dispatch with the process tool instead.
 - The desktop may be LOCKED: `ffmpeg x11grab` then captures only the lock screen. Capture the window itself instead: `xwd -silent -id <wid> -out /tmp/w.xwd && ffmpeg -y -i /tmp/w.xwd out.png` (works while locked).
+- The project ships its own harness: `tests/verify_phase25.py` (offscreen suite asserting geometry, animations, moods, file-download, token 401) and `tests/capture_p25.sh run|stop|wid|burst`. RUN it as one input — never as the proof: the same agent wrote the code AND the test, so re-verify independently on real X11 (geometry via `xwininfo`, CPU per the recipe, one real send through `:9445`). Its suite passing while the widget still burns 8.8% CPU is the normal case, not a contradiction.
 
 ## Look & feel (Hoàng's choices — keep them)
 - Icon = **head crop** of `assets/avatar.png` (circular mask inside the state ring); the panel header shows the **full-body** mascot. Fall back to the vector face only when the asset is missing.
 - **State and mood are separate layers.** State = functional (idle / listening / thinking / speaking, ring colours above). Mood = flavour drawn on top (happy / curious / worried / sleepy / impatient / neutral) from simple rules — keywords, events, clock — never an extra network call, never ML.
 - Animations are REQUIRED, not decoration: breathing at rest, cross-fade (~280ms) on state change, sonar rings while listening, orbiting arc while thinking, faster pulse + micro-bob while speaking, blink every 4–9s, panel slide+fade on open, bubbles fading in.
 - **Geometry contract:** glow/sonar need room ⇒ window = 48px icon + 12px transparent padding (72x72), but the VISIBLE icon stays 48px, 24px from the screen edges, and `state.json` keeps storing the ICON's top-left (clamp on the icon rect). Any window-size change ⇒ re-verify position memory + clamp + drag.
-- Keep it cheap: one timer (~33ms) only while animating; idle CPU target < 3% of one core — measure it, don't assume.
+- Keep it cheap: one timer (~33ms) only while animating; idle CPU target < 3% of one core. Measure it, don't assume — and measure AFTER ~10s of warm-up with no forced state/mood: read `/proc/<pid>/stat` fields 14+15 twice, 10s apart. A reading taken right after launch (or while a state/mood is pinned) inflates the number and sends you chasing a bug that is not there. Recipe + optimisation list: `references/animation-and-moods.md`.
+- **Emotion face is DRAWN, not baked**: eyes + mouth are re-painted per mood on top of the asset (auto-calibrated from the image, cached pixmaps, `ULTRON_FACE=0` off switch) — calibration + the full eye/mouth table live in `references/animation-and-moods.md`. Adding an expression must never require a new image file.
 - Mood table, animation timings and the frame-capture recipe: `references/animation-and-moods.md`.
 
 ## Hard constraints
 - Independence: never touch `platforms.webhook.*`, the gateway, or the Chat adapter while working on the widget or the Siri gates; keep message/file/state files per-channel.
 - Widget code = code ⇒ dispatch to claude (Jarvis); run `python3 ~/.hermes/scripts/claude_mcp_preflight.py` (must exit 0) first. No global installs, no sudo, no model downloads without asking.
+- **One dispatch per working tree at a time.** Two Jarvises editing the same repo clobber each other ⇒ queue the next widget phase until the running one reports. A task in a DIFFERENT directory (e.g. `~/.hermes/scripts`) may run concurrently — use the wait to land unrelated work instead of idling.
+- Long dispatches run as `timeout N claude -p …` in the background — the wrapper KILLS the run mid-flight when `N` expires (exit 124), and it commonly dies after committing the code but before the final report. On exit 124, check `git log --oneline -3` + `git status --short` + whatever artifacts it already wrote BEFORE re-dispatching; usually you only need to finish the verification yourself and hand back the one missing piece. Keep each dispatch to a bounded chunk and end the spec with "commit, then a short report" so a kill costs as little as possible.
