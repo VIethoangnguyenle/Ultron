@@ -19,6 +19,7 @@ trên iPhone, CI, monitor, hệ thống ngoài, script trên máy khác. Hermes 
 
 Câu trả lời của Ultron vẫn đi về Chat (DM/group) qua adapter Google Chat; route chỉ là cửa VÀO.
 Recipe chi tiết (iOS Shortcuts 4 bước, biến thể bind): `references/external-trigger-endpoints.md`.
+Hai kênh endpoint tách biệt — NÓI (đọc to) vs CHAT (như Google Chat): `references/siri-chat-channel.md`.
 
 ## Quy trình
 

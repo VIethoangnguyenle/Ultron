@@ -124,6 +124,9 @@ Mặc định skill này chỉ ĐỌC. Khi Hoàng bảo tạo task:
 - Đính kèm file (gói SQL gửi bank): MCP **chặn path ngoài `/home/zane/.hermes`** (`Path traversal detected`) ⇒ copy file vào `~/.hermes/attachments/` rồi truyền path đó vào `attachments`.
 - Sau khi tạo/sửa: verify bằng `jira_get_issue` (fields ngắn) — đừng tin mỗi message "Issue created successfully".
 - Nhắc task có hạn: KHÔNG tạo cron mới — task đã có `duedate` sẽ tự nằm trong báo cáo Jira hằng sáng.
+- **Tạo task qua lệnh thoại (Siri):** thông tin thường thiếu ở lần nói đầu ⇒ thu **từng phần** (lưu nháp ở
+  `~/.hermes/state/siri_draft.json`, mỗi lượt hỏi đúng 1 trường: việc gì → cho ai → start/hạn → ưu tiên),
+  đủ trường mới tạo; tạo xong xoá nháp + báo một câu. Việc GHI luôn đọc lại 1 câu xác nhận trước khi tạo.
 
 ## Gửi nhắc nhở
 

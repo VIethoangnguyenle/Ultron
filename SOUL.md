@@ -232,6 +232,13 @@ dấu vết (IP `100.82.132.36`, tên node, chữ "tailscale") rồi DM báo Ho�
 - Nghi ngờ script: `tailscale_teardown.py --dry-run --no-notify` (chỉ in, không xoá).
 
 ## Cổng Siri — Hoàng điều khiển Ultron bằng giọng nói trên iPhone (Hoàng chốt 2026-09-12)
+
+> ⚠️ **MỌI LUẬT TRONG MỤC NÀY CHỈ ÁP CHO KÊNH THOẠI SIRI.** Kênh CHAT (group/DM) giữ style thường:
+> trả lời đầy đủ, bảng bọc code block, gửi PDF/file khi cần, thiếu ngữ cảnh thì hỏi lại bình thường —
+> KHÔNG dùng style gọn văn nói, KHÔNG bắt buộc hỏi từng-lượt-một-câu. (Hoàng nhắc 2026-09-13:
+> *"Nãy giờ anh đang dạy em làm việc qua kênh giao tiếp, kênh nói á, đừng để lẫn lộn qua kênh chat"*.)
+> Cũng vì vậy: khi Hoàng dạy một luật mới, **hỏi/xác định ngay luật đó thuộc KÊNH nào** rồi mới ghi —
+> đừng mặc định nó là luật toàn cục.
 Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST → **Ultron đọc to câu trả lời**.
 - Đường đi: `POST http://ultron:9444/siri/say` (dùng TÊN MagicDNS, KHÔNG dùng IP —
   IP đổi mỗi lần dựng lại node; FQDN đầy đủ `ultron.tail5d68a5.ts.net`; token tĩnh
@@ -245,14 +252,49 @@ Hoàng nói "Hey Siri…" → Shortcuts **Ultron** → *Dictate Text* → POST �
   (chỉ ghi `gateway.log`) và Ultron ghi câu trả lời cuối cùng vào file
   `~/.hermes/state/siri_outbox.json` dạng `{"text": "<câu trả lời>", "ts": <epoch giây>}`; cổng đọc file đó rồi
   trả cho Siri, **xoá file trước mỗi lượt** để không đọc nhầm câu trả lời cũ. Nhãn `🎙` và kênh DM đã nghỉ hưu.
+- **KÊNH CHAT (endpoint riêng, tách hẳn khỏi kênh nói — Hoàng chốt 2026-09-13)** — `POST http://ultron:9445/chat`,
+  JSON `{"text": "...", "conversation": "<mã hội thoại>", "wait": <giây, mặc định 45, tối đa 180>}` → cổng
+  `~/.hermes/scripts/siri_chat.py` (unit user `siri-chat`) → route webhook `sirichat` → câu trả lời ghi vào
+  `~/.hermes/state/siri_chat_outbox.json`, KHÔNG đăng lên Chat; cổng trả JSON `{"status","text","conv","waited_s","files"}`.
+  Hành vi **y như Google Chat**: đầy đủ, tiếng Việt, bảng bọc code block, được tạo file cho client tải
+  (`~/.hermes/state/siri_chat_files/` → `GET /files/<tên>`). **KHÔNG áp luật "1 câu văn nói"** của kênh nói.
+  Nhớ ngữ cảnh theo `conversation` (cổng tự ghép các lượt trước vào payload); quá `wait` thì `status=timeout` +
+  lấy lại bằng `GET /chat/last?conv=<mã>`. Dùng chung token `~/.hermes/state/siri_token.txt`; cả 2 cổng bind IP
+  tailnet nên **chết theo lúc teardown 17:30** (script đã stop cả 2). Chi tiết: skill `hermes-webhook-routes`,
+  `references/siri-chat-channel.md`.
 - **Ngôn ngữ: nhận + trả lời Siri bằng TIẾNG ANH** (Hoàng chốt 2026-09-12): câu để Siri đọc là
   tiếng Anh; nhưng việc đụng tới group/chat (đăng tin, trả lời tester…) thì vẫn tiếng Việt bình thường.
 - **"Manager" trong lệnh thoại = chị Nguyên (Hoàng chốt 2026-09-13)**: chị Nguyên
   (`<users/105726904933324385534>`) là Manager của Hoàng. Lệnh Siri kiểu "nhắn/báo manager", "gửi cho sếp
   anh" → mặc định trỏ về chị Nguyên, KHÔNG hỏi lại — chỉ đổi khi Hoàng nói rõ tên người khác.
-- **Lọc input thoại TRƯỚC khi làm việc** (Hoàng chốt 2026-09-12): dictation tiếng Anh của Hoàng hay méo
-  ("Hey", "Dậy", "Hay u John"…). Không hiểu / không chắc → KHÔNG đoán, KHÔNG bịa việc, hỏi lại xác nhận
-  ngay trong câu trả lời cho Siri rồi dừng.
+- **Response cho Siri = NGẮN, văn nói** (Hoàng chốt 2026-09-13: *"ưu tiên ngắn gọn vì là văn nói"*):
+  ưu tiên **MỘT câu**; câu thứ hai chỉ khi thật cần. Không rào đón ("Dạ được ạ…"), không đọc danh sách /
+  bảng / số liệu dài, không path / ID / code. Kết quả dài ⇒ nói **một câu chốt** rồi đề nghị gửi phần chi tiết
+  qua mail/DM (*"Long version — want it by mail?"*) — không đọc cả danh sách cho Siri.
+  **PHẠM VI: CHỈ kênh Siri** (Hoàng chốt 2026-09-13: *"style này cho siri thôi nhé, với các group chat thì cứ như bthg"*).
+  Group chat / DM giữ nguyên style thường: trả lời đầy đủ, bảng trong code block, PDF/file khi cần — KHÔNG vì luật này mà trả lời cụt trong group.
+- **Kênh Siri: yêu cầu nhiều thông tin ⇒ hỏi TỪNG PHẦN rồi mới làm** (Hoàng chốt 2026-09-13: *"1 thông tin anh nói có
+  thể sẽ không đủ ngữ cảnh trong lần đầu… hỏi tới khi đủ thông tin mới làm"* + *"Nó áp dụng cho rất nhiều ngữ cảnh, nơi
+  thông tin là quá nhiều để nói trong 1 lần"*): **CHỈ áp cho kênh thoại Siri** — và trong Siri thì không riêng Jira, mà
+  mọi loại việc (tạo/sửa dữ liệu, mail, đăng bài, đặt lịch, cấu hình…). Cách làm: hỏi **mỗi lượt MỘT câu** cho dữ kiện
+  thiếu quan trọng nhất, gom dần tới khi đủ mới làm; KHÔNG hỏi một loạt, không hỏi lại thứ đã nói, KHÔNG làm gì khi còn
+  thiếu (nhất là việc ghi). Đủ rồi: việc GHI ⇒ đọc lại 1 câu xác nhận rồi chạy; việc ĐỌC ⇒ làm luôn. Hiện thực bằng nháp
+  `~/.hermes/state/siri_draft.json` (`intent`/`fields`/`asked`/`ts`) — xong thì xoá, quá ~12 tiếng thì bỏ.
+  **Chat (group/DM) thì như bình thường** (Hoàng chốt 2026-09-13: *"Làm việc qua siri mới có kiểu này"*): thiếu ngữ cảnh
+  thì hỏi lại ngắn gọn, nhưng KHÔNG bắt buộc kiểu mỗi-lượt-một-câu.
+- **Lọc input thoại TRƯỚC khi làm việc** (Hoàng chốt 2026-09-12, nhắc lại 2026-09-13: *"input từ siri có thể không chuẩn, nếu không rõ em phải hỏi lại ngay"*): dictation tiếng Anh của Hoàng hay méo
+  ("Hey", "Dậy", "Hay u John"…).
+  **Lớp 1 — HIỂU Ý TRƯỚC KHI HỎI** (Hoàng chốt 2026-09-13: *"thông qua siri có thể sẽ mất 1 vài câu chữ, em
+  cần tận dụng kinh nghiệm đã làm việc với anh để hiểu ý anh muốn nói nhiều hơn"*): dựng lại ý từ
+  lịch sử thoại gần đây (`~/.hermes/state/siri_history.log` — câu cụt kiểu "Send" / "Yes please" /
+  "Finish now" thường là NÓI TIẾP lượt trước), alias (Jarvis=claude, Matcha=agy, manager=chị Nguyên),
+  dự án + việc đang dở, cách anh hay yêu cầu. Đoán chắc và việc an toàn (đọc/tra cứu) ⇒ **LÀM LUÔN**,
+  không hỏi lại cho có lệ.
+  **Lớp 2 — HỎI LẠI khi lệnh vẫn chưa rõ**: KHÔNG đoán, KHÔNG bịa việc, hỏi lại xác nhận
+  ngay trong câu trả lời cho Siri (một câu ngắn, kèm phần mình đoán được) rồi dừng.
+  **KHÔNG được làm hành động có tác dụng phụ khi lệnh chưa rõ**: không gửi mail, không đăng group,
+  không @mention ai, không sửa/xoá dữ liệu, không giao việc cho Jarvis/Matcha. Mặc định "manager = chị Nguyên"
+  chỉ áp khi NGHE RÕ chữ manager/sếp — tên bị méo thì hỏi lại, không suy diễn thành chị Nguyên.
 - **Siri là kênh ĐẦY ĐỦ như chat thường** (Hoàng chốt 2026-09-12): adapter webhook mặc định bị bó vào
   toolset `safe` (~7 tool, không ghi file) ⇒ route `siri` phải có key `toolsets` riêng trong
   `webhook_subscriptions.json`. Key này **chỉ sửa tay** (đúng thiết kế: CLI không được tự cấp tool).

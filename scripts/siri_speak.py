@@ -35,11 +35,26 @@ OUTBOX_PATH = HOME / ".hermes" / "state" / "siri_outbox.json"   # Ultron ghi câ
 
 def _tailnet_ip() -> str:
     """IP tailnet hiện tại. Node tạo lại là IP đổi ⇒ đọc từ state, KHÔNG gắn cứng."""
-    try:
-        ip = (Path.home() / ".hermes" / "state" / "tailnet_ip.txt").read_text().strip()
-    except Exception:
-        ip = ""
-    return ip or os.environ.get("TAILNET_IP") or "100.120.110.26"
+    ip = (os.environ.get("TAILNET_IP") or "").strip()
+    if not ip:
+        try:
+            ip = (Path.home() / ".hermes" / "state" / "tailnet_ip.txt").read_text().strip()
+        except Exception:  # noqa: BLE001
+            ip = ""
+    if not ip:
+        try:
+            import subprocess
+            out = subprocess.run(["docker", "exec", "tailscale", "tailscale", "ip", "-4"],
+                                 capture_output=True, text=True, timeout=15)
+            ip = (out.stdout or "").strip().splitlines()[0] if out.stdout.strip() else ""
+        except Exception:  # noqa: BLE001
+            ip = ""
+    if ip:
+        try:
+            (Path.home() / ".hermes" / "state" / "tailnet_ip.txt").write_text(ip + "\n")
+        except Exception:  # noqa: BLE001
+            pass
+    return ip or "127.0.0.1"   # node tắt ⇒ vẫn chạy được trong máy để thử
 
 
 TS_IP = _tailnet_ip()
@@ -152,10 +167,31 @@ class Handler(BaseHTTPRequestHandler):
         waited = round(time.time() - started, 1)
         sys.stderr.write(f"[siri-speak] fwd={status} len(text)={len(text)} "
                          f"wait={waited}s answer={'yes' if answer else 'timeout'}\n")
+        log_history(text, answer or TIMEOUT_MSG)
         if answer:
             self._reply_result("ok", answer, waited_s=waited, echo=text)
         else:
             self._reply_result("timeout", TIMEOUT_MSG, waited_s=waited, echo=text)
+
+
+HIST = os.path.expanduser("~/.hermes/state/siri_history.log")
+
+
+def log_history(cmd: str, answer: str) -> None:
+    """Ghi lại từng lượt Siri (lệnh thô + câu trả lời), giữ 40 dòng.
+
+    Để lượt sau hiểu được mấy câu cụt kiểu "Send" / "Yes please" / "Finish now"
+    là đang nói tiếp việc gì — dictation của Hoàng hay mất chữ.
+    """
+    try:
+        with open(HIST, "a", encoding="utf-8") as fh:
+            fh.write("[%s] cmd=%r -> %r\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), cmd, answer))
+        with open(HIST, encoding="utf-8") as fh:
+            lines = fh.read().splitlines()[-40:]
+        with open(HIST, "w", encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n")
+    except Exception as exc:  # noqa: BLE001
+        sys.stderr.write(f"[siri-speak] ghi history lỗi: {type(exc).__name__}\n")
 
 
 def main() -> int:
