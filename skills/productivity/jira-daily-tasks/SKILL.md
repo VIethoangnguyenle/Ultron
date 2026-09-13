@@ -120,7 +120,9 @@ Mặc định skill này chỉ ĐỌC. Khi Hoàng bảo tạo task:
 - Project: `VSONB` (Vietbank SME Omni nội bộ) — issue type thực có: `Task`, `Story`, `Bug`, `Sub-task`, `Sub-bug`.
 - Assignee: `hoangnlv@vnpay.vn` (truyền email vào `assignee`).
 - Hạn chót: `additional_fields` = `{"duedate": "YYYY-MM-DD", "priority": {"name": "High"}}` — `High` chạy được.
+- **Start date / End date** (2 field custom trên jr.servicehub.vn): `customfield_10801` = Start date, `customfield_10802` = End date, định dạng `YYYY-MM-DD`; set qua `jira_update_issue` `additional_fields` (hoặc cùng lúc khi tạo). Hoàng hay muốn 2 mốc này khớp khoảng thời gian thực tế của công việc.
 - Mô tả viết theo Jira wiki: `## ` → heading `h2.`; bullet `* ` OK; **KHÔNG dùng `# `** (markdown numbered list bị convert thành heading `h1.`, mất dạng danh sách) — viết `* 1) ...` nếu cần đánh số. Khối SQL để trong `{code:sql}...{code}`.
+- Mô tả task nên có mục *Timeline triển khai* chia theo **giai đoạn vòng đời** (lên ý tưởng/khảo sát → nghiên cứu & chọn nền tảng → dựng nền & thử nghiệm → mở rộng năng lực & test trong group → chạy hỗ trợ thực tế & ổn định), mỗi giai đoạn kèm khoảng ngày; đặt khớp với Start date/End date của task (Hoàng chốt 13/09).
 - Đính kèm file (gói SQL gửi bank): MCP **chặn path ngoài `/home/zane/.hermes`** (`Path traversal detected`) ⇒ copy file vào `~/.hermes/attachments/` rồi truyền path đó vào `attachments`.
 - Sau khi tạo/sửa: verify bằng `jira_get_issue` (fields ngắn) — đừng tin mỗi message "Issue created successfully".
 - Nhắc task có hạn: KHÔNG tạo cron mới — task đã có `duedate` sẽ tự nằm trong báo cáo Jira hằng sáng.

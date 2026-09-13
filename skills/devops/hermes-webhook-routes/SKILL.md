@@ -20,6 +20,8 @@ trên iPhone, CI, monitor, hệ thống ngoài, script trên máy khác. Hermes 
 Câu trả lời của Ultron vẫn đi về Chat (DM/group) qua adapter Google Chat; route chỉ là cửa VÀO.
 Recipe chi tiết (iOS Shortcuts 4 bước, biến thể bind): `references/external-trigger-endpoints.md`.
 Hai kênh endpoint tách biệt — NÓI (đọc to) vs CHAT (như Google Chat): `references/siri-chat-channel.md`.
+Cả 2 cổng nay là **local-first** (bind `127.0.0.1` trước, tailnet chỉ là cửa phụ) — trạng thái đã kiểm
+chứng + cách nạp lại cổng: `references/siri-channels-local-first.md`.
 
 ## Quy trình
 
@@ -58,6 +60,20 @@ grep -E "\[webhook\] POST|inbound message: platform=webhook|response ready" ~/.h
 
 ## Pitfalls
 
+- **Sửa code cổng xong PHẢI nạp lại unit, không thì test "đã sửa" là vô nghĩa.** `systemctl --user restart`
+  bị guard chặn ⇒ dùng `systemctl --user kill -s TERM siri-speak siri-chat`, chờ ~14s cho `Restart=always`
+  dựng lại. Tiến trình cũ vẫn nằm trong RAM với code cũ và vẫn trả 200 ⇒ health check xanh mà hành vi chưa đổi.
+  Sau khi nạp lại mới chạy bộ verify (ss -ltn, health, 401 khi thiếu token, E2E thật).
+- **Log cổng phải ghi ra FILE, không để trong journald.** `journalctl --vacuum` cần `sudo` ⇒ dấu vết
+  (IP tailnet, tên node) nằm lại qua đêm, phá luật "xoá log Tailscale sau 17h30". Cổng ghi
+  `~/.hermes/logs/siri-speak.log` / `siri-chat.log` (quyền user, scrub giữ nguyên inode) thì dọn được.
+- **`/files/<conv>/<tên>` lọc theo hội thoại nhưng KHÔNG phải phân quyền.** Chỉ có một token dùng chung ⇒
+  client đã xác thực mà biết tên hội thoại + tên file vẫn tải được file của hội thoại khác. Muốn chặn thật
+  phải cấp token/khoá riêng theo hội thoại — việc đó ĐỔI hợp đồng với client nên phải để Hoàng quyết;
+  đừng mô tả tính năng này với người dùng như "bảo mật theo hội thoại". Cùng nhóm: dựng URL file từ
+  header `Host` là lỗ hổng giả mạo ⇒ phải dựng từ địa chỉ loopback cố định, và chịu tải có giới hạn
+  (12 lượt đồng thời ⇒ phần vượt trả 503, cổng không sập) — chặn tải là hành vi ĐÚNG, đừng "sửa" thành chờ vô hạn.
+
 - **Template thay thế MỌI lần xuất hiện của `{field}` — kể cả trong câu rào của chính mình.** Câu kiểm
   tra kiểu *"nếu payload còn nguyên thẻ `{text}` thì trả lời chưa nhận được"* bị thay luôn bằng dữ liệu
   thật ⇒ model đọc ra "payload trống" và trả lời SAI dù client gửi đủ (đã dính thật: một lệnh thoại
@@ -76,9 +92,12 @@ grep -E "\[webhook\] POST|inbound message: platform=webhook|response ready" ~/.h
   Shortcuts KHÔNG đọc được câu trả lời; câu trả lời về `--deliver-chat-id`. Muốn Siri đọc to phải dựng
   cơ chế chờ đồng bộ (đổi lại lệnh lâu bị Shortcuts cắt) — nói rõ đánh đổi này, đừng để người dùng
   tưởng Shortcuts sẽ hiện kết quả.
-- **Bind vào IP Tailscale thì cổng chết theo lịch teardown Tailscale.** Đừng hẹn ai dùng cổng sau mốc
+- **Cổng là local-first: teardown Tailscale KHÔNG còn giết tiến trình cổng.** Bind vào IP Tailscale thì cổng chết theo lịch
+  teardown Tailscale. Đừng hẹn ai dùng cổng sau mốc
   tắt, và không tự bật lại Tailscale ngoài yêu cầu: xem `account-access-provisioning` →
-  `references/tailscale-lifecycle.md`. Cần 24/7 thì đi tunnel công khai + token (rate-limit, chỉ route
+  `references/tailscale-lifecycle.md`. Cổng bind loopback trước rồi mới mở thêm listener tailnet ⇒ sau
+  teardown tiến trình vẫn sống, gọi `127.0.0.1:9444/9445` (widget, script trên máy) vẫn chạy; nhưng
+  client ngoài (Siri/iPhone) vẫn phải trong khung giờ tailnet mở. Cần 24/7 thì đi tunnel công khai + token (rate-limit, chỉ route
   chỉ-đọc) và chỉ dựng khi Hoàng yêu cầu rõ.
 - **Địa chỉ endpoint phải là TÊN MagicDNS, không phải IP tailnet.** IP đổi mỗi lần node được dựng lại,
   còn Shortcut/cấu hình giữ IP cũ thì request rơi vào hư không và client chỉ báo *"Request timed out"* —

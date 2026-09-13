@@ -8,7 +8,7 @@ Tên gọi Hoàng đặt: Jarvis=claude CLI, Matcha=agy ("gọi Jarvis fix code"
 §
 Guard Hermes: chặn restart gateway từ trong gateway + chặn sửa thẳng config.yaml. Restart → gọi claude đọc ~/.hermes/scripts/gw_restart.txt (hẹn 150s rồi restart); không đẩy cho Hoàng. Sửa config: `hermes config set`.
 §
-Đọc ảnh: vision_analyze (agy dự phòng). Video → skill video-analysis (ffmpeg ~/.local/bin, venv whisper). TTS giọng Việt vi-VN-NamMinhNeural.
+Đọc ảnh: vision_analyze (agy dự phòng). Video → skill video-analysis. TTS giọng Việt vi-VN-NamMinhNeural.
 §
 agentmemory: systemd, MCP 54 tool, EMBEDDING_PROVIDER=local.
 §
@@ -18,13 +18,11 @@ registry ~/.hermes/a2a_agents.json; helper scripts/a2a.py.
 §
 Sổ hồ sơ: ~/.hermes/people.json (115 người) + scripts/people.py (list/show/note/habit) + skill team-people; bot/app phải add tay.
 §
-Lịch sử Chat: scripts/gchat_dump.py (read token).
-§
-Siết luật bảo mật → mirror sang Kitty (SOUL+adapter) + restart.
+Chat: gchat_dump.py (đọc lịch sử), gchat_send_file.py --space --file (gửi ảnh/file THẬT lên chat — không bao giờ thả path local).
 §
 Email hộ Hoàng: token ~/.hermes/google_token.json; scripts/gmail.py + email_digest.py (08:00 T2-T6 → DM). Mail chỉ trong DM.
 §
-Tailscale node `ultron` (100.82.132.36, MagicDNS ultron.tail5d68a5.ts.net). 2 cổng endpoint: :9444 speak (siri-speak) + :9445 chat (siri-chat); token state/siri_token.txt. Teardown 17:30 stop cả 2.
+Tailscale node `ultron` (100.82.132.36, MagicDNS ultron.tail5d68a5.ts.net). 2 cổng :9444 speak + :9445 chat LUÔN sống ở 127.0.0.1, chỉ mở thêm cửa tailnet khi node lên; token state/siri_token.txt; teardown 17:30 chỉ tắt node, KHÔNG tắt 2 cổng.
 §
 Manager của Hoàng = chị Nguyên (users/105726904933324385534, Phó phòng P.DVNH).
 §
