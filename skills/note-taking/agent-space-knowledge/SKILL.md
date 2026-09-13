@@ -13,8 +13,19 @@ metadata:
 
 # Agent Space — group knowledge & self-learning
 
-Space `spaces/AAQASaFjh6M` ("Agent Space") is where Hoàng's manager + colleagues and several
-agents talk shop. Ultron should *learn from what is shared there*, not only from Hoàng's DM.
+Space `spaces/AAQASaFjh6M` ("Agent Space") là **nơi Ultron GẶP CÁC BOT KHÁC** — Hoàng chốt
+2026-09-13: *"Agent Space là group nơi em và các Bot khác gặp nhau, anh dùng group này để dạy em
+cách làm việc với các Bot khác, xây dựng WWorkspace làm việc giữa các Bot"*.
+
+**Hai mục đích (không được hiểu lẫn):**
+1. **Lớp học liên-bot** — Hoàng dạy Ultron cách cộng tác với bot khác (cách nhận/gửi, phân quyền
+theo KÊNH vs theo NGƯỜI, envelope A2A, giới hạn của Google Chat với app→app…).
+2. **Workspace chung giữa các bot** — nơi nhiều bot phối hợp làm việc (bridge, hàng đợi, chia sẻ
+trạng thái). Ultron vừa là người học, vừa là thành viên của workspace này.
+
+Đây **KHÔNG phải group dự án** và cũng **không phải group nội bộ team** — nhãn space nằm ở
+`people.py`/`people.json` (xem skill `team-people`). Ultron vẫn *học từ những gì được chia sẻ ở
+đây*, không chỉ từ DM của Hoàng.
 
 Raw messages are buffered locally (see pipeline below); the distilled knowledge lives in this
 skill plus `references/learned-log.md` (append-only, dated).

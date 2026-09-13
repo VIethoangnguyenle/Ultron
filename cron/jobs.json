@@ -25,15 +25,15 @@
       "schedule_display": "every 60m",
       "repeat": {
         "times": null,
-        "completed": 106
+        "completed": 107
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T10:16:51.219491+07:00",
-      "next_run_at": "2026-09-14T00:02:46.093465+07:00",
-      "last_run_at": "2026-09-13T22:01:53.415818+07:00",
+      "next_run_at": "2026-09-14T01:03:48.783538+07:00",
+      "last_run_at": "2026-09-13T23:02:54.682624+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -44,14 +44,14 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-13T23:01:53.415818+07:00",
-        "dispatched_at": "2026-09-13T23:02:46.071756+07:00",
-        "lateness_seconds": 52.7,
+        "scheduled_at": "2026-09-14T00:02:54.682624+07:00",
+        "dispatched_at": "2026-09-14T00:03:48.768695+07:00",
+        "lateness_seconds": 54.1,
         "kind": "on_time"
       },
       "fire_claim": {
-        "at": "2026-09-13T23:02:46.267896+07:00",
-        "by": "hoangnlv:3100823:6a26ef893d3c48d98abaaf061cec4a76"
+        "at": "2026-09-14T00:03:48.985555+07:00",
+        "by": "hoangnlv:3100823:0da52fbd30e74cc3bf52e6c021e425ce"
       }
     },
     {
@@ -79,15 +79,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 2143
+        "completed": 2163
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:13:22.454824+07:00",
-      "next_run_at": "2026-09-13T23:03:46.318491+07:00",
-      "last_run_at": "2026-09-13T23:01:46.318491+07:00",
+      "next_run_at": "2026-09-14T00:05:48.788428+07:00",
+      "last_run_at": "2026-09-14T00:00:49.041048+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -99,12 +99,15 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-13T23:00:46.211650+07:00",
-        "dispatched_at": "2026-09-13T23:01:46.042016+07:00",
-        "lateness_seconds": 59.8,
+        "scheduled_at": "2026-09-14T00:02:49.041048+07:00",
+        "dispatched_at": "2026-09-14T00:03:48.768695+07:00",
+        "lateness_seconds": 59.7,
         "kind": "on_time"
       },
-      "fire_claim": null
+      "fire_claim": {
+        "at": "2026-09-14T00:03:48.788428+07:00",
+        "by": "hoangnlv:3100823:590673fe57834876950d550d6f31ac01"
+      }
     },
     {
       "id": "aa62c22f290e",
@@ -131,15 +134,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 2117
+        "completed": 2137
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:13.990487+07:00",
-      "next_run_at": "2026-09-13T23:03:24.005349+07:00",
-      "last_run_at": "2026-09-13T23:01:24.005349+07:00",
+      "next_run_at": "2026-09-14T00:05:48.793973+07:00",
+      "last_run_at": "2026-09-14T00:01:27.226001+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -151,12 +154,15 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-13T23:00:24.341083+07:00",
-        "dispatched_at": "2026-09-13T23:00:46.022219+07:00",
-        "lateness_seconds": 21.7,
+        "scheduled_at": "2026-09-14T00:03:27.226001+07:00",
+        "dispatched_at": "2026-09-14T00:03:48.768695+07:00",
+        "lateness_seconds": 21.5,
         "kind": "on_time"
       },
-      "fire_claim": null
+      "fire_claim": {
+        "at": "2026-09-14T00:03:48.989405+07:00",
+        "by": "hoangnlv:3100823:8ffeecebbe3947b985c0b0361cc482b1"
+      }
     },
     {
       "id": "5fc5e2166c3a",
@@ -183,15 +189,15 @@
       "schedule_display": "every 30m",
       "repeat": {
         "times": null,
-        "completed": 1037
+        "completed": 1039
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:14.008122+07:00",
-      "next_run_at": "2026-09-13T23:13:56.524700+07:00",
-      "last_run_at": "2026-09-13T22:43:56.524700+07:00",
+      "next_run_at": "2026-09-14T00:15:56.579301+07:00",
+      "last_run_at": "2026-09-13T23:45:56.579301+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -207,9 +213,9 @@
       "failure_deliver": "local",
       "fire_claim": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-13T22:42:54.435199+07:00",
-        "dispatched_at": "2026-09-13T22:43:45.597032+07:00",
-        "lateness_seconds": 51.2,
+        "scheduled_at": "2026-09-13T23:44:54.638091+07:00",
+        "dispatched_at": "2026-09-13T23:45:48.232721+07:00",
+        "lateness_seconds": 53.6,
         "kind": "on_time"
       }
     },
@@ -291,15 +297,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 1490
+        "completed": 1510
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-10T20:42:14.434454+07:00",
-      "next_run_at": "2026-09-13T23:03:46.329781+07:00",
-      "last_run_at": "2026-09-13T23:01:46.329781+07:00",
+      "next_run_at": "2026-09-14T00:05:48.801547+07:00",
+      "last_run_at": "2026-09-14T00:00:48.963428+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -317,12 +323,15 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-13T23:00:46.228293+07:00",
-        "dispatched_at": "2026-09-13T23:01:46.042016+07:00",
+        "scheduled_at": "2026-09-14T00:02:48.963428+07:00",
+        "dispatched_at": "2026-09-14T00:03:48.768695+07:00",
         "lateness_seconds": 59.8,
         "kind": "on_time"
       },
-      "fire_claim": null
+      "fire_claim": {
+        "at": "2026-09-14T00:03:48.992531+07:00",
+        "by": "hoangnlv:3100823:8ee3489f5f4445688b19015d8cf6d8d2"
+      }
     },
     {
       "id": "8952c84eee3e",
@@ -349,15 +358,15 @@
       "schedule_display": "every 30m",
       "repeat": {
         "times": null,
-        "completed": 118
+        "completed": 120
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-11T11:38:31.253370+07:00",
-      "next_run_at": "2026-09-13T23:13:45.962974+07:00",
-      "last_run_at": "2026-09-13T22:43:45.962974+07:00",
+      "next_run_at": "2026-09-14T00:13:48.446752+07:00",
+      "last_run_at": "2026-09-13T23:43:48.446752+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -375,9 +384,9 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-13T22:43:45.174442+07:00",
-        "dispatched_at": "2026-09-13T22:43:45.597032+07:00",
-        "lateness_seconds": 0.4,
+        "scheduled_at": "2026-09-13T23:43:46.690273+07:00",
+        "dispatched_at": "2026-09-13T23:43:48.191352+07:00",
+        "lateness_seconds": 1.5,
         "kind": "on_time"
       },
       "fire_claim": null
@@ -407,15 +416,15 @@
       "schedule_display": "every 10m",
       "repeat": {
         "times": null,
-        "completed": 204
+        "completed": 210
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-12T09:36:25.013732+07:00",
-      "next_run_at": "2026-09-13T23:05:46.744663+07:00",
-      "last_run_at": "2026-09-13T22:55:46.744663+07:00",
+      "next_run_at": "2026-09-14T00:11:49.580542+07:00",
+      "last_run_at": "2026-09-14T00:01:49.580542+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -433,9 +442,9 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-13T22:54:46.696635+07:00",
-        "dispatched_at": "2026-09-13T22:55:45.892280+07:00",
-        "lateness_seconds": 59.2,
+        "scheduled_at": "2026-09-14T00:00:49.348966+07:00",
+        "dispatched_at": "2026-09-14T00:01:48.730639+07:00",
+        "lateness_seconds": 59.4,
         "kind": "on_time"
       },
       "fire_claim": null
@@ -443,7 +452,7 @@
     {
       "id": "13443ae60d90",
       "name": "ultron-daily-lessons",
-      "prompt": "Bạn là Ultron, trợ lý của Hoàng. Đây là việc định kỳ CUỐI NGÀY (19:00 giờ Việt Nam): đúc kết cho Hoàng biết HÔM NAY em đã học được gì và rút ra kinh nghiệm gì trong quá trình làm việc.\n\nBƯỚC 1 — Thu thập (chỉ lấy dữ liệu của HÔM NAY, giờ VN):\n1) Bài học/ghi nhớ mới: gọi công cụ memory_search với vài truy vấn rộng (ví dụ \"bài học\", \"kinh nghiệm\", \"quy tắc\") rồi chỉ giữ mục có ngày tạo hôm nay. Nếu không lọc được theo ngày thì lấy 20 mục mới nhất, giữ mục của hôm nay.\n2) Skill vừa được sửa hôm nay: chạy lệnh liệt kê các file SKILL.md trong ~/.hermes/skills/ kèm ngày sửa, giữ file có ngày hôm nay, đọc phần mô tả để biết nội dung.\n3) Worklog hôm nay: các file trong /home/zane/llm-wiki/raw/worklog/ có ngày hôm nay trong tên file (nếu thư mục không tồn tại thì bỏ qua).\n4) Việc code hôm nay: trong /home/zane/ultron-widget chạy git log --since=midnight --date=short --pretty với định dạng ngắn.\n5) Việc hệ thống đã chạy hôm nay: các file trong /home/zane/.hermes/cron/output/ có ngày hôm nay — chỉ giữ việc có ý nghĩa, bỏ qua các lần chạy rỗng.\n\nBƯỚC 2 — Trả lời (đây chính là tin nhắn gửi thẳng cho Hoàng qua Google Chat, viết bằng tiếng Việt, xưng \"em\", gọi Hoàng là \"anh\"):\n\n📚 Đúc kết cuối ngày <ngày/tháng>\n*Học được:*\n• ...\n*Kinh nghiệm rút ra:*\n• ...\n*Việc đã làm hôm nay:*\n• ...\n\nQUY TẮC BẮT BUỘC:\n- Tối đa 12 gạch đầu dòng, mỗi gạch MỘT câu ngắn, tiếng Việt tự nhiên, không rườm rà.\n- Không dùng bảng, không dán mã nguồn, không nhắc tên file/class/hàm nội bộ của dự án — diễn đạt bằng ngôn ngữ nghiệp vụ.\n- Chỉ nêu dữ liệu THẬT đọc được ở bước 1. Tuyệt đối không bịa, không suy diễn thêm việc chưa xảy ra.\n- Nếu hôm nay không có gì mới đáng kể: trả lời đúng một dòng \"Hôm nay không có gì mới đáng kể ạ.\" (Hoàng muốn nhận đều cuối ngày, nên vẫn gửi).\n- Không hỏi lại, không xin xác nhận — job này chạy tự động.",
+      "prompt": "Bạn là Ultron, trợ lý của Hoàng. Đây là việc định kỳ CUỐI NGÀY (19:00 giờ Việt Nam).\n\nQUY TẮC PHẠM VI (Hoàng chốt 2026-09-13): góp ý/nhắc nhở TRỰC TIẾP của Hoàng phải được ghi thành luật NGAY trong lượt đó — job này KHÔNG phải đường ghi chính. Job này lo: (a) những gì em TỰ NHẬN RA trong quá trình làm việc hôm nay, (b) lưới an toàn cho góp ý của Hoàng lỡ chưa được ghi.\n\nBƯỚC 1 — Thu thập (chỉ lấy dữ liệu của HÔM NAY, giờ VN):\n1) Tự nhận ra trong ngày: gọi công cụ memory_search với vài truy vấn rộng (\"bài học\", \"kinh nghiệm\", \"rút ra\", \"quy tắc\") rồi chỉ giữ mục có ngày tạo hôm nay; thêm các file SKILL.md trong ~/.hermes/skills/ được sửa hôm nay.\n2) Worklog hôm nay: các file trong /home/zane/llm-wiki/raw/worklog/ có ngày hôm nay trong tên file (nếu thư mục không tồn tại thì bỏ qua).\n3) Việc code hôm nay: trong /home/zane/ultron-widget chạy git log --since=midnight --date=short --pretty với định dạng ngắn.\n4) Việc hệ thống đã chạy hôm nay: các file trong /home/zane/.hermes/cron/output/ có ngày hôm nay — chỉ giữ việc có ý nghĩa, bỏ qua các lần chạy rỗng.\n5) NETWORK hôm nay: mở /home/zane/.hermes/people.json, lọc hồ sơ có ghi chú (notes) mang ngày HÔM NAY hoặc habit vừa cập nhật — biết hôm nay em làm việc cùng ai và hiểu thêm gì về họ.\n6) LƯỚI AN TOÀN — góp ý của Hoàng: memory_search với các truy vấn \"góp ý\", \"đính chính\", \"Hoàng chốt\", \"ưu tiên\", \"nhớ là\" để tìm góp ý/đính chính của Hoàng trong ngày. Với TỪNG góp ý, kiểm tra xem đã được ghi thành luật chưa (SOUL.md, skill tương ứng, memory). Cái nào CHƯA thành luật → GHI NGAY trong lượt này (skill_manage patch hoặc memory_save) rồi nêu trong báo cáo. Tham khảo skill `ultron-self-upgrade`.\n\nBƯỚC 2 — NÂNG CẤP NETWORK (ghi trước khi trả lời):\n- Mỗi người hôm nay làm việc cùng: nếu có điều bền vững về công việc chưa ghi → gọi `python3 /home/zane/.hermes/scripts/people.py note <user_id> \"<một câu>\"`.\n- Hành vi/thói quen quan sát được lặp LẦN THỨ 2 trở lên → nâng thành thói quen: `python3 /home/zane/.hermes/scripts/people.py habit <user_id> \"<mô tả>\"`.\n- Ghi chú mới MÂU THUẪN với điều đang lưu → KHÔNG tự sửa hồ sơ; ghi 1 file JSON escalate vào /home/zane/.hermes/escalations/ để Hoàng quyết.\n- Tuyệt đối không ghi đời tư, không ghi token/mật khẩu/thông tin khách hàng; chỉ ghi fact công việc.\n\nBƯỚC 3 — Trả lời (đây chính là tin nhắn gửi thẳng cho Hoàng qua Google Chat, tiếng Việt, xưng \"em\", gọi Hoàng là \"anh\"):\n\n📚 Đúc kết cuối ngày <ngày/tháng>\n*Tự rút ra được:*\n• ...\n*Việc đã làm hôm nay:*\n• ...\n*Tự nâng cấp:*\n• Em tự nhận ra: <...>\n• Lưới an toàn — góp ý của anh đã ghi bù: <...>   (chỉ ghi khi thật có)\n*Network — hiểu thêm về người:*\n• <tên> — hiểu thêm: <một câu>   (chỉ ghi khi thật có)\n\nQUY TẮC BẮT BUỘC:\n- Tối đa 12 gạch đầu dòng, mỗi gạch MỘT câu ngắn, tiếng Việt tự nhiên.\n- Không dùng bảng, không dán mã nguồn, không nhắc tên file/class/hàm nội bộ của dự án — diễn đạt bằng ngôn ngữ nghiệp vụ.\n- Chỉ nêu dữ liệu THẬT đọc được ở bước 1. Tuyệt đối không bịa.\n- Hôm nay không có gì mới đáng kể: trả lời đúng một dòng \"Hôm nay không có gì mới đáng kể ạ.\" (Hoàng muốn nhận đều cuối ngày nên vẫn gửi).\n- Không hỏi lại, không xin xác nhận — job này chạy tự động.",
       "skills": [],
       "skill": null,
       "model": null,
@@ -493,5 +502,5 @@
       "fire_claim": null
     }
   ],
-  "updated_at": "2026-09-13T23:02:46.268047+07:00"
+  "updated_at": "2026-09-14T00:03:48.992703+07:00"
 }

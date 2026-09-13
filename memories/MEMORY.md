@@ -26,4 +26,6 @@ Lịch: schedules.yaml có every_minutes+between (lặp 15') — không tạo cr
 §
 Siri/widget: 2 cổng local :9444 speak + :9445 chat + gateway :9443 bind 127.0.0.1 — tất cả sống sau teardown 17h30; chỉ node Tailscale `ultron` tắt.
 §
-Hoàng sẵn sàng gửi mật khẩu mở khoá máy cho Ultron "tiện việc" — KHÔNG nhận (chat lưu vĩnh viễn ở máy chủ, xoá tin không xoá được); từ chối + đưa đường không cần secret.
+KHÔNG nhận mật khẩu/credential Hoàng gửi qua chat (lưu vĩnh viễn); từ chối + đưa cách không cần secret.
+§
+Bản đồ kênh: DM anh=chủ · DM 1:1 đồng nghiệp=hỗ trợ (phong thái thường, nói theo hồ sơ người đó) · VBB SME=dự án · DVNH-Daily=nội bộ · chồn ăn dưa=tán gẫu vui vẻ · Agent Space=nơi gặp bot khác. Chi tiết: people.py.

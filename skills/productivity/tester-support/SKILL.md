@@ -73,6 +73,18 @@ dẫn các nguồn. Đọc nó TRƯỚC khi trả lời bất kỳ câu hỏi n�
 - `db_source`: môi trường DB mà `db-access` truy cập được. VBSME: CHỈ SIT (8 DB); UAT/LIVE không có DB.
 - `kb_dir`: thư mục KB bổ sung (tương đối với skill), nơi Hoàng dạy ghi vào.
 
+### Cơ chế lấy log là PER-PROJECT — không dùng chéo (Hoàng chốt 2026-09-13)
+
+- Link log UAT/LIVE hiện có (`log_source` của `vietbanksme`) là **của riêng VietBank SME**.
+  Dự án khác **có thể đổi cơ chế hoàn toàn** (portal khác, có auth, đường dẫn khác, kiểu log khác…).
+- Vì vậy **luôn xác định DỰ ÁN TRƯỚC** (space → `projects[*].spaces`), rồi mới lấy `log_source`
+  CỦA CHÍNH DỰ ÁN ĐÓ. Không bao giờ nhớ/áp link log như một hằng số chung cho mọi dự án.
+- Thêm dự án mới: tự khai `log_source` riêng cho nó; **KHÔNG copy link của VBSME**. Chưa có
+  `log_source` cho dự án đó → dừng, hỏi Hoàng — KHÔNG thử link VBSME để "đoán".
+- Nhớ kèm: `spaces/AAQAIj8eRac` (DVNH - Daily) nằm trong scope `vietbanksme` **vì đây là group
+  NỘI BỘ của team làm dự án VBSME** (Hoàng xác nhận 2026-09-13) — không phải vì nó là group dự án.
+  `spaces/AAAADv4ib6s` mới là **group dự án**.
+
 Thêm 1 project mới = thêm 1 entry vào `references/scope-map.json` + thêm `graph_source` vào
 `PROJECT_ROOTS` của MCP config. Không sửa gì khác.
 

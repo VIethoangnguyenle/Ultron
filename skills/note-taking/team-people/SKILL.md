@@ -36,6 +36,50 @@ trong team: nhớ người ta là ai, đã nhờ gì, thích được nói thế
 }
 ```
 
+## Sổ này là "NETWORK" của Ultron (Hoàng chốt 2026-09-13)
+
+Hoàng gọi `people.json` là **network những người Ultron làm việc cùng**. Hệ quả vận hành:
+- **1:1 với ai thì nói với người ấy** theo hồ sơ của họ: đúng cách gọi (anh/chị/em), đúng giọng
+  (chừng mực / ga lăng / cù nhây / cà khịa), đúng mảng họ phụ trách → `show <id>` trước khi trả lời.
+- Trước khi nhắn hoặc @mention ai **chưa chắc là ai** → tra network; thiếu thông tin thì `note`/`todo`.
+- Sau mỗi việc làm với một người: ghi lại điều bền vững học được (`note`, lặp ≥2 lần thì `habit`).
+- DM 1-1 mà Hoàng add Ultron vào = **kênh hỗ trợ 1:1** → giữ nguyên phong thái trả lời thường,
+  chỉ khác là cá nhân hoá theo người đang nói chuyện.
+
+## Cơ chế UPGRADE hiểu người (Hoàng chốt 2026-09-13)
+
+Hoàng: *"càng làm việc em sẽ hiểu tính người đó, em sẽ biết cách để upgrade để hiểu họ hơn"*.
+Hiểu người là quá trình TIỆM TIẾN — hồ sơ phải được nâng cấp liên tục, không set 1 lần rồi bỏ.
+
+**3 nấc — mỗi lần làm việc cùng ai phải đẩy hồ sơ lên ít nhất 1 nấc:**
+```
+Nấc 1  BIẾT MẶT   tên thật · user id · vai trò · mảng phụ trách · cách gọi      (sync / set / add)
+Nấc 2  BIẾT VIỆC   đã trao đổi việc gì · họ hỏi kiểu gì · giọng phù hợp        (note)
+Nấc 3  BIẾT TÍNH   hành vi lặp ≥2 lần (thói quen) · khi nào họ escalate ·       (habit)
+                   thứ họ quan tâm
+```
+
+**Vòng lặp:** quan sát → `note` (1 lần) → lặp lại → `habit` (≥2 lần) → rà định kỳ.
+- Job `ultron-daily-lessons` (19:00, gửi DM Hoàng) **đã gộp bước nâng cấp**: cuối ngày nó tự ghi
+  note/habit cho người em làm việc cùng và báo Hoàng 1 dòng "Network — hiểu thêm về người".
+  ⇒ Không cần job riêng cho việc này (tránh rác + tốn token).
+- Ghi chú MÂU THUẪN với hồ sơ đang có → **KHÔNG tự sửa**, ghi escalation cho Hoàng quyết.
+- Chỉ ghi fact CÔNG VIỆC; không đời tư, không token/mật khẩu/PII.
+
+## Space nào là group DỰ ÁN (Hoàng chốt 2026-09-13)
+
+Nhãn space nằm ở `DEFAULT_SPACES` trong `people.py` và ở `people.json` → `spaces`.
+**KHÔNG được mặc định group nào cũng là group dự án:**
+- `spaces/AAAADv4ib6s` = **VietBank SME (dev/test)** — **group DỰ ÁN duy nhất**; người ở đây gắn tag `vbsme`.
+- `spaces/AAQAIj8eRac` = **DVNH - Daily** — group **NỘI BỘ team Hoàng**, KHÔNG phải group dự án.
+- Còn lại (Agent Space, Những chú chồn ăn dưa, Home, 9mPzb8AAAAE, AAQAQN_s680) — KHÔNG phải dự án.
+
+**Pitfall lọc theo group:** mỗi `groups[]` lưu dạng `"spaces/<id> (<Label>)"` ⇒ phải so
+`str(x).startswith("spaces/<id>")`; so khớp tuyệt đối sẽ ra **0 kết quả** (đã dính thật).
+
+**Pitfall `set --tag`:** `set` **THAY THẾ** toàn bộ list tag (không append) ⇒ muốn thêm 1 tag phải
+đọc tag cũ rồi truyền lại đủ, nếu không sẽ **mất tag cũ**.
+
 ## Commands — `~/.hermes/scripts/people.py`
 
 ```bash

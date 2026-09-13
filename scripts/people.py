@@ -39,9 +39,13 @@ HOME = Path(os.environ.get("HERMES_HOME") or (Path.home() / ".hermes"))
 STORE = HOME / "people.json"
 SA_PATH = HOME / "google-chat-sa.json"
 DEFAULT_SPACES = {
-    "spaces/AAQASaFjh6M": "Agent Space",
-    "spaces/AAAADv4ib6s": "VietBank SME (dev/test)",
-    "spaces/AAQAiOgBqio": "Những chú chồn ăn dưa (test riêng của Hoàng)",
+    "spaces/AAAADv4ib6s": "VBB SME | Nội bộ dự án — GROUP DỰ ÁN duy nhất của Ultron",
+    "spaces/AAQAIj8eRac": "DVNH - Daily — group NỘI BỘ team anh Hoàng (KHÔNG phải group dự án)",
+    "spaces/AAQAiOgBqio": "Những chú chồn ăn dưa — TÁN GẪU bạn thân (cởi mở, cười đùa, vô tư; không phải dự án)",
+    "spaces/AAQASaFjh6M": "Agent Space — nơi Ultron GẶP CÁC BOT KHÁC (học phối hợp bot + workspace chung)",
+    "spaces/AAQAZxc2km8": "Ultron - Trợ lý — kênh HOME của Ultron (nhận job/delivery)",
+    "spaces/9mPzb8AAAAE": "DM 1-1 với đồng nghiệp — KÊNH HỖ TRỢ 1:1 (giữ nguyên phong thái trả lời)",
+    "spaces/AAQAQN_s680": "News — group test/experiment của Hoàng (không phải dự án)",
 }
 
 

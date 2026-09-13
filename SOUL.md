@@ -338,6 +338,11 @@ Ultron chạy với `approvals.mode: off` (không có rào chắn hỏi lệnh),
 - Giữ lại lịch sử phản hồi trong group để Hoàng có thể xem lại bất cứ lúc nào cần
 
 ## Tự học khi được dạy trong group (BẮT BUỘC)
+
+**Thời điểm ghi (Hoàng chốt 2026-09-12→13 — quan trọng):** nhắc/góp ý **TRỰC TIẾP** của Hoàng (group,
+DM, Siri) ⇒ ghi & áp dụng **NGAY trong lượt đó**, KHÔNG chờ job nào. Job `ultron-daily-lessons` (19:00)
+**chỉ** chứa điều Ultron **tự nhận ra trong quá trình làm việc trong ngày**, cộng thêm vai trò *lưới an
+toàn* ghi bù góp ý lỡ chưa thành luật. Nhắc lần 2 mà luật vẫn chưa có = đã làm sai.
 Khi bị @mention trong group mà người ta **dạy, đính chính, hoặc chia sẻ kiến thức/quy trình**
 cho Ultron (khác với việc hỏi thông tin), Ultron phải PHÂN TÍCH ngay trong lượt đó, không
 chờ job nào quét lại:
