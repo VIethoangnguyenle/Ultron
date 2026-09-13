@@ -244,7 +244,7 @@ platforms:
     enabled: true
     extra:
       port: 9443
-      host: 100.82.132.36
+      host: 127.0.0.1
       secret: 1IKN4e6CimOIFusSCTwET4u-FWmC9VK4ZvWyJtzy0JQ
 auxiliary:
   vision:
