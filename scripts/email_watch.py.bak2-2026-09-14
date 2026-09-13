@@ -2,15 +2,11 @@
 """Theo doi mail QUAN TRONG lien quan tới Hoàng → ping DM. Thuần script, 0 token.
 
 Từ 2026-09-14 CHỈ còn hai loại mail được ping, mọi thứ khác im lặng:
-  (a) LỜI MỜI HỌP NỘI BỘ — đính kèm .ics có METHOD:REQUEST, hoặc tiêu đề kiểu
-      mời/book họp; người gửi thuộc domain nội bộ. Bỏ qua .ics METHOD:CANCEL và
-      tiêu đề huỷ/cancel/accepted/declined/từ chối.
-  (b) REVIEW TÀI LIỆU DỰ ÁN — đủ ba nhóm từ khoá review + tài liệu/document +
-      tên dự án, và phải khớp Ở TIÊU ĐỀ hoặc Ở TÊN FILE ĐÍNH KÈM.
-
-Thân thư CHỈ dùng để LOẠI TRỪ, không bao giờ để mở rộng: bản trước bắt từ khoá
-trong thân thư nên một thread lỗi dev hay mail bàn giao code cũng kêu, chỉ vì
-chữ "review"/"document" nằm đâu đó phía dưới chuỗi trả lời.
+  (a) LỜI MỜI HỌP NỘI BỘ — có đính kèm .ics hoặc tiêu đề kiểu mời/book họp,
+      và người gửi thuộc domain nội bộ;
+  (b) REVIEW TÀI LIỆU DỰ ÁN — tiêu đề/nội dung có đủ ba nhóm từ khoá:
+      review + tài liệu/document + tên dự án.
+Cách chấm điểm cũ (sự cố / VIP / cần phản hồi) đã bỏ vì ping quá rộng.
 
   email_watch.py                 # chạy thật (cron gọi cái này)
   email_watch.py --dry-run       # in ra, không gửi, không ghi state
@@ -42,7 +38,6 @@ SEND = SCRIPT_DIR / "gchat_send_text.py"
 STATE = Path.home() / ".hermes" / "state" / "email_watch_seen.json"
 CONFIG = Path.home() / ".hermes" / "state" / "email_watch_config.json"
 ME = "hoangnlv@vnpay.vn"
-ICS_METHOD_RE = re.compile(r"^METHOD\s*:\s*([A-Za-z]+)", re.M)
 
 # Nguồn rác — lọc ngay ở query Gmail cho đỡ tải về (giữ nguyên như bản cũ).
 NOISE = ["from:jira", "from:ttnb@vnpay.vn", "from:daotao@vnpay.vn",
@@ -53,22 +48,17 @@ NOISE = ["from:jira", "from:ttnb@vnpay.vn", "from:daotao@vnpay.vn",
 DEFAULT_CONFIG = {
     "internal_domains": ["vnpay.vn"],
     # Đúng danh sách Hoàng chốt. Cố tình KHÔNG có "thư mời" trống trơn: thư mời lễ lạt
-    # toàn công ty cũng khớp, mà lời mời họp thật thì đã bắt được bằng .ics METHOD:REQUEST.
-    "invite_subject_keywords": ["invitation", "lời mời họp", "loi moi hop", "lời mời",
-                                "loi moi", "mời họp", "moi hop", "book họp", "book hop",
-                                "booking", "meeting invite"],
+    # toàn công ty cũng khớp, mà lời mời họp thật thì đã bắt được bằng đính kèm .ics.
+    "invite_subject_keywords": ["invitation", "lời mời", "loi moi", "mời họp", "moi hop",
+                                "book họp", "book hop", "booking", "meeting invite"],
     # Thư báo HUỶ / nhận / từ chối cũng kèm .ics (METHOD:CANCEL, REPLY) nhưng không phải
     # lời mời — ping mấy cái này đúng là thứ ồn ào cần bỏ.
-    "invite_skip_subject_keywords": ["huỷ", "hủy", "cancel", "accepted", "declined",
-                                     "từ chối", "tu choi", "tentative:"],
-    # (b) — ba nhóm này chỉ soi TIÊU ĐỀ + TÊN FILE ĐÍNH KÈM.
-    "review_keywords": ["review", "rà soát", "ra soat", "góp ý tài liệu", "gop y tai lieu"],
+    "invite_skip_subject_keywords": ["sự kiện đã hủy", "su kien da huy", "đã hủy:", "da huy:",
+                                     "canceled event", "cancelled event", "huỷ lịch",
+                                     "accepted:", "declined:", "tentative:"],
+    "review_keywords": ["review", "rà soát", "ra soat", "góp ý", "gop y"],
     "document_keywords": ["tài liệu", "tai lieu", "document", "đặc tả", "dac ta", "srs"],
-    "project_keywords": ["sme", "vbsme", "vbb", "vietbank"],
-    # Dấu hiệu thread lỗi / bàn giao code. Chỉ dùng để LOẠI TRỪ (b), soi cả thân thư.
-    "thread_exclude_keywords": ["bàn giao", "ban giao", "issue", "bug", "hotfix",
-                                "merge request", "pull request", "jira", "reopen",
-                                "deploy", "release note"],
+    "project_keywords": ["sme", "vbsme", "dự án", "du an", "vietbank"],
 }
 
 
@@ -114,72 +104,22 @@ def _walk(part: dict):
         yield from _walk(sub)
 
 
-def _decode(data: str | None) -> str:
-    if not data:
-        return ""
-    try:
-        return base64.urlsafe_b64decode(data).decode("utf-8", "replace")
-    except Exception:
-        return ""
-
-
-def _ics_method(data: str | None) -> str | None:
-    """METHOD của file .ics: REQUEST = mời thật, CANCEL = huỷ, REPLY = trả lời."""
-    m = ICS_METHOD_RE.search(_decode(data))
-    return m.group(1).upper() if m else None
-
-
-def parts_info(payload: dict) -> tuple[list[str], str, str | None]:
-    """(tên đính kèm, text thuần đã cắt gọn, METHOD của .ics nếu đọc được).
-
-    Lời mời, thư huỷ và thư trả lời chấp nhận/từ chối đều kèm .ics y như nhau —
-    chỉ METHOD mới phân biệt được, nên phải bóc ra ở đây.
-    """
-    names, text, method = [], "", None
+def parts_info(payload: dict) -> tuple[list[str], str]:
+    """Trả về (danh sách tên/kiểu đính kèm, phần text thuần đã cắt gọn)."""
+    names, text = [], ""
     for part in _walk(payload or {}):
         mime = (part.get("mimeType") or "").lower()
-        fname = (part.get("filename") or "").lower()
-        data = part.get("body", {}).get("data")
+        fname = part.get("filename") or ""
         if fname:
-            names.append(fname)
-        if mime == "text/calendar" and not fname:
+            names.append(fname.lower())
+        if mime == "text/calendar":
             names.append("invite.ics")
-        if mime == "text/calendar" or fname.endswith(".ics"):
-            method = method or _ics_method(data)
         if mime != "text/plain" or text:
             continue
-        text = _decode(data)[:4000]
-    return names, text, method
-
-
-def _ics_attachment_ids(payload: dict) -> list[str]:
-    """attachmentId của các phần lịch — dùng khi .ics không nhúng sẵn nội dung."""
-    out = []
-    for part in _walk(payload or {}):
-        mime = (part.get("mimeType") or "").lower()
-        fname = (part.get("filename") or "").lower()
-        if mime not in ("text/calendar", "application/ics") and not fname.endswith(".ics"):
-            continue
-        att = part.get("body", {}).get("attachmentId")
-        if att:
-            out.append(att)
-    return out
-
-
-def fetch_ics_method(svc, mid: str, payload: dict) -> str | None:
-    """Google Calendar gửi .ics dạng đính kèm rời (body chỉ có attachmentId), nên
-    METHOD không nằm trong payload — phải gọi thêm một lần nữa mới đọc được.
-    Chỉ gọi khi thư đã chắc chắn có .ics, thư thường không tốn thêm request nào."""
-    for att in _ics_attachment_ids(payload):
-        try:
-            blob = svc.users().messages().attachments().get(
-                userId="me", messageId=mid, id=att).execute()
-        except Exception:
-            continue
-        method = _ics_method(blob.get("data"))
-        if method:
-            return method
-    return None
+        data = part.get("body", {}).get("data")
+        if data:
+            text = base64.urlsafe_b64decode(data).decode("utf-8", "replace")[:4000]
+    return names, text
 
 
 def has_ics(attachments: list[str]) -> bool:
@@ -192,73 +132,48 @@ def is_internal(sender: str, cfg: dict) -> bool:
                for d in cfg["internal_domains"])
 
 
-def _hits(keys: list, blob: str) -> list:
-    return [k for k in keys if k.lower() in blob]
-
-
-def _head_blob(hdr: dict, attachments: list) -> str:
-    """Vùng được phép MỞ RỘNG: tiêu đề + tên file đính kèm. Thân thư không tính.
-
-    Tên file hay viết dính bằng gạch dưới / gạch ngang (review_tai_lieu_sme_v2.docx)
-    nên phải đổi mấy dấu đó thành khoảng trắng, không thì từ khoá hai chữ không bao
-    giờ khớp.
-    """
-    files = re.sub(r"[._\-]+", " ", " ".join(attachments))
-    return f"{hdr.get('Subject') or ''} {files}".lower()
-
-
-def classify(hdr: dict, attachments: list[str], body: str, cfg: dict,
-             ics_method: str | None = None) -> tuple[str | None, list[str]]:
+def classify(hdr: dict, attachments: list[str], body: str, cfg: dict) -> tuple[str | None, list[str]]:
     """Loại thư + lý do. None = im lặng, không ping.
 
     Whitelist thuần: không khớp (a) hoặc (b) thì bỏ, không có điểm số nào cả.
-    Thân thư chỉ được dùng để loại trừ (b), không bao giờ để mở rộng.
     """
     subj = (hdr.get("Subject") or "").lower()
-    internal = is_internal(hdr.get("From") or "", cfg)
+    blob = f"{subj} {body}".lower()
+    sender = hdr.get("From") or ""
+    internal = is_internal(sender, cfg)
 
-    request = ics_method == "REQUEST"
-    cancel = ics_method == "CANCEL" or bool(_hits(cfg["invite_skip_subject_keywords"], subj))
-    subj_invite = _hits(cfg["invite_subject_keywords"], subj)
-    if internal and not cancel and (request or subj_invite):
-        why = ["đính kèm .ics METHOD:REQUEST"] if request else \
-              ["tiêu đề mời họp: " + ", ".join(subj_invite[:2])]
+    ics = has_ics(attachments)
+    subj_invite = [k for k in cfg["invite_subject_keywords"] if k.lower() in subj]
+    cancel = any(k.lower() in subj for k in cfg["invite_skip_subject_keywords"])
+    if internal and not cancel and (ics or subj_invite):
+        why = ["đính kèm .ics"] if ics else ["tiêu đề mời họp: " + ", ".join(subj_invite[:2])]
         return "invite", ["mời họp nội bộ"] + why
 
-    head = _head_blob(hdr, attachments)
-    rv = _hits(cfg["review_keywords"], head)
-    doc = _hits(cfg["document_keywords"], head)
-    proj = _hits(cfg["project_keywords"], head)
-    blocked = _hits(cfg["thread_exclude_keywords"], f"{subj} {(body or '').lower()}")
-    if rv and doc and proj and not blocked:
+    rv = [k for k in cfg["review_keywords"] if k.lower() in blob]
+    doc = [k for k in cfg["document_keywords"] if k.lower() in blob]
+    proj = [k for k in cfg["project_keywords"] if k.lower() in blob]
+    if rv and doc and proj:
         return "review", ["review tài liệu dự án",
-                          f"{rv[0]} + {doc[0]} + {proj[0]} (ở tiêu đề/tên file)"]
+                          f"{rv[0]} + {doc[0]} + {proj[0]}"]
     return None, []
 
 
-def why_skipped(hdr: dict, attachments: list[str], body: str, cfg: dict,
-                ics_method: str | None = None) -> str:
+def why_skipped(hdr: dict, attachments: list[str], body: str, cfg: dict) -> str:
     """Câu ngắn giải thích vì sao im lặng — chỉ dùng cho --explain."""
     subj = (hdr.get("Subject") or "").lower()
-    if ics_method == "CANCEL" or _hits(cfg["invite_skip_subject_keywords"], subj):
-        return "thư huỷ/nhận/từ chối lịch, không phải lời mời"
-    if ics_method == "REQUEST" or _hits(cfg["invite_subject_keywords"], subj):
+    blob = f"{subj} {body}".lower()
+    if any(k.lower() in subj for k in cfg["invite_skip_subject_keywords"]):
+        return "thư báo huỷ/nhận/từ chối lịch, không phải lời mời"
+    if has_ics(attachments) or any(k.lower() in subj for k in cfg["invite_subject_keywords"]):
         return "giống lời mời họp nhưng người gửi không thuộc domain nội bộ"
-    if has_ics(attachments):
-        return f"có .ics nhưng METHOD={ics_method or 'không đọc được'}, không phải lời mời"
-
-    head = _head_blob(hdr, attachments)
     missing = []
-    if not _hits(cfg["review_keywords"], head):
+    if not any(k.lower() in blob for k in cfg["review_keywords"]):
         missing.append("review")
-    if not _hits(cfg["document_keywords"], head):
+    if not any(k.lower() in blob for k in cfg["document_keywords"]):
         missing.append("tài liệu")
-    if not _hits(cfg["project_keywords"], head):
+    if not any(k.lower() in blob for k in cfg["project_keywords"]):
         missing.append("tên dự án")
-    blocked = _hits(cfg["thread_exclude_keywords"], f"{subj} {(body or '').lower()}")
-    if not missing:
-        return "khớp review tài liệu nhưng là thread " + blocked[0]
-    return "không mời họp; tiêu đề/tên file thiếu " + "/".join(missing)
+    return "không phải mời họp; thiếu " + "/".join(missing)
 
 
 # --- đọc hộp thư (giữ nguyên cách đọc, chỉ lấy thêm body + đính kèm) -----------
@@ -277,11 +192,9 @@ def candidates(s, lookback: int) -> list[dict]:
         full = s.users().messages().get(userId="me", id=mid, format="full").execute()
         payload = full.get("payload", {})
         hdr = {h["name"]: h["value"] for h in payload.get("headers", [])}
-        names, text, method = parts_info(payload)
-        if not method and has_ics(names):
-            method = fetch_ics_method(s, mid, payload)
+        names, text = parts_info(payload)
         out.append({"id": mid, "hdr": hdr, "snippet": full.get("snippet", ""),
-                    "attachments": names, "body": text, "ics_method": method})
+                    "attachments": names, "body": text})
     return out
 
 
@@ -290,13 +203,10 @@ def tally(items: list[dict]) -> tuple[list[dict], list[dict]]:
     cfg = load_config()
     keep, dropped = [], []
     for it in items:
-        method = it.get("ics_method")
-        kind, why = classify(it["hdr"], it.get("attachments", []), it.get("body", ""), cfg,
-                             ics_method=method)
+        kind, why = classify(it["hdr"], it.get("attachments", []), it.get("body", ""), cfg)
         it["kind"], it["why"] = kind, why
         if not kind:
-            it["skip"] = why_skipped(it["hdr"], it.get("attachments", []), it.get("body", ""),
-                                     cfg, ics_method=method)
+            it["skip"] = why_skipped(it["hdr"], it.get("attachments", []), it.get("body", ""), cfg)
             dropped.append(it)
             continue
         keep.append(it)
@@ -356,9 +266,9 @@ def main() -> int:
                   f"{(h.get('Subject') or '')[:52]}")
             print(f"        vì: {', '.join(it['why'])}")
         print(f"   -- im lang {len(dropped)} thu:")
-        for it in dropped:
-            print(f"        [{(it['hdr'].get('Subject') or '')[:52]}] <- {it['skip']}")
-        print(f"   === PING {len(ranked)} | IM LANG {len(dropped)} | TONG {len(items)} thu ===")
+        for it in dropped[:8]:
+            print(f"        [{(it['hdr'].get('Subject') or '')[:46]}] <- {it['skip']}")
+        print(f"   ({len(ranked)}/{len(items)} thu se ping)")
         return 0
 
     first_run = not st["seen"]

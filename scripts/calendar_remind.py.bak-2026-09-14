@@ -1,0 +1,307 @@
+#!/usr/bin/env python3
+"""Quét lịch Hoàng mỗi 2 phút, tới mốc thì nhắc họp: DM Google Chat + đọc to trên máy.
+
+Thuần script, 0 token. Chỉ nhắc HỌP NỘI BỘ / REVIEW TÀI LIỆU DỰ ÁN — lịch cá nhân,
+sự kiện cả ngày, sự kiện đã huỷ hay không có ai tham dự đều bỏ qua, vì nhắc lung tung
+vài hôm là anh tắt luôn cái nhắc.
+
+    calendar_remind.py              # cron gọi cái này
+    calendar_remind.py --dry-run    # in ra việc sẽ nhắc, KHÔNG gửi, KHÔNG phát tiếng
+    calendar_remind.py --test-voice # phát thử một câu để kiểm loa (gõ tay thôi)
+
+Cấu hình: state/calendar_remind.json (tự tạo mặc định lần đầu chạy).
+Chống trùng: state/calendar_seen.json, khoá "<event_id>:<mốc>" — mỗi mốc chỉ nhắc 1 lần.
+Token: google_calendar_token.json (xin bằng gcal_auth.py), KHÔNG dùng chung token Gmail.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+HERMES = Path.home() / ".hermes"
+SCRIPT_DIR = Path(__file__).resolve().parent
+TOKEN = HERMES / "google_calendar_token.json"
+CONFIG = HERMES / "state" / "calendar_remind.json"
+SEEN = HERMES / "state" / "calendar_seen.json"
+LOG = HERMES / "logs" / "calendar_remind.log"
+SEND = SCRIPT_DIR / "gchat_send_text.py"
+EDGE_TTS = HERMES / "hermes-agent" / "venv" / "bin" / "edge-tts"
+PAPLAY = "/usr/bin/paplay"
+TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+CATCHUP_MIN = 5          # mốc trễ quá ngần này thì thôi, khỏi nhắc muộn
+SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+
+DEFAULT_CONFIG = {
+    "enabled": True,
+    "lead_minutes": [10, 0],
+    "voice": True,
+    "quiet_hours": ["21:00", "07:00"],
+    "space": "spaces/0dniIqAAAAE",
+    "only_internal": True,
+    "keywords": ["review", "tài liệu", "tai lieu", "document", "họp", "hop", "meeting",
+                 "dự án", "du an", "sme", "vbsme", "nghiệp vụ", "nghiep vu"],
+    "internal_domain": "vnpay.vn",
+}
+
+
+# --- hạ tầng nhỏ ---------------------------------------------------------------
+
+def log(msg: str) -> None:
+    LOG.parent.mkdir(parents=True, exist_ok=True)
+    stamp = dt.datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
+    with LOG.open("a", encoding="utf-8") as fh:
+        fh.write(f"{stamp} {msg}\n")
+
+
+def load_config() -> dict:
+    """Đọc config; thiếu file thì tạo bản mặc định, thiếu khoá thì bù khoá."""
+    if not CONFIG.exists():
+        CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        CONFIG.write_text(json.dumps(DEFAULT_CONFIG, ensure_ascii=False, indent=2), encoding="utf-8")
+        return dict(DEFAULT_CONFIG)
+    try:
+        cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
+    except Exception:
+        return dict(DEFAULT_CONFIG)
+    return {**DEFAULT_CONFIG, **cfg}
+
+
+def load_seen() -> dict:
+    if not SEEN.exists():
+        return {}
+    try:
+        return json.loads(SEEN.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def save_seen(seen: dict, now: dt.datetime) -> None:
+    """Ghi lại, bỏ khoá của sự kiện đã qua hơn 1 ngày để file khỏi phình."""
+    cut = (now - dt.timedelta(days=1)).isoformat()
+    kept = {k: v for k, v in seen.items() if str(v) >= cut}
+    SEEN.parent.mkdir(parents=True, exist_ok=True)
+    SEEN.write_text(json.dumps(kept, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def in_quiet_hours(now: dt.datetime, window: list) -> bool:
+    """quiet_hours ["21:00","07:00"] là khoảng vắt qua nửa đêm."""
+    if not window or len(window) != 2:
+        return False
+    try:
+        start = dt.time.fromisoformat(window[0])
+        end = dt.time.fromisoformat(window[1])
+    except ValueError:
+        return False
+    cur = now.time()
+    if start <= end:
+        return start <= cur < end
+    return cur >= start or cur < end
+
+
+# --- lấy & lọc sự kiện ---------------------------------------------------------
+
+def fetch_events(creds, now: dt.datetime) -> list:
+    """Sự kiện trong [00:00 hôm nay, 00:00 mai) theo giờ Việt Nam."""
+    from googleapiclient.discovery import build
+
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    day_end = day_start + dt.timedelta(days=1)
+    svc = build("calendar", "v3", credentials=creds, cache_discovery=False)
+    return svc.events().list(
+        calendarId="primary", timeMin=day_start.isoformat(), timeMax=day_end.isoformat(),
+        singleEvents=True, orderBy="startTime", maxResults=100,
+    ).execute().get("items", [])
+
+
+def is_internal(ev: dict, domain: str) -> bool:
+    suffix = "@" + domain.lstrip("@").lower()
+    people = [ev.get("organizer", {}).get("email", "")]
+    people += [at.get("email", "") for at in ev.get("attendees", []) or []]
+    return any((p or "").strip().lower().endswith(suffix) for p in people)
+
+
+def wanted(ev: dict, cfg: dict) -> bool:
+    """Chỉ giữ họp nội bộ / review tài liệu dự án."""
+    if ev.get("status") == "cancelled":
+        return False
+    if not ev.get("start", {}).get("dateTime"):
+        return False
+    if ev.get("visibility") == "private":
+        return False
+    if not (ev.get("attendees") or []):
+        return False
+    blob = f"{ev.get('summary', '')} {ev.get('description', '')}".lower()
+    if not any(k.lower() in blob for k in cfg["keywords"]):
+        return False
+    if not cfg.get("only_internal"):
+        return True
+    return is_internal(ev, cfg["internal_domain"])
+
+
+def due_marks(ev: dict, cfg: dict, now: dt.datetime, seen: dict) -> list:
+    """Các mốc đã tới giờ nhắc mà chưa nhắc: [(lead, thời điểm bắt đầu)]."""
+    start = dt.datetime.fromisoformat(ev["start"]["dateTime"]).astimezone(TZ)
+    out = []
+    for lead in cfg["lead_minutes"]:
+        key = f"{ev['id']}:{lead}"
+        if key in seen:
+            continue
+        mark = start - dt.timedelta(minutes=int(lead))
+        late = (now - mark).total_seconds() / 60.0
+        if 0 <= late <= CATCHUP_MIN:
+            out.append((int(lead), start))
+    return out
+
+
+# --- soạn tin & gửi ------------------------------------------------------------
+
+def where(ev: dict) -> str:
+    link = ev.get("hangoutLink") or ""
+    loc = (ev.get("location") or "").strip()
+    return link or loc
+
+
+def chat_text(ev: dict, lead: int, start: dt.datetime) -> str:
+    title = ev.get("summary") or "(không tên)"
+    head = f"⏰ {lead} phút nữa họp" if lead > 0 else "⏰ Tới giờ họp"
+    place = where(ev)
+    tail = f" ({place})" if place else ""
+    return f"{head}: {title} — {start.strftime('%H:%M')}{tail}"
+
+
+def voice_text(ev: dict, lead: int, start: dt.datetime) -> str:
+    title = (ev.get("summary") or "cuộc họp")[:60]
+    if lead > 0:
+        return f"Anh ơi, {lead} phút nữa họp {title}, lúc {start.strftime('%H')} giờ {start.strftime('%M')}."
+    return f"Anh ơi, tới giờ họp {title} rồi."
+
+
+def send_chat(space: str, text: str) -> bool:
+    r = subprocess.run([sys.executable, str(SEND), "--space", space, "--text", text],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        log(f"LỖI gửi Chat: exit={r.returncode} {r.stderr.strip()[:160]}")
+        return False
+    return True
+
+
+def speak(text: str) -> bool:
+    """Đọc to bằng edge-tts + paplay. Lỗi âm thanh chỉ ghi log, không làm chết script."""
+    if not EDGE_TTS.exists():
+        log(f"bỏ phát tiếng: không thấy {EDGE_TTS}")
+        return False
+    tmp = Path(tempfile.gettempdir()) / f"calendar_remind_{os.getpid()}.mp3"
+    try:
+        gen = subprocess.run([str(EDGE_TTS), "--voice", "vi-VN-NamMinhNeural",
+                              "--text", text, "--write-media", str(tmp)],
+                             capture_output=True, text=True, timeout=60)
+        if gen.returncode != 0 or not tmp.exists():
+            log(f"LỖI edge-tts: exit={gen.returncode} {gen.stderr.strip()[:160]}")
+            return False
+        env = {**os.environ, "XDG_RUNTIME_DIR": "/run/user/1001"}
+        play = subprocess.run([PAPLAY, str(tmp)], capture_output=True, text=True,
+                              timeout=120, env=env)
+        if play.returncode != 0:
+            log(f"LỖI paplay (không có phiên âm thanh?): {play.stderr.strip()[:160]}")
+            return False
+        return True
+    except Exception as exc:
+        log(f"LỖI phát tiếng: {type(exc).__name__}: {exc}")
+        return False
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+# --- luồng chính ---------------------------------------------------------------
+
+def main() -> int:
+    p = argparse.ArgumentParser(description="Nhắc họp từ Google Calendar")
+    p.add_argument("--dry-run", action="store_true", help="in ra, không gửi, không phát tiếng")
+    p.add_argument("--test-voice", action="store_true", help="phát thử một câu kiểm loa")
+    a = p.parse_args()
+
+    cfg = load_config()
+
+    if a.test_voice:
+        line = "Anh ơi, đây là câu thử loa của Hermes. Nghe rõ không ạ?"
+        print(f"phát thử: {line}")
+        print("OK, có tiếng." if speak(line) else "KHÔNG phát được — xem logs/calendar_remind.log")
+        return 0
+
+    if not cfg.get("enabled"):
+        return 0
+
+    if not TOKEN.exists():
+        msg = "chưa cấp quyền Calendar — chạy scripts/gcal_auth.py để cấp (bỏ qua lần chạy này)"
+        print(msg)
+        log(msg)
+        return 0
+
+    sys.path.insert(0, str(SCRIPT_DIR))
+    import gcal_auth  # noqa: E402
+
+    try:
+        creds = gcal_auth.load_creds()
+    except Exception as exc:
+        log(f"token Calendar không dùng được: {type(exc).__name__}: {exc}")
+        print("token Calendar không dùng được — chạy lại scripts/gcal_auth.py")
+        return 0
+    if not creds or not creds.valid:
+        log("token Calendar hết hạn, không làm mới được")
+        print("token Calendar hết hạn — chạy lại scripts/gcal_auth.py")
+        return 0
+
+    now = dt.datetime.now(TZ)
+    try:
+        events = fetch_events(creds, now)
+    except Exception as exc:
+        log(f"LỖI đọc lịch: {type(exc).__name__}: {exc}")
+        print(f"lỗi đọc lịch: {exc}")
+        return 0
+
+    seen = load_seen()
+    quiet = in_quiet_hours(now, cfg.get("quiet_hours"))
+    jobs = []
+    for ev in events:
+        if not wanted(ev, cfg):
+            continue
+        jobs += [(ev, lead, start) for lead, start in due_marks(ev, cfg, now, seen)]
+
+    if not jobs:
+        if a.dry_run:
+            print(f"{len(events)} sự kiện hôm nay, không có mốc nào tới giờ nhắc"
+                  f"{' (đang trong giờ yên lặng)' if quiet else ''}")
+        return 0
+
+    for ev, lead, start in jobs:
+        text = chat_text(ev, lead, start)
+        if a.dry_run:
+            spoken = "không (giờ yên lặng)" if quiet else ("có" if cfg.get("voice") else "tắt")
+            print(f"[dry-run] mốc {lead}p | {start.strftime('%H:%M')} | {ev.get('summary')}")
+            print(f"          chat: {text}")
+            print(f"          đọc to: {spoken} | {voice_text(ev, lead, start)}")
+            continue
+        send_chat(cfg["space"], text)
+        if cfg.get("voice") and not quiet:
+            speak(voice_text(ev, lead, start))
+        seen[f"{ev['id']}:{lead}"] = start.isoformat()
+
+    if a.dry_run:
+        print(f"[dry-run] tổng {len(jobs)} nhắc — chưa gửi gì, chưa ghi state")
+        return 0
+
+    save_seen(seen, now)
+    log(f"nhắc {len(jobs)} mốc: " + "; ".join(f"{e.get('summary')}({l}p)" for e, l, _ in jobs))
+    print(f"đã nhắc {len(jobs)} mốc")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

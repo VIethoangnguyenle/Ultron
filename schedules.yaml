@@ -122,3 +122,17 @@ actions:
     between: ["07:00", "22:30"]
     until: "2026-09-20"
     script: widget_progress.py
+
+  # NHẮC HỌP từ Google Calendar của Hoàng (Hoàng chốt 2026-09-14):
+  # "em vào calendar của anh để biết anh có những lịch họp nào trong ngày, tới giờ thì nhắc anh họp
+  #  (có thể bằng giọng nói trên máy)".
+  # - Chỉ nhắc sự kiện HỌP NỘI BỘ / REVIEW TÀI LIỆU DỰ ÁN (loc theo tên + người tham dự @vnpay.vn);
+  #   bỏ lịch cá nhân, sự kiện cả ngày, sự kiện đã huỷ.
+  # - Nhắc 2 mốc: TRƯỚC 10 PHÚT và ĐÚNG GIỜ bắt đầu → DM Hoàng + đọc to trên loa máy.
+  # - Thuần script = 0 token; chống trùng bằng state/calendar_seen.json; im lặng 21:00–07:00.
+  # - Token riêng google_calendar_token.json (chỉ quyền đọc lịch), KHÔNG dùng chung token Gmail.
+  # - Sửa mốc nhắc / bật-tắt giọng nói: state/calendar_remind.json (không cần sửa code).
+  - id: calendar-remind
+    every_minutes: 2
+    between: ["07:00", "21:30"]
+    script: calendar_remind.py
