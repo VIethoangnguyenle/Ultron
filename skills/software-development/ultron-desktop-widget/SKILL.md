@@ -11,6 +11,12 @@ It is a *client* of the same brain (same rules, same context) — not a second p
 It reuses the two Siri gates as backend; **never build a new server**.
 
 ## Interaction rules (Hoàng, 2026-09-13)
+
+### Kiểm chứng MẶT/MOOD phải làm ở cỡ ICON thật (bài học 2026-09-13)
+- Soi "mắt/miệng có khác nhau không" bằng ảnh bảng tổng dễ bị thu nhỏ rồi kết luận sai. Cách đúng: crop từng cụm ở cỡ thật 48px rồi phóng to ≥4x bằng nearest-neighbour (`ffmpeg -vf "crop=w:h:x:y,scale=iw*4:ih*4:flags=neighbor"`) mới đánh giá.
+- **Nghiệm thu đúng cho "mặt đổi theo cảm xúc": xuất bản ẢNH XÁM (bỏ sạch màu).** Bỏ màu mà vẫn phân biệt được → khác biệt nằm ở nét mặt; chỉ nhận ra nhờ màu viền → **CHƯA ĐẠT** (đã dính đúng ca này: 6 mood đạt nhưng listening/thinking/speaking chỉ khác màu).
+- Cách sửa hiệu quả: tăng delta HÌNH HỌC (mắt to hơn ≥25%, con ngươi lệch ≥25% chiều cao mắt, miệng mở 3 mức chênh ≥2px ở 48px) rồi **đo bằng số pixel khác nhau trên ảnh xám** (ngưỡng lệch 18/255, sàn ≥55 px/cặp) — không tin cảm nhận bằng mắt.
+- Giữ luật cũ: voice = chỉ icon, KHÔNG mở panel; panel 280x400 chỉ dành cho text.
 - **VOICE mode = ONLY the corner avatar icon.** Never expand the 280x400 panel in voice mode — the avatar itself (ring colour + pulse) IS the whole UI: listening / thinking / speaking. Click = start or cancel listening.
 - **TEXT mode = the 280x400 panel** is the interface (message bubbles + input row + send).
 - Mode is remembered across runs (`state.json: mode`).
