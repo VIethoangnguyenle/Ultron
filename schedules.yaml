@@ -127,7 +127,10 @@ actions:
   # "chốt full" → index cả ekyc + vietbank-omni). Thuần script = 0 token, chỉ gửi khi
   # chữ ký tiến độ THẬT SỰ đổi; khi cả 2 run dừng thì gửi 1 tin chốt rồi tự im (cờ quiet).
   # Tự hết hạn 2026-09-21 để không thành rác; muốn dùng tiếp thì gia hạn.
+  # ⛔ TẠM DỪNG theo lệnh Hoàng 2026-09-14 ("Tạm hoãn build graph cho tới khi anh nói lại").
+  #    Bật lại: đổi thành enabled: true. KHÔNG tự bật lại khi chưa được Hoàng nói.
   - id: ua-progress
+    enabled: false
     every_minutes: 15
     between: ["07:00", "22:30"]
     until: "2026-09-21"
@@ -172,3 +175,13 @@ actions:
     until: "2026-09-21"
     script: compact_stats.py
     args: ["--hours", "12", "--send", "--space", "spaces/AAQAZxc2km8"]
+
+  # BÁO TIẾN ĐỘ BUILD GRAPH UA (vietbank-sme) — Hoàng yêu cầu cập nhật tiến độ cho việc chạy nền dài.
+  # Thuần script, 0 token: ua_build_progress.py đọc log watcher + log build + artifact .ua/.
+  # Mỗi 60 phút; tự im lặng khi build xong (--quiet). Tự hết hạn 2026-09-15.
+  - id: ua-build-progress
+    every_minutes: 60
+    between: ["23:45", "07:00"]
+    until: "2026-09-15"
+    script: ua_build_progress.py
+    args: ["--send", "--space", "spaces/AAQAZxc2km8", "--quiet"]

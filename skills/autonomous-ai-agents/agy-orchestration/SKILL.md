@@ -51,6 +51,32 @@ ngày 2026-09-14 là `5.0.9` → tag `v5.0.9`. Đọc lại `origin/dev-sit:grad
 lấy nhánh `feature/kafka-module` đang checkout.
 Trước khi build: fetch, kiểm nhánh dev-sit/dev có mới hơn không, và **trả lại đúng nhánh cũ sau khi xong**.
 
+### Model cho build graph UA (Hoàng chốt 2026-09-14): ưu tiên `claude-opus-4-6-thinking`
+Khi build/đắp knowledge graph UA bằng agy, **ưu tiên model `claude-opus-4-6-thinking`** (Claude Opus 4.6
+Thinking của agy) — KHÔNG dùng `gemini-3.1-pro-high` làm mặc định cho việc này. Danh sách model lấy bằng
+`agy models` (2026-09-14 có: `claude-opus-4-6-thinking`, `claude-sonnet-4-6`, `gemini-3.8-flash-*`,
+`gemini-3.1-pro-*`, `gpt-oss-120b-medium`). Lý do: mỗi lượt sinh mô tả node bằng model yếu dễ ra câu khuôn
+sáo → phải chạy "desc-fix" nhiều vòng (đã từng xảy ra với vietbank-digital). Model là tham số trong lệnh
+agy (`--model`), không phải trong config; muốn đổi thì sửa biến `AGY_MODEL` của script chạy build.
+
+**Nhiều tài khoản agy (Hoàng nói 2026-09-14: "có 3 tài khoản thay nhau xài")**: wrapper `/home/zane/.local/bin/agy`
+(hagy-wrap v1.5) tự trồi sang account khác khi hết quota — account khai trong `~/.antigravity_sw/accounts.json`
+(2026-09-14 có **2** account: `lapnv`, `trungvt3`; log `~/.antigravity_sw/logs/rotation.log`). Vì vậy KHÔNG cần
+xoay account bằng tay: cứ gọi `agy`, wrapper lo. Nếu số account trên máy ít hơn con số Hoàng nói thì BÁO
+lại, đừng tự thêm — và **không bao giờ nhận mật khẩu/credential qua chat** (Hoàng tự đăng nhập).
+
+### NGHIỆM THU graph: exit 0 KHÔNG có nghĩa là xong (2026-09-14)
+Một lượt build agy có thể kết thúc **exit 0 sau vài phút nhưng graph khuyết**: lần 2026-09-14 (model
+`gemini-3.1-pro-high`) sinh 7.647 node nhưng **0 edge**, summary toàn khuôn sáo `"File: <path>"`, layers=1,
+MCP báo `health: DEGRADED - graph has nodes but no edges - analysis phases likely skipped`. Graph loại này
+KHÔNG trace được (không có call chain) — tệ hơn cả bản cũ. Vì vậy:
+- **Trước khi build**: backup `.ua` (giữ bản đang chạy được) — thao tác rẻ, cứu được cả buổi.
+- **Nghiệm thu bằng số, không tin exit code**: đọc `knowledge-graph.json` đếm `nodes`/`edges`, soi 1 node
+  xem `summary` có phải mô tả thật, và gọi MCP `get_graph_metadata` xem `health` (phải là HEALTHY).
+- **Nếu graph khuyết**: KHÔI PHỤC backup ngay (đừng để UA hỏng), rồi chạy lại với prompt siết điều kiện
+  hoàn thành (edges > 10.000, summary thật, layers > 1, tự kiểm bằng lệnh trước khi kết thúc).
+- Prompt mẫu đã siết nằm ở `/home/zane/.hermes/state/ua_build_prompt.txt` (script watcher dùng lại file này).
+
 ### /understand (build the knowledge graph) → chạy bằng **agy**. CLAUDE BỊ CẤM cho việc này
 
 **LUẬT (Hoàng chốt 2026-09-14): "claude không tham gia reasoning này nhá, tốn token lắm".**

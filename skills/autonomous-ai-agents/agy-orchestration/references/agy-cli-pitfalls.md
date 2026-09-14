@@ -33,5 +33,15 @@ Prompt phải: (1) **liệt kê CẤM** đúng các khuôn sáo đó, (2) bắt 
 Verify độc lập: đếm số node chứa chuỗi khuôn sáo (không chỉ đếm "còn tiếng Anh"), và kiểm mẫu ở các node đã viết tốt trước đó xem có bị ghi đè không.
 Rollback nhanh: trước mỗi lượt bắt agy backup `.bakN-<ts>` để khôi phục bản sạch nếu chất lượng kém.
 
-## 9. Verify bản vá wrapper độc lập (không tin self-report)
+## 10. Canh job bằng `$!` của `timeout`, KHÔNG bằng `pgrep`
+Hai cách canh đã hỏng thực tế:
+- `pgrep -f 'timeout 5400 agy'` **bắt trúng chính shell watcher** (cmdline của nó chứa chuỗi đó) ⇒ vòng `while ps -p $P` chạy mãi không thoát (đã treo 26 phút).
+- `pgrep -f 'agy.real --model …' | tail -1` bắt nhầm tiến trình con ngắn hạn ⇒ báo "xong" sau ~1 phút.
+Cách đúng: `nohup timeout 5400 agy … > log 2>&1 & P=$!` — **`$!` là pid của `timeout`**, sống đúng bằng vòng đời job; dùng luôn `$P` đó cho `while ps -p $P`.
+
+## 12. Kill agy: dùng `pkill -x`, ĐỪNG dùng `pkill -f '<chuỗi xuất hiện trong lệnh của chính mình>'`
+`pkill -9 -f 'agy.real --model'` sẽ khớp luôn cmdline của **chính shell đang chạy lệnh đó** (vì chuỗi đó nằm trong cmdline) ⇒ shell tự sát, phần việc phía sau không bao giờ chạy (exit -9).
+Dùng `pkill -9 -x agy.real` (khớp **tên tiến trình** chính xác, không quét cmdline). Khi cần kill theo cmdline thì neo `^` (vd `pgrep -f '^/home/zane/.local/bin/agy.real'`).
+
+## 13. Verify bản vá wrapper độc lập (không tin self-report)
 Chạy lại **đúng ca từng fail qua chính wrapper**: `agy --model gemini-3.1-pro-low --effort high -p 'ok'` phải RC=0; kiểm `bash -n`; đối chiếu `rotation.log`.
