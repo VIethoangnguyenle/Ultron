@@ -93,6 +93,43 @@ LEFT JOIN VBSMEONL.OMNI_DAILY_CUS_TRANS_REQ_CHECK u
 WHERE UPPER(c.USERNAME) = UPPER('facepay47');
 ```
 
+## Kho STH (kho kết quả thu thập sinh trắc học) — `VBEKYCSTORAGE.SUCCESS_COLLECT`
+
+Màn "Danh sách kho STH" (lọc CIF / số giấy tờ / tên KH / CN-PGD / kênh thu thập / dịch vụ / khoảng ngày) đọc từ `SUCCESS_COLLECT` — **khoá chính = `CIF`, mỗi CIF đúng 1 dòng** (lần thu thập sinh trắc học đang hiệu lực). Kiểm chứng SIT 2026-09-14.
+
+| Cột | Ý nghĩa |
+|---|---|
+| `TYPE` / `ID_NUMBER` | loại giấy tờ (`CCCD21` = CCCD gắn chip) / số giấy tờ |
+| `DATE_OF_BIRTH_NFC`, `GENDER_NFC`, `NATION_NFC`, `ISSUE_DATE_NFC` | ngày sinh / giới tính / quốc tịch / ngày cấp — lấy từ **dữ liệu chip CCCD**; NULL khi lần thu thập không đọc chip → màn hình kho STH hiện trống (không phải mất dữ liệu) |
+| `ISSUE_PLACE_CARD` / `EXPIRE_DATE_CARD` | nơi cấp / ngày hết hạn — lấy từ mặt thẻ |
+| `CHANNEL_ID` / `CHANNEL` | kênh thu thập (`SME`, `OLD_TELLER`, …); `CHANNEL` thường NULL |
+| `SERVICE_NAME` | dịch vụ (`COLLECT`) |
+| `STATUS` / `STATUS_BIO` / `STATUS_C06` / `BANK_SYNCED` | trạng thái thu thập / sinh trắc học / đồng bộ dữ liệu dân cư C06 / đã đồng bộ bank (1 = hiệu lực) |
+| `REQUEST_ID` / `REQUEST_COLLECT_ID` | mã yêu cầu / id yêu cầu thu thập (khoá sang `VBSMEEKYC.REQUEST_COLLECT.ID`) |
+
+Gotchas:
+- **Không join chéo schema được** qua db-access: `VBEKYCSTORAGE` và `VBSMEEKYC` là 2 Oracle user riêng → join trong 1 câu trả `ORA-01031`. Đưa tester 2 câu riêng (kho STH + yêu cầu thu thập).
+- `VBSMEEKYC.CARD_INFO_NFC` tra theo `REQUEST_COLLECT_ID`; bản ghi cũ thường không còn dòng chip → tra rỗng KHÔNG có nghĩa lỗi mới.
+- SIT ≠ UAT: CIF/số giấy tờ trên ảnh tester (vd `005130991`) có thể 0 dòng ở SIT — nói rõ trước kẻo họ tưởng query sai.
+
+Query mẫu (kho STH theo CIF):
+
+```sql
+SELECT CIF AS "CIF", FULL_NAME AS "Họ tên khách hàng", TYPE AS "Loại giấy tờ",
+       ID_NUMBER AS "Số giấy tờ", DATE_OF_BIRTH_NFC AS "Ngày sinh (chip)",
+       GENDER_NFC AS "Giới tính (chip)", NATION_NFC AS "Quốc tịch (chip)",
+       ISSUE_DATE_NFC AS "Ngày cấp (chip)", ISSUE_PLACE_CARD AS "Nơi cấp",
+       TO_CHAR(EXPIRE_DATE_CARD,'DD/MM/YYYY') AS "Ngày hết hạn",
+       CHANNEL_ID AS "Kênh thu thập", SERVICE_NAME AS "Dịch vụ",
+       BRANCH_CODE || ' - ' || BRANCH_NAME AS "Chi nhánh/PGD",
+       STATUS AS "Trạng thái thu thập", STATUS_BIO AS "Trạng thái sinh trắc học",
+       STATUS_C06 AS "Trạng thái đồng bộ C06", BANK_SYNCED AS "Đã đồng bộ bank",
+       REQUEST_ID AS "Mã yêu cầu", TO_CHAR(CREATED_DATE,'DD/MM/YYYY HH24:MI:SS') AS "Thời điểm thu thập",
+       TO_CHAR(UPDATE_DATE,'DD/MM/YYYY HH24:MI:SS') AS "Cập nhật cuối"
+FROM VBEKYCSTORAGE.SUCCESS_COLLECT
+WHERE CIF = '005479272';
+```
+
 ## Workflow when a tester asks
 
 **Never paste internal source code in the reply** — translate to business language only.
