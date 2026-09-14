@@ -43,24 +43,28 @@ agy --add-dir /home/zane/Desktop/work/vietbank/vietbank-sme \
 
 - Run in background (`background=true, notify=true`) — each domain takes several minutes.
 
-### /understand (build the knowledge graph) → chạy bằng CLAUDE, không phải agy
+### /understand (build the knowledge graph) → chạy bằng **agy**. CLAUDE BỊ CẤM cho việc này
 
-`agy --print "/understand <path>"` **KHÔNG mở slash command**: print mode của agy không expand skill,
-nó chỉ trả lời như chat bình thường rồi thoát (exit 0 trong <60s, không sinh `.ua/`). Dấu hiệu nhận biết:
-output là một đoạn tóm tắt kiến trúc kèm câu hỏi lại, không có `[Phase N/7]`, không có `.ua/`.
+**LUẬT (Hoàng chốt 2026-09-14): "claude không tham gia reasoning này nhá, tốn token lắm".**
+Mọi reasoning trên source — build knowledge graph, viết mô tả node, tour, domain — **chỉ dùng agy**.
+Claude để dành cho việc CODE (luật chung); đừng "mượn" claude cho UA dù agy đang bận/cạn quota.
 
-Đường chạy đúng cho việc build graph:
-1. Nối skill UA vào claude một lần (đã làm 2026-09-14): symlink
-   `~/.understand-anything/repo/understand-anything-plugin/skills/understand*` → `~/.claude/skills/`,
-   và `.../agents/*.md` → `~/.claude/agents/`.
-2. Chạy claude headless ở đúng repo, kèm chỉ thị bỏ cổng xác nhận (repo lớn sẽ DỪNG lại hỏi scope
-   nếu không có câu này):
+`agy --print "/understand <path>"` **KHÔNG mở slash command**: print mode không expand skill, nó chỉ trả lời
+như chat rồi thoát (exit 0 trong <60s, không sinh `.ua/`; dấu hiệu: output là đoạn tóm tắt kiến trúc kèm câu
+hỏi lại, không có `[Phase N/7]`). Cách chạy ĐÚNG — **bỏ slash command, bảo nó đọc file skill rồi tự chạy
+pipeline bằng shell/node** (đã kiểm chứng: sinh được graph thật):
 
 ```bash
-cd <repo> && timeout 14400 claude -p "/understand <repo> --language vi --no-auto-update  Chạy full repo này, KHÔNG hỏi lại, tự quyết và hoàn thành cả 7 phase." --dangerously-skip-permissions > /tmp/ua_<repo>.log 2>&1
+cd <repo> && timeout 20000 agy --model gemini-3.1-pro-high --effort high \
+  --print-timeout 300m --dangerously-skip-permissions -p \
+  "Đọc kỹ /home/zane/.agents/skills/understand/SKILL.md và thực thi TOÀN BỘ workflow cho repo <path> (đã có .ua/ dở → RESUME từ chỗ dở, KHÔNG làm lại). Ngôn ngữ output: vi. Dùng công cụ shell/node của bạn để chạy các script trong skill. KHÔNG hỏi lại, tự quyết mọi bước, hoàn thành cả 7 phase tới khi sinh ra .ua/knowledge-graph.json + .ua/meta.json." > /tmp/ua_<repo>.log 2>&1
 ```
 
-3. agy chỉ dùng cho việc *sau khi* đã có graph: `/understand-domain`, đọc source, đọc ảnh (`--model gemini-…`).
+- `--effort high` = mức reasoning; model phải thuộc nhóm `gemini-3.1-pro*` (chỉ nhóm này còn quota).
+- Repo lớn: **1 lượt cho toàn bộ sẽ OOM-kill (exit 137)** ở phase sinh mô tả → chia theo module,
+  mỗi lượt ≤ ~1.650 node, và bắt agent ghi file tạm rồi `rename` đè (không ghi trực tiếp vào graph).
+- Pipeline move `.ua/tmp` + `.ua/intermediate` vào `.ua/.trash-*` sau khi xong — bình thường, KHÔNG phải lỗi.
+- Sau khi có graph: `/understand-domain`, đọc source, đọc ảnh vẫn dùng agy (`--model gemini-…`).
 
 ### Workspace lạ phải được “trust” trước khi agy nạp skill
 
@@ -68,14 +72,25 @@ Antigravity đọc skill theo workspace đã tin cậy; thư mục mới chưa c
 (`~/.gemini/antigravity-cli/settings.json`) thì skill coi như không tồn tại. Thêm path vào mảng
 `trustedWorkspaces` (backup file trước) rồi chạy lại.
 
-### Repo nhiều module: index TỪNG repo con, đừng index thư mục cha
+### 1 graph cho cả bộ source — đặt ở thư mục CHA, cơ chế giống `vietbank-sme`
 
-Nếu thư mục cha không có `.git` (chỉ các repo con có), graph ở gốc sẽ **không có `gitCommitHash`**
-⇒ mọi lần chạy lại đều full rebuild, không incremental. Index từng repo con (mỗi cái là git repo thật)
-rồi khai từng path đó vào `PROJECT_ROOTS`:
-`hermes config set 'mcp_servers.understand-anything.env' '{"PROJECT_ROOTS": "<a>,<b>,<c>"}'`
-(đường dẫn dot-key là `mcp_servers.<tên>.env`; MCP chỉ nạp root mới ở **session mới**).
-Trước khi chạy lần đầu, copy `.understandignore` đã tinh chỉnh sang repo đích để lọc build/test/.idea.
+**LUẬT (Hoàng chốt 2026-09-14, thay hẳn cách "index từng repo con" trước đó):** graph UA của bộ
+`vietbank-digital` **KHÔNG** để rải trong từng repo con (`vietbank-omni/.ua`, `viet-bank-omni-ekyc/.ua`) —
+phải **gom tất cả source về 1 graph duy nhất, đặt ở bên ngoài** (ngoài các repo con), *cơ chế giống
+`vietbank-sme`*:
+- Thư mục cha (`vietbank-digital/`, chứa `vietbank-omni` + `viet-bank-omni-ekyc` + `dvnh-common`) là
+  **PROJECT_ROOT**; graph ở `<cha>/.ua/knowledge-graph.json`.
+- Mẫu `vietbank-sme` đang chạy đúng thế: repo cha **là git repo** (các repo con cũng là git), `.ua/` ở gốc cha,
+  MỘT `knowledge-graph.json` (5.179 file) + `domain-graph.json`, `PROJECT_ROOTS` khai đúng 1 path cha.
+- Thư mục cha **chưa có `.git` ⇒ `git init` + `.gitignore` (ignore `.ua/`) trước khi chạy** — không có git thì
+  graph thiếu `gitCommitHash` và mọi lần chạy lại là full rebuild (không incremental).
+- Phải chạy UA trên đúng PROJECT_ROOT cha: path node khi đó tính từ gốc cha, MCP/`get_node_source` mới
+  resolve đúng file; graph merge tay từng repo con sẽ sai đường dẫn (`transaction/…` thay vì
+  `vietbank-omni/transaction/…`).
+- `PROJECT_ROOTS` nên trỏ **1 root cha** thay vì liệt kê từng repo con:
+  `hermes config set 'mcp_servers.understand-anything.env' '{"PROJECT_ROOTS": "<cha>,<dự án khác>"}'`
+  (MCP chỉ nạp root mới ở **session mới**).
+- Copy `.understandignore` đã tinh chỉnh (lọc build/test/.idea/node_modules) sang thư mục cha trước khi chạy.
 - One domain per invocation (not all at once); the domain-analyzer writes to `.ua/intermediate/domain-analysis.json` then merges into `.ua/domain-graph.json`.
 - Back up `domain-graph.json` before each run: `cp domain-graph.json domain-graph.json.bak-$(date +%Y%m%d-%H%M%S)`.
 
@@ -100,6 +115,16 @@ echo "exit=$?"; tail -c 1500 /tmp/agy_out.txt
 - Hoàng chốt (2026-09-10): đọc ảnh dùng **agy**, KHÔNG giao cho claude.
 
 ## Khi CẢ 2 account đều hết quota (hành vi thật của wrapper)
+
+**LUẬT (Hoàng chốt 2026-09-14): hết quota 1 MODEL ⇒ thử các model KHÁC trước, chỉ `hagy next` (đổi ACCOUNT) khi mọi model đều hết.** Quota tách theo model chứ không phải theo account — nhảy account ngay là lãng phí.
+
+Thang model để thử (lấy từ `agy models`, chỉ nhóm Gemini theo mặc định):
+`gemini-3.1-pro-high` → `gemini-3.1-pro-low` → `gemini-3.8-flash-high` → `gemini-3.8-flash-medium` → `gemini-3.7-flash-high` → `gemini-3.7-flash-medium` → `gemini-3.6-flash-high`.
+Cách probe: 1 prompt cực ngắn trước khi chạy lại job thật —
+`timeout 90 agy --model <m> --print-timeout 1m --dangerously-skip-permissions -p "ok" >/tmp/probe.log 2>&1`
+(exit 0 + có trả lời = model còn quota; gặp pattern quota = hết).
+- **KHÔNG tự nhảy sang model Claude/GPT qua agy** (`claude-opus-4-6-thinking`, `claude-sonnet-4-6`, `gpt-oss-120b-medium`) khi chưa được Hoàng cho phép — luật "claude không tham gia reasoning" vẫn đứng; nhóm model đó để Hoàng quyết.
+- Wrapper v1.3 (`~/.local/bin/agy`) hiện **nhảy account ngay** (`hagy next --quiet`) khi gặp pattern quota, không có bước thử model khác ⇒ bước "thử model khác" phải làm ở phía Ultron cho tới khi Hoàng duyệt sửa wrapper (sửa wrapper = việc code).
 
 Wrapper print mode (`agy` → `agy.real` + guard) thử tối đa `MAX_RETRIES=2` lần: gặp pattern quota thì `hagy next --quiet` + chạy lại; **hết lượt thử thì nó `exit` và trả NGUYÊN văn lỗi quota** — không có đường lui thông minh nào. Nên gặp lỗi quota lần 2 ⇒ dừng, đừng chạy lại vô ích (mỗi lần thử vẫn tốn quota/CPU).
 

@@ -25,33 +25,33 @@
       "schedule_display": "every 60m",
       "repeat": {
         "times": null,
-        "completed": 125
+        "completed": 126
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T10:16:51.219491+07:00",
-      "next_run_at": "2026-09-14T19:20:43.986680+07:00",
-      "last_run_at": "2026-09-14T17:19:44.719795+07:00",
+      "next_run_at": "2026-09-14T20:21:45.661809+07:00",
+      "last_run_at": "2026-09-14T18:20:48.696486+07:00",
       "last_status": "error",
-      "last_error": "Script exited with code 128\nstderr:\ngit@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\nstdout:\nsynced: /home/zane/.hermes -> /home/zane/Ultron\n[main f2e2488] sync: 2026-09-14T10:19:40Z\n 15 files changed, 473 insertions(+), 66 deletions(-)\n create mode 100755 scripts/ua_progress.py\n create mode 100644 skills/productivity/tester-support/references/knowledge/vietbanksme/trace-hanh-trinh-giao-dich.md",
+      "last_error": "Script exited with code 128\nstderr:\ngit@github.com: Permission denied (publickey).\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\nstdout:\nsynced: /home/zane/.hermes -> /home/zane/Ultron\n[main c2135f5] sync: 2026-09-14T11:20:44Z\n 10 files changed, 624 insertions(+), 59 deletions(-)\n create mode 100644 skills/autonomous-ai-agents/headless-agent-jobs/SKILL.md\n create mode 100644 skills/autonomous-ai-agents/headless-agent-jobs/references/agent-executes-skill.md\n create mode 100644 skills/autonomous-ai-agents/headless-agent-jobs/scripts/verify_ua_graph.py\n create mode 100644 skills/autonomous-ai-agents/headless-agent-jobs/templates/chunked_summary_loop.sh\n create mode 100644 skills/autonomous-ai-agents/headless-agent-jobs/templates/resume_loop.sh\n create mode 100644 skills/devops/agent-dispatch-recovery/SKILL.md\n create mode 100644 skills/devops/system-resource-monitoring/references/token-accounting.md",
       "last_delivery_error": null,
       "last_delivery_unverified": null,
-      "failure_streak": 9,
+      "failure_streak": 10,
       "deliver": "local",
       "origin": null,
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-14T18:19:44.719795+07:00",
-        "dispatched_at": "2026-09-14T18:20:43.962998+07:00",
-        "lateness_seconds": 59.2,
+        "scheduled_at": "2026-09-14T19:20:48.696486+07:00",
+        "dispatched_at": "2026-09-14T19:21:45.641458+07:00",
+        "lateness_seconds": 56.9,
         "kind": "on_time"
       },
       "fire_claim": {
-        "at": "2026-09-14T18:20:44.355942+07:00",
-        "by": "hoangnlv:1390:9ff2a6ff06e7445586a63f7160716e51"
+        "at": "2026-09-14T19:21:45.844555+07:00",
+        "by": "hoangnlv:1390:5b7389c1a4ae4e6b9baead23a9d15286"
       }
     },
     {
@@ -79,15 +79,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 2530
+        "completed": 2550
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:13:22.454824+07:00",
-      "next_run_at": "2026-09-14T18:22:44.300095+07:00",
-      "last_run_at": "2026-09-14T18:20:44.300095+07:00",
+      "next_run_at": "2026-09-14T19:22:45.854617+07:00",
+      "last_run_at": "2026-09-14T19:20:45.854617+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -99,8 +99,8 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-14T18:19:44.163661+07:00",
-        "dispatched_at": "2026-09-14T18:20:43.962998+07:00",
+        "scheduled_at": "2026-09-14T19:19:45.790383+07:00",
+        "dispatched_at": "2026-09-14T19:20:45.619219+07:00",
         "lateness_seconds": 59.8,
         "kind": "on_time"
       },
@@ -131,15 +131,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 2502
+        "completed": 2522
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:13.990487+07:00",
-      "next_run_at": "2026-09-14T18:22:21.401793+07:00",
-      "last_run_at": "2026-09-14T18:20:21.401793+07:00",
+      "next_run_at": "2026-09-14T19:22:25.816760+07:00",
+      "last_run_at": "2026-09-14T19:20:25.816760+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -151,9 +151,9 @@
       "workdir": null,
       "failure_deliver": "local",
       "last_dispatch": {
-        "scheduled_at": "2026-09-14T18:19:24.190248+07:00",
-        "dispatched_at": "2026-09-14T18:19:43.941254+07:00",
-        "lateness_seconds": 19.8,
+        "scheduled_at": "2026-09-14T19:19:26.458636+07:00",
+        "dispatched_at": "2026-09-14T19:19:45.594154+07:00",
+        "lateness_seconds": 19.1,
         "kind": "on_time"
       },
       "fire_claim": null
@@ -183,15 +183,15 @@
       "schedule_display": "every 30m",
       "repeat": {
         "times": null,
-        "completed": 1076
+        "completed": 1078
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-09T12:48:14.008122+07:00",
-      "next_run_at": "2026-09-14T18:43:50.803567+07:00",
-      "last_run_at": "2026-09-14T18:13:50.803567+07:00",
+      "next_run_at": "2026-09-14T19:45:53.677080+07:00",
+      "last_run_at": "2026-09-14T19:15:53.677080+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -207,9 +207,9 @@
       "failure_deliver": "local",
       "fire_claim": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-14T18:12:48.632657+07:00",
-        "dispatched_at": "2026-09-14T18:13:42.401452+07:00",
-        "lateness_seconds": 53.8,
+        "scheduled_at": "2026-09-14T19:14:56.272409+07:00",
+        "dispatched_at": "2026-09-14T19:15:45.465822+07:00",
+        "lateness_seconds": 49.2,
         "kind": "on_time"
       }
     },
@@ -291,15 +291,15 @@
       "schedule_display": "every 2m",
       "repeat": {
         "times": null,
-        "completed": 1875
+        "completed": 1895
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-10T20:42:14.434454+07:00",
-      "next_run_at": "2026-09-14T18:20:44.843445+07:00",
-      "last_run_at": "2026-09-14T18:18:44.843445+07:00",
+      "next_run_at": "2026-09-14T19:23:45.667069+07:00",
+      "last_run_at": "2026-09-14T19:18:46.461687+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -317,12 +317,15 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-14T18:17:45.819093+07:00",
-        "dispatched_at": "2026-09-14T18:18:43.915396+07:00",
-        "lateness_seconds": 58.1,
+        "scheduled_at": "2026-09-14T19:20:46.461687+07:00",
+        "dispatched_at": "2026-09-14T19:21:45.641458+07:00",
+        "lateness_seconds": 59.2,
         "kind": "on_time"
       },
-      "fire_claim": null
+      "fire_claim": {
+        "at": "2026-09-14T19:21:45.839829+07:00",
+        "by": "hoangnlv:1390:54523ac7cc7f448ebe45c959fc468c27"
+      }
     },
     {
       "id": "8952c84eee3e",
@@ -349,15 +352,15 @@
       "schedule_display": "every 30m",
       "repeat": {
         "times": null,
-        "completed": 157
+        "completed": 159
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-11T11:38:31.253370+07:00",
-      "next_run_at": "2026-09-14T18:45:43.706680+07:00",
-      "last_run_at": "2026-09-14T18:15:43.706680+07:00",
+      "next_run_at": "2026-09-14T19:45:45.722534+07:00",
+      "last_run_at": "2026-09-14T19:15:45.722534+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -375,9 +378,9 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-14T18:15:41.134849+07:00",
-        "dispatched_at": "2026-09-14T18:15:43.437741+07:00",
-        "lateness_seconds": 2.3,
+        "scheduled_at": "2026-09-14T19:15:44.874881+07:00",
+        "dispatched_at": "2026-09-14T19:15:45.465822+07:00",
+        "lateness_seconds": 0.6,
         "kind": "on_time"
       },
       "fire_claim": null
@@ -407,15 +410,15 @@
       "schedule_display": "every 10m",
       "repeat": {
         "times": null,
-        "completed": 309
+        "completed": 315
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-12T09:36:25.013732+07:00",
-      "next_run_at": "2026-09-14T18:30:44.001588+07:00",
-      "last_run_at": "2026-09-14T18:09:46.115472+07:00",
+      "next_run_at": "2026-09-14T19:25:49.045220+07:00",
+      "last_run_at": "2026-09-14T19:15:49.045220+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -433,15 +436,12 @@
       "enabled_toolsets": null,
       "workdir": null,
       "last_dispatch": {
-        "scheduled_at": "2026-09-14T18:19:46.115472+07:00",
-        "dispatched_at": "2026-09-14T18:20:43.962998+07:00",
-        "lateness_seconds": 57.8,
+        "scheduled_at": "2026-09-14T19:14:49.297203+07:00",
+        "dispatched_at": "2026-09-14T19:15:45.465822+07:00",
+        "lateness_seconds": 56.2,
         "kind": "on_time"
       },
-      "fire_claim": {
-        "at": "2026-09-14T18:20:44.263248+07:00",
-        "by": "hoangnlv:1390:da6d87efd5a74fef88c3d4f65b7b8f75"
-      }
+      "fire_claim": null
     },
     {
       "id": "13443ae60d90",
@@ -468,15 +468,15 @@
       "schedule_display": "every day at 7pm",
       "repeat": {
         "times": null,
-        "completed": 1
+        "completed": 2
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-09-13T19:01:27.938307+07:00",
-      "next_run_at": "2026-09-14T19:00:00+07:00",
-      "last_run_at": "2026-09-13T19:03:42.712544+07:00",
+      "next_run_at": "2026-09-15T19:00:00+07:00",
+      "last_run_at": "2026-09-14T19:02:36.987052+07:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -493,7 +493,13 @@
       },
       "enabled_toolsets": null,
       "workdir": null,
-      "fire_claim": null
+      "fire_claim": null,
+      "last_dispatch": {
+        "scheduled_at": "2026-09-14T19:00:00+07:00",
+        "dispatched_at": "2026-09-14T19:00:45.066780+07:00",
+        "lateness_seconds": 45.1,
+        "kind": "on_time"
+      }
     },
     {
       "id": "9127b9e1e138",
@@ -548,7 +554,62 @@
       ],
       "workdir": null,
       "failure_deliver": "google_chat:spaces/AAQAZxc2km8"
+    },
+    {
+      "id": "f2da3ca24ba5",
+      "name": "jarvis-fix-agy-wrapper",
+      "prompt": "Hai việc CODE giao Jarvis (claude CLI) — chạy lần lượt, mỗi việc tự verify độc lập rồi báo Hoàng ngắn gọn.\n\n=== VIỆC A: sửa wrapper agy (/home/zane/.local/bin/agy) ===\nHoàng chốt: \"agy khi hết quota của 1 model, check các model khác xem còn quota không trước khi next\". Wrapper hiện tại (v1.3, bash) gặp pattern quota là gọi `hagy next --quiet` luôn — KHÔNG có bước thử model khác.\nYêu cầu: khi gặp quota của MỘT model, thử lần lượt các model Gemini khác trên CÙNG account trước; chỉ `hagy next` (đổi account) khi TẤT CẢ đều hết quota. Thang: gemini-3.1-pro-high, gemini-3.1-pro-low, gemini-3.8-flash-high, gemini-3.8-flash-medium, gemini-3.7-flash-high, gemini-3.7-flash-medium, gemini-3.6-flash-high (lấy danh sách thật bằng `agy models`). Probe bằng 1 prompt cực ngắn + timeout ~90s. TUYỆT ĐỐI không đưa model Claude/GPT vào thang (claude-opus-4-6-thinking, claude-sonnet-4-6, gpt-oss-120b-medium). Backup thành agy.bak-<timestamp>, giữ nguyên mọi hành vi khác, `bash -n` sau khi sửa, smoke test `timeout 120 agy --model gemini-3.1-pro-high -p ok`.\nĐây là việc code nên nhớ: CHỈ dùng claude cho việc code, KHÔNG dùng claude cho reasoning/đọc source.\n\n=== VIỆC B: gom 3 graph con thành 1 graph duy nhất ở thư mục cha ===\nBối cảnh (số liệu đã verify): repo cha /home/zane/Desktop/work/vietbank/vietbank-digital chứa 3 repo con. Graph hiện có, path đang tính TỪ GỐC REPO CON (sai nếu để nguyên):\n- vietbank-omni/.ua/knowledge-graph.json — 10.631 node / 18.168 cạnh (5.021->file-level riêng), mô tả tiếng Việt thật\n- viet-bank-omni-ekyc/.ua/knowledge-graph.json — 1.803 node / 3.677 cạnh\n- dvnh-common/.understand-anything/knowledge-graph.json — bản cũ 4,5MB\nGraph ở cha hiện tại (vietbank-digital/.ua/knowledge-graph.json, 5.021 node) chỉ là khung xương file-level: mô tả toàn \"Auto-generated node for <path>\", tour 1 bước, không bằng graph sme (sme: 8.339 node/27.666 cạnh/8 layer) => cần thay bằng bản merge 3 graph con (giàu chi tiết hơn nhiều).\nYêu cầu: viết 1 script Python (đặt ở /home/zane/.hermes/scripts/ua_merge_parent.py) làm đúng việc: (1) BACKUP graph cha hiện tại thành /home/zane/Desktop/work/vietbank/vietbank-digital/.ua/knowledge-graph.skeleton-backup.json; (2) với mỗi graph con, PREFIX đường dẫn theo tên repo con vào node id + filePath + mọi field path (vd file:docs:README.md -> file:docs:vietbank-omni/README.md, filePath README.md -> vietbank-omni/README.md), và cập nhật TƯƠNG ỨNG mọi endpoint trong edges (sourceId/targetId/source/target) + tour nodeIds + mọi tham chiếu id khác; (3) gộp 3 graph (dedupe node theo id, gộp layers/domains/flows, KHÔNG ghi graph riêng trong repo con); (4) VALIDATE: mọi edge endpoint phải resolve tới node tồn tại (đếm orphan = 0), node count = tổng gốc trừ dup, id không trùng, JSON load được, in merge-report; (5) chỉ ghi đè .ua/knowledge-graph.json khi validate PASS, kèm meta.json (analyzedFiles=5021, lastAnalyzedAt, ghi rõ mergedFrom 3 nguồn). Nếu FAIL thì giữ nguyên file cũ và báo lỗi.\nKHÔNG xoá/đụng .ua/ của repo con (việc đó Ultron làm sau, khi Hoàng duyệt) và KHÔNG commit/push gì.\n\n=== CÁCH LÀM & BÁO CÁO ===\n1. Kiểm quota claude: `timeout 120 claude -p \"ok\" --dangerously-skip-permissions`; nếu còn bị chặn thì chờ ~5 phút thử lại 1 lần, vẫn không được thì báo Hoàng (1-2 câu) và dừng.\n2. Giao việc bằng `claude -p \"<prompt chi tiết>\" --dangerously-skip-permissions` (bypass vì là việc code).\n3. VERIFY ĐỘC LẬP, không tin lời claude tự khai: tự chạy `bash -n`/python load lại file, tự đếm node/edge, tự kiểm orphan=0, tự so số lượng với 3 graph gốc, tự chạy agy smoke test.\n4. Trả lời cuối bằng tiếng Việt, ngắn (gửi về DM Hoàng): việc A xong chưa (bằng chứng), việc B xong chưa (node/edge/orphan + file ghi ở đâu), việc nào chưa xong + lý do. Không dán code dài.",
+      "skills": [
+        "claude-code"
+      ],
+      "skill": "claude-code",
+      "model": null,
+      "provider": null,
+      "provider_snapshot": "custom",
+      "model_snapshot": "deepseek-v4-pro",
+      "base_url": null,
+      "script": null,
+      "no_agent": false,
+      "monitor_script": null,
+      "monitor_url": null,
+      "monitor_state": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "once",
+        "run_at": "2026-09-14T21:10:00+07:00",
+        "display": "once at 2026-09-14 21:10"
+      },
+      "schedule_display": "once at 2026-09-14 21:10",
+      "repeat": {
+        "times": 1,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-09-14T18:27:34.548778+07:00",
+      "next_run_at": "2026-09-14T21:10:00+07:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "last_delivery_unverified": null,
+      "failure_streak": 0,
+      "deliver": "origin",
+      "origin": {
+        "platform": "google_chat",
+        "chat_id": "spaces/0dniIqAAAAE",
+        "chat_name": "spaces/0dniIqAAAAE",
+        "thread_id": null,
+        "user_id": "hoangnlv@vnpay.vn",
+        "scope_id": null
+      },
+      "enabled_toolsets": [
+        "terminal"
+      ],
+      "workdir": null
     }
   ],
-  "updated_at": "2026-09-14T18:20:44.356163+07:00"
+  "updated_at": "2026-09-14T19:21:45.844717+07:00"
 }

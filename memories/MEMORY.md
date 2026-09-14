@@ -10,15 +10,15 @@ Guard Hermes: cấm restart gateway từ trong gateway + cấm sửa config.yaml
 §
 db-access: write chỉ VBSMEONL+VBSMEOFF (preview+token, SIT); mở write DB khác qua Hoàng. LIVE ≠ SIT schema.
 §
-Sổ hồ sơ: people.json + scripts/people.py + skill team-people.
+Sổ hồ sơ: people.py + skill team-people.
 §
-Chat: gchat_send_file.py --space --file gửi file THẬT (không thả path local); gchat_dump.py đọc lịch sử; URL dài có `_`/`*` bọc code block.
+Chat: gchat_send_file.py gửi file THẬT (không thả path local); gchat_dump.py đọc lịch sử; URL dài có `_`/`*` bọc code block.
 §
 Email: google_token.json + google_calendar_token.json (lịch chỉ đọc); chỉ ping mail book họp nội bộ/review tài liệu; mail chỉ trong DM.
 §
 Manager của Hoàng = chị Nguyên (users/105726904933324385534, Phó phòng P.DVNH).
 §
-Luật dạy qua KÊNH nào chỉ áp kênh đó (Siri: gọn văn nói, hỏi từng phần mỗi lượt, lọc input méo) — không lẫn sang chat/group.
+Luật dạy qua KÊNH nào chỉ áp kênh đó (Siri: gọn, hỏi từng phần) — đừng lẫn kênh.
 §
 Lịch: schedules.yaml (every_minutes+between), không tạo cron job. `calendar-remind` (2') nhắc họp: 2 mốc, DM + loa máy; config state/calendar_remind.json.
 §
@@ -26,8 +26,8 @@ Siri/widget: cổng local :9444 speak + :9445 chat + gateway :9443 (127.0.0.1) s
 §
 KHÔNG nhận/lưu mật khẩu, credential Hoàng gửi qua chat; từ chối + đưa cách không cần secret.
 §
-Bản đồ kênh: DM anh=chủ · DM 1:1 đồng nghiệp=hỗ trợ · VBB SME=dự án · DVNH-Daily=nội bộ · chồn ăn dưa=tán gẫu · Agent Space=bot khác. Chi tiết: people.py.
+Bản đồ kênh: DM anh=chủ · DM 1:1 đồng nghiệp=hỗ trợ · VBB SME=dự án · DVNH-Daily=nội bộ · chồn ăn dưa=tán gẫu · Agent Space=bot khác.
 §
 Cấm grep -r trong ~/.hermes (cache json ~4,5MB làm phình ngữ cảnh).
 §
-Hạn mức agent: agy=gemini-3.1-pro; claude=phiên 5h; Codex=tháng → graph lớn chia nhiều phiên + watcher tự chạy lại; agy build graph='đọc SKILL.md rồi tự chạy'.
+Hạn mức agent: agy=gemini-3.1-pro — CHỈ agy cho reasoning source/UA (claude gói 3tr/tháng, CẤM dùng để reasoning); claude chỉ việc code; Codex=tháng. Graph lớn chia module (1 lượt→OOM 137); agy build graph='đọc SKILL.md rồi tự chạy'.
