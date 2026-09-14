@@ -15,12 +15,16 @@ Marker được đọc (đúng chuỗi trong log, không đoán):
   - "micro compaction telemetry: {json}"                        (nén trả góp)
   - "Micro-compaction: recovered rolling summary from transcript"
   - "micro-summarization call failed: ..." / "micro-summarization returned empty content"
+
+Mục TOKEN TIÊU THỤ đọc thêm bảng `sessions` trong state.db (mở chế độ read-only) và so với
+mốc trong state/token_baseline.json — file baseline là thứ DUY NHẤT script này được ghi.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -30,6 +34,8 @@ from pathlib import Path
 DEFAULT_LOG = Path("/home/zane/.hermes/scripts").parent / "logs" / "agent.log"
 GCHAT_SENDER = Path("/home/zane/.hermes/scripts/gchat_send_text.py")
 DEFAULT_SPACE = "spaces/AAQAZxc2km8"
+DEFAULT_DB = Path("/home/zane/.hermes/state.db")
+DEFAULT_BASELINE = Path("/home/zane/.hermes/state/token_baseline.json")
 
 SLOW_COMPRESSION_SECONDS = 30.0
 MAX_COMPRESSIONS_PER_HOUR = 5
@@ -314,7 +320,191 @@ def summarize_micro(micro_rows: list, scan_result: dict) -> dict:
     }
 
 
-def build_report(scan_result: dict, since: datetime, until: datetime, paths: list[Path]) -> dict:
+
+TOKEN_COLUMNS = (
+    "input_tokens", "output_tokens", "api_call_count", "cache_read_tokens",
+    "chat_id", "thread_id", "started_at", "last_activity_at", "title",
+)
+TOP_SESSIONS = 5
+
+
+def short_thread(thread_id) -> str:
+    """'spaces/X/threads/ABC' -> 'ABC'. Giữ nguyên nếu không theo dạng đó."""
+    if not thread_id:
+        return "-"
+    return str(thread_id).rsplit("/", 1)[-1]
+
+
+def zero_int(value) -> int:
+    """Cột token có thể NULL — coi như 0 để cộng dồn, không hard-fail."""
+    return value if isinstance(value, int) else 0
+
+
+def read_sessions(db_path: Path, since: datetime, until: datetime) -> dict:
+    """Đọc sessions có hoạt động trong cửa sổ. Read-only tuyệt đối (URI mode=ro).
+
+    Lưu ý bản chất dữ liệu: bảng sessions chỉ giữ TỔNG TÍCH LUỸ của cả phiên, không tách
+    được theo giờ. Nên cửa sổ ở đây lọc "phiên còn hoạt động trong khoảng", còn con số
+    token là tổng đời phiên đó.
+    """
+    if not db_path.is_file():
+        return {"available": False, "error": f"không thấy {db_path}"}
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    except sqlite3.Error as exc:
+        return {"available": False, "error": f"không mở được {db_path}: {exc}"}
+    try:
+        have = {row[0] for row in conn.execute("SELECT name FROM pragma_table_info('sessions')")}
+        missing = [c for c in TOKEN_COLUMNS if c not in have]
+        if missing:
+            return {"available": False, "error": f"bảng sessions thiếu cột: {', '.join(missing)}"}
+        rows = conn.execute(
+            """
+            SELECT id, chat_id, thread_id, title, started_at, last_activity_at,
+                   input_tokens, output_tokens, cache_read_tokens, api_call_count
+            FROM sessions
+            WHERE COALESCE(last_activity_at, started_at) BETWEEN ? AND ?
+            """,
+            (since.timestamp(), until.timestamp()),
+        ).fetchall()
+    except sqlite3.Error as exc:
+        return {"available": False, "error": f"truy vấn sessions lỗi: {exc}"}
+    finally:
+        conn.close()
+
+    sessions = [{
+        "id": row[0],
+        "chat_id": row[1],
+        "thread_id": row[2],
+        "title": row[3],
+        "started_at": row[4],
+        "last_activity_at": row[5],
+        "input_tokens": zero_int(row[6]),
+        "output_tokens": zero_int(row[7]),
+        "cache_read_tokens": zero_int(row[8]),
+        "api_calls": zero_int(row[9]),
+    } for row in rows]
+    return {"available": True, "error": None, "sessions": sessions}
+
+
+def token_metrics(sessions: list[dict]) -> dict:
+    """Sáu chỉ số dùng cho cả báo cáo lẫn baseline — cùng một nguồn, không lệch nhau."""
+    api_calls = sum(s["api_calls"] for s in sessions)
+    input_tokens = sum(s["input_tokens"] for s in sessions)
+    output_tokens = sum(s["output_tokens"] for s in sessions)
+    return {
+        "sessions": len(sessions),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cache_read_tokens": sum(s["cache_read_tokens"] for s in sessions),
+        "api_calls": api_calls,
+        "tokens_per_call": round((input_tokens + output_tokens) / api_calls, 1) if api_calls else None,
+    }
+
+
+def load_baseline(path: Path) -> dict:
+    """Không có / hỏng đều trả về trạng thái 'chưa có mốc' kèm lý do, không ném lỗi."""
+    if not path.is_file():
+        return {"present": False, "error": None, "data": None}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return {"present": False, "error": f"baseline hỏng, bỏ qua: {exc}", "data": None}
+    if not isinstance(payload, dict) or not isinstance(payload.get("metrics"), dict):
+        return {"present": False, "error": "baseline sai định dạng, bỏ qua", "data": None}
+    return {"present": True, "error": None, "data": payload}
+
+
+def save_baseline(path: Path, snapshot: dict) -> str | None:
+    """Ghi qua file tạm rồi replace — báo cáo đang chạy dở không bao giờ thấy file nửa vời."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp = path.with_name(path.name + ".tmp")
+        temp.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(path)
+    except OSError as exc:
+        return f"không ghi được baseline {path}: {exc}"
+    return None
+
+
+def pct_delta(current, base):
+    """Chênh lệch % so với mốc. Mốc bằng 0 hoặc thiếu số -> None (in ra dấu '-')."""
+    if current is None or base is None:
+        return None
+    if not base:
+        return None
+    return round((current - base) / base * 100.0, 1)
+
+
+def build_token_section(db_path: Path, baseline_path: Path, since: datetime, until: datetime,
+                        force_save: bool) -> dict:
+    """Mục TOKEN TIÊU THỤ: số liệu cửa sổ + top phiên + so sánh baseline."""
+    data = read_sessions(db_path, since, until)
+    if not data["available"]:
+        return {
+            "available": False,
+            "error": data["error"],
+            "db": str(db_path),
+            "baseline_path": str(baseline_path),
+        }
+
+    sessions = data["sessions"]
+    metrics = token_metrics(sessions)
+    top = sorted(sessions, key=lambda s: s["input_tokens"], reverse=True)[:TOP_SESSIONS]
+    baseline = load_baseline(baseline_path)
+
+    snapshot = {
+        "saved_at": datetime.now().isoformat(timespec="seconds"),
+        "window": {
+            "since": since.isoformat(timespec="seconds"),
+            "until": until.isoformat(timespec="seconds"),
+        },
+        "metrics": metrics,
+    }
+
+    section = {
+        "available": True,
+        "error": None,
+        "db": str(db_path),
+        "baseline_path": str(baseline_path),
+        "metrics": metrics,
+        "top_sessions": [{
+            "id": s["id"],
+            "chat_id": s["chat_id"] or "-",
+            "thread_id": s["thread_id"] or "-",
+            "title": s["title"] or "-",
+            "input_tokens": s["input_tokens"],
+            "output_tokens": s["output_tokens"],
+            "cache_read_tokens": s["cache_read_tokens"],
+            "api_calls": s["api_calls"],
+        } for s in top],
+        "baseline_saved": False,
+        "baseline_reason": None,
+        "baseline": None,
+        "deltas": None,
+        "write_error": baseline.get("error"),
+    }
+
+    if force_save or not baseline["present"]:
+        section["baseline_reason"] = "--save-baseline" if force_save else "chưa có mốc nên ghi lần đầu"
+        error = save_baseline(baseline_path, snapshot)
+        if error:
+            section["write_error"] = error
+            return section
+        section["baseline_saved"] = True
+        section["baseline"] = snapshot
+        return section
+
+    base_metrics = baseline["data"]["metrics"]
+    section["baseline"] = baseline["data"]
+    section["deltas"] = {
+        key: pct_delta(metrics.get(key), base_metrics.get(key)) for key in metrics
+    }
+    return section
+
+
+def build_report(scan_result: dict, since: datetime, until: datetime, paths: list[Path],
+                 tokens: dict | None = None) -> dict:
     started = [e for e in scan_result["started"] if since <= e["ts"] <= until]
     done = [e for e in scan_result["done"] if since <= e["ts"] <= until + timedelta(minutes=30)]
     pairs, orphans = pair_events(started, done)
@@ -350,6 +540,10 @@ def build_report(scan_result: dict, since: datetime, until: datetime, paths: lis
         warnings.append(f"{len(orphans)} lần nén bắt đầu mà chưa thấy dòng done (đang chạy hoặc bị cắt)")
     for problem in scan_result["unreadable"]:
         warnings.append(f"không đọc được log: {problem}")
+    if tokens is not None and not tokens.get("available"):
+        warnings.append(f"không đọc được token từ state.db: {tokens.get('error')}")
+    if tokens is not None and tokens.get("write_error"):
+        warnings.append(tokens["write_error"])
 
     return {
         "window": {"since": since.isoformat(timespec="seconds"), "until": until.isoformat(timespec="seconds")},
@@ -371,6 +565,7 @@ def build_report(scan_result: dict, since: datetime, until: datetime, paths: lis
             ],
         },
         "micro": micro,
+        "tokens": tokens,
         "warnings": warnings,
     }
 
@@ -398,6 +593,101 @@ def table(headers: list[str], rows: list[list[str]]) -> list[str]:
     return out
 
 
+def fmt_pct(value) -> str:
+    """Chênh lệch % có dấu; None (mốc bằng 0 hoặc thiếu số) thành '-'."""
+    if value is None:
+        return "-"
+    return f"{value:+.1f}%"
+
+
+def render_tokens(tokens: dict | None) -> list[str]:
+    """Mục TOKEN TIÊU THỤ — luôn in, kể cả khi cửa sổ không có lần nén nào."""
+    if tokens is None:
+        return []
+    lines = ["TOKEN TIÊU THỤ (state.db)", "```"]
+    if not tokens.get("available"):
+        lines.append(f"Không đọc được: {tokens.get('error')}")
+        lines.append("```")
+        return lines
+
+    metrics = tokens["metrics"]
+    lines.append(f"Số phiên có hoạt động : {metrics['sessions']:,}")
+    lines.append(f"Token vào             : {metrics['input_tokens']:,}")
+    lines.append(f"Token ra              : {metrics['output_tokens']:,}")
+    lines.append(f"Token cache đọc lại   : {metrics['cache_read_tokens']:,}")
+    lines.append(f"Lượt gọi API          : {metrics['api_calls']:,}")
+    lines.append(f"Token/lượt gọi (tb)   : {fmt(metrics['tokens_per_call'])}")
+    lines.append("")
+    lines.append("Lưu ý: sessions chỉ lưu tổng tích luỹ của cả phiên, nên cửa sổ lọc theo")
+    lines.append("phiên còn hoạt động trong khoảng, không cắt token theo từng giờ.")
+    lines.append("```")
+    lines.append("")
+
+    if tokens["top_sessions"]:
+        lines.append(f"TOP {len(tokens['top_sessions'])} PHIÊN THEO TOKEN VÀO")
+        lines.append("```")
+        rows = []
+        for session in tokens["top_sessions"]:
+            rows.append([
+                (session["title"] or "-")[:28],
+                (session["chat_id"] or "-")[:24],
+                short_thread(session["thread_id"])[:16],
+                fmt(session["input_tokens"]),
+                fmt(session["output_tokens"]),
+                fmt(session["api_calls"]),
+            ])
+        lines.extend(table(
+            ["Phiên", "chat_id", "thread", "Token vào", "Token ra", "Lượt API"],
+            rows,
+        ))
+        lines.append("```")
+        lines.append("")
+
+    lines.append("SO VỚI BASELINE")
+    lines.append("```")
+    if tokens.get("write_error"):
+        lines.append(tokens["write_error"])
+    if tokens["baseline_saved"]:
+        lines.append(f"Đã ghi mốc mới ({tokens['baseline_reason']}) vào {tokens['baseline_path']}")
+        lines.append(f"Mốc lưu lúc: {tokens['baseline']['saved_at'].replace('T', ' ')}")
+        lines.append("Lần chạy sau (không kèm --save-baseline) sẽ in chênh lệch so với mốc này.")
+        lines.append("```")
+        return lines
+    if not tokens["deltas"]:
+        lines.append("Chưa có mốc để so sánh.")
+        lines.append("```")
+        return lines
+
+    base = tokens["baseline"]
+    lines.append(f"Mốc lưu lúc: {str(base.get('saved_at', '-')).replace('T', ' ')}")
+    window = base.get("window") or {}
+    if window:
+        lines.append(
+            f"Cửa sổ của mốc: {str(window.get('since', '-')).replace('T', ' ')}"
+            f" -> {str(window.get('until', '-')).replace('T', ' ')}"
+        )
+    lines.append("")
+    labels = [
+        ("Số phiên", "sessions"),
+        ("Token vào", "input_tokens"),
+        ("Token ra", "output_tokens"),
+        ("Token cache đọc lại", "cache_read_tokens"),
+        ("Lượt gọi API", "api_calls"),
+        ("Token/lượt gọi (tb)", "tokens_per_call"),
+    ]
+    rows = []
+    for label, key in labels:
+        rows.append([
+            label,
+            fmt(base["metrics"].get(key)),
+            fmt(tokens["metrics"].get(key)),
+            fmt_pct(tokens["deltas"].get(key)),
+        ])
+    lines.extend(table(["Chỉ số", "Mốc", "Hiện tại", "Chênh lệch"], rows))
+    lines.append("```")
+    return lines
+
+
 def render(report: dict) -> str:
     batch = report["batch"]
     micro = report["micro"]
@@ -411,6 +701,10 @@ def render(report: dict) -> str:
 
     if not batch["started_total"] and not micro["passes"]:
         lines.append("Không có lần nén nào trong cửa sổ này.")
+        token_lines = render_tokens(report.get("tokens"))
+        if token_lines:
+            lines.append("")
+            lines.extend(token_lines)
         return "\n".join(lines)
 
     lines.append("NÉN THEO NGƯỠNG (batch)")
@@ -495,6 +789,11 @@ def render(report: dict) -> str:
     lines.append(f"Khôi phục summary   : {micro['recovered_summaries']}")
     lines.append("```")
 
+    token_lines = render_tokens(report.get("tokens"))
+    if token_lines:
+        lines.append("")
+        lines.extend(token_lines)
+
     if report["warnings"]:
         lines.append("")
         lines.append("CẢNH BÁO")
@@ -529,6 +828,10 @@ def main() -> int:
     parser.add_argument("--send", action="store_true", help="gửi báo cáo qua Google Chat")
     parser.add_argument("--space", default=DEFAULT_SPACE, help="space đích khi --send")
     parser.add_argument("--thread", help="thread đích khi --send")
+    parser.add_argument("--db", default=str(DEFAULT_DB), help="đường dẫn state.db (chỉ đọc)")
+    parser.add_argument("--baseline", default=str(DEFAULT_BASELINE), help="file mốc token")
+    parser.add_argument("--save-baseline", dest="save_baseline", action="store_true",
+                        help="ghi đè mốc token bằng số liệu hiện tại")
     parser.add_argument("--json", dest="as_json", action="store_true", help="in JSON thô")
     args = parser.parse_args()
 
@@ -551,7 +854,15 @@ def main() -> int:
         print(f"lỗi: không đọc được log nào từ {primary}", file=sys.stderr)
         return 2
 
-    report = build_report(scan(paths), since, datetime.now(), paths)
+    until = datetime.now()
+    tokens = build_token_section(
+        Path(args.db).expanduser(),
+        Path(args.baseline).expanduser(),
+        since,
+        until,
+        args.save_baseline,
+    )
+    report = build_report(scan(paths), since, until, paths, tokens)
     text = json.dumps(report, ensure_ascii=False, indent=2) if args.as_json else render(report)
     print(text)
 

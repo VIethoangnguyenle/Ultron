@@ -43,6 +43,14 @@ agy --add-dir /home/zane/Desktop/work/vietbank/vietbank-sme \
 
 - Run in background (`background=true, notify=true`) — each domain takes several minutes.
 
+### Nhánh nguồn khi build graph (Hoàng chốt 2026-09-14)
+Graph `vietbank-sme` **luôn** build từ: `vietbank-sme-omni` → nhánh **`dev-sit`**, repo eKYC
+(`viet-bank-ekyc-sme`) → nhánh **`dev`**. KHÔNG build từ nhánh feature đang checkout
+(`feature/goi-3.1-napas2.0`, `pilot_hotfix_13_08`, ...). `dvnh-common` → **tag khớp `common_version` trong `gradle.properties` của nhánh dev-sit** (`vietbank-sme-omni`);
+ngày 2026-09-14 là `5.0.9` → tag `v5.0.9`. Đọc lại `origin/dev-sit:gradle.properties` mỗi lần build, KHÔNG
+lấy nhánh `feature/kafka-module` đang checkout.
+Trước khi build: fetch, kiểm nhánh dev-sit/dev có mới hơn không, và **trả lại đúng nhánh cũ sau khi xong**.
+
 ### /understand (build the knowledge graph) → chạy bằng **agy**. CLAUDE BỊ CẤM cho việc này
 
 **LUẬT (Hoàng chốt 2026-09-14): "claude không tham gia reasoning này nhá, tốn token lắm".**

@@ -30,6 +30,7 @@ browser:
   inactivity_timeout: 120
   extension_control:
     enabled: false
+  snapshot_threshold: 8000
 tool_loop_guardrails:
   warnings_enabled: true
   hard_stop_enabled: false
@@ -51,7 +52,7 @@ compression:
   protect_last_n: 20
   min_tail_user_messages: 3
   max_attempts: 3
-  proactive_prune_tokens: 30000
+  proactive_prune_tokens: 15000
   proactive_prune_min_result_chars: 4000
   proactive_prune_min_reclaim_tokens: 4096
   hygiene_max_turn_hold_seconds: 10
@@ -259,3 +260,8 @@ auxiliary:
 tts:
   edge:
     voice: vi-VN-NamMinhNeural
+tool_output:
+  max_bytes: 12000
+  max_lines: 600
+web:
+  extract_char_limit: 8000
