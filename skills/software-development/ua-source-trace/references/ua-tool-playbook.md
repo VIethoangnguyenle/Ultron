@@ -50,7 +50,54 @@ check hạn mức & tạo GD PENDING_APPROVED) + mã lỗi (`INVALID_NAPAS_BENE`
 - Không grep working tree khi checkout có thể đang ở nhánh feature ⇒ grep theo ref (`git grep <ref>`) — xem
   mục "Đọc code phải theo REF" trong SKILL.md.
 
-## 4. Bảo trì graph sau mỗi lần build (bài học 2026-09-14)
+## 4. Kết quả A/B grep vs UA (đo thật 2026-09-15, 3 câu trace × 2 cách, session CLI riêng)
+| Câu hỏi | grep: token / lượt | UA: token / lượt | Kết luận |
+|---|---|---|---|
+| Luồng chi lương (bước+path+mã lỗi) | 1,03M / 23 | 1,22M / 21 | UA **tốn hơn**: mã lỗi nằm trong hằng số code, graph chỉ có 2 mã |
+| Validate tên thụ hưởng Napas | 0,50M / 11 | 0,24M / 6 | UA **-52%** |
+| Sửa hạn mức gói → ảnh hưởng gì | 0,56M / 13 | 0,46M / 9 | UA **-18%** |
+| **Tổng** | **2,09M** | **1,92M** | **-8%** (không phải 50-70% như ước lượng) |
+Thời gian: UA nhanh hơn ~30-40% (q2: 29s vs 57s).
+
+**Vì sao chênh ít:** agent vẫn đi lang thang (q1 UA 21 lượt) và **MCP có overhead riêng**: mỗi tool MCP
+phải `tool_describe` schema rồi `tool_call` (q1 UA: 8 lần tool_describe + 2 skill_view). Muốn UA tiết kiệm
+thật thì phải **ép recipe ngắn 3-5 lượt** (overview → flow detail → node source), không cho roam.
+
+**Chất lượng theo loại câu hỏi:**
+- Luồng nghiệp vụ: UA thắng về *cấu trúc* (thứ tự bước, trạng thái, cross-domain); grep thắng về *danh mục mã lỗi*.
+- Định vị thành phần: hoà, UA thêm chi tiết (action code V1/V2, cache).
+- Ảnh hưởng: tương đương độ phủ.
+- ⚠️ **Path API trong graph CÓ SAI** (graph ghi `/transfer/payroll/init-internal`, code thật
+  `/transfer/payroll/internal/init`; tương tự `validate-internal` vs `/internal/validate`) ⇒ path + mã lỗi
+  **bắt buộc chốt lại bằng code theo ref**, không chép từ graph.
+
+## 4b. Vòng 2 — ÉP RECIPE NGẮN (cùng câu Q1 chi lương, 2026-09-15)
+| Cách | token | lượt tool | Chất lượng |
+|---|---|---|---|
+| grep thuần (mốc vòng 1) | 1.026.483 | 23 | đủ path + mã lỗi 700xxx/701xxx |
+| UA **ép recipe** (flow_detail → domain_detail → node_source ×2) | **155.930** | 5 | khung 4 chặng đủ, nhưng path theo graph **bị sai dạng** (`/validate-internal`, `/init-internal`) và chỉ 2 mã lỗi dạng tên |
+| **LAI** (3 lượt UA lấy khung + 3 lượt grep/read chốt) | **204.636** | 6 | path ĐÚNG (`/internal/validate`, `/internal/init`) + mã lỗi 700xxx đầy đủ + khung nghiệp vụ |
+
+⇒ **Quy tắc chuẩn = LAI**: 2-3 lượt UA lấy khung + tối đa 3 lượt code để chốt path/mã lỗi. Tiết kiệm
+**~80% token** so với grep thuần mà chất lượng cao hơn hẳn.
+Vòng 1 chỉ −8% vì agent roam (21 lượt) + overhead `tool_describe`/`skill_view`/`memory_save` — cấm mấy thứ đó
+khi trace. Kết luận: **cách ép recipe quan trọng hơn việc chọn tool nào**.
+
+## 4c. Vòng 3 — đủ 4 loại câu hỏi (2026-09-15)
+| Loại câu | grep thuần | LAI (UA khung + code chốt) | UA-only ép ngắn | Kết luận |
+|---|---|---|---|---|
+| Q1 luồng chi lương (+path, mã lỗi) | 1.026.483 / 23 | 204.636 / 6 | 155.930 / 5 (path sai) | LAI −80% |
+| Q2 định vị thành phần + phụ thuộc | 504.769 / 11 | 250.199 / 7 | — | −50%, chất lượng cao hơn |
+| Q3 ảnh hưởng khi sửa hạn mức | 562.652 / 13 | 346.372 / 8 | — | −38% |
+| Q4 kiến trúc (layer + luồng tổng) | **grep không làm được** | — | 186.996 / 6 | UA độc quyền (get_layer_info/get_tour) |
+
+⇒ Chốt: **câu nghiệp vụ/định vị/ảnh hưởng → dùng LAI**; **câu kiến trúc → UA-only**. Tiết kiệm thực đo
+38-80% (trung bình ~55%). Cảnh báo: agent vẫn có thể vượt hạn mức lượt (Q2 dùng 13 lượt tool) ⇒ khi tự
+trace phải tự giữ recipe; và **path API giữa các nguồn còn lệch nhau** (Q2: `nonfinancial/validate-bene/napas`
+vs `bank/validate-bene/napas`) ⇒ luôn chốt path bằng annotation controller thật.
+
+## 5. Bảo trì graph sau mỗi lần build (bài học 2026-09-14)
+
 - Lượt `/understand` mới **GHI ĐÈ `domain-graph.json` bằng node type `module`** (rác: kiểu
   `domain:common-CHANGELOG.md`) ⇒ **mất toàn bộ domain nghiệp vụ** (36 domain/152 flow/480 step nằm ở
   `domain-graph.json.master`). Sau mọi lần build phải: `cp .ua/domain-graph.json.master .ua/domain-graph.json`

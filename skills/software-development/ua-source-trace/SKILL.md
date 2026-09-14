@@ -3,74 +3,77 @@ name: ua-source-trace
 description: Use when tracing vbsme source (UA graph first).
 ---
 
-# Trace source = graph first, source second (Hoàng chốt 2026-09-14)
+# Trace source: graph lấy khung, code chốt chi tiết (Hoàng chốt 2026-09-15)
 
-Hoàng's rule: for any source-tracing question ("API nào / cơ chế nào", call chain, impact, "đọc code hiểu
-luồng") in the vietbank/vbsme repos, **query the Understand-Anything (UA) MCP knowledge graph before
-touching grep/read_file**. Grep is the *confirmation* step, never the search step.
+Áp cho mọi câu trace source ("API nào / cơ chế nào", luồng nghiệp vụ, ảnh hưởng, "đọc code hiểu luồng") trên
+các repo vietbank/vbsme. Grep KHÔNG BAO GIỜ là bước tìm kiếm — chỉ là bước xác nhận.
 
-## Đọc code phải theo REF, không đọc bản đang checkout (Hoàng nêu 2026-09-14)
-Rủi ro thật: `grep`/`read_file` đọc working tree = nhánh đang checkout. Đo được 2026-09-14:
-`feature/goi-3.1-napas2.0` vs `origin/dev-sit` của `vietbank-sme-omni` lệch **1.119 file / +52.644 −6.552 dòng`
-⇒ trace bằng grep trong lúc checkout ở nhánh feature có thể kết luận "không có code" trong khi code CÓ (chỉ là
-ở nhánh khác), hoặc trích nhầm logic cũ. Luật — 3 lớp:
-1. **Graph trước**: graph UA là ảnh chụp theo commit đã build (meta.json ghi commit từng repo) ⇒ không phụ
-   thuộc checkout. Đây là nguồn định vị chính.
-2. **Grep theo ref**: `git -C <repo> grep -n "<pattern>" origin/dev-sit -- "*.java"` và
-   `git -C <repo> show origin/dev-sit:<path>` — chạy đúng nhánh mà KHÔNG cần checkout, không đụng việc
-   Hoàng đang làm. Nhánh nguồn: omni = `dev-sit`, ekyc = `dev`, dvnh-common = tag theo `common_version`.
-3. **Nói rõ mốc**: mọi câu trả lời trace phải kèm "ở nhánh/commit nào" để người nghe biết bản đang xét.
-Khi câu hỏi trace trên code MỚI (chưa có trong graph) ⇒ nói rõ là bằng chứng từ nhánh nào, và nếu
-checkout không ở nhánh đó thì phải grep theo ref chứ đừng đọc file trong working tree.
+## QUY TẮC CHÍNH (đo bằng A/B 2026-09-15)
+| Loại câu hỏi | Cách làm | Tiết kiệm so với grep thuần |
+|---|---|---|
+| Luồng nghiệp vụ (bước + path + mã lỗi) | **LAI**: 2-3 lượt UA (`get_domain_flow_detail` → `get_domain_detail`) + ≤3 lượt grep/read để CHỐT path & mã lỗi | **−80%** |
+| Định vị thành phần + phụ thuộc | **LAI** (`query_nodes` → `get_node_detail` → xác nhận bằng code) | −50% |
+| Sửa X ảnh hưởng gì | **LAI** (`find_impact` + `get_domain_flow_detail`) | −38% |
+| Kiến trúc / layer / luồng tổng | **UA-only** (`get_layer_info`, `get_tour`) — grep không làm được | chỉ UA làm được |
 
-## Phân công công cụ (Hoàng chốt 2026-09-14)
-- **Graph UA = của Ultron, để GIẢI THÍCH NGHIỆP VỤ + PHÂN TÍCH** (trả lời tester/dev, hiểu luồng, đánh giá ảnh hưởng). Nguồn graph là nhánh **`dev-sit`** của `vietbank-sme-omni` (Hoàng: "dev-sit là nhánh đầy đủ code nhất"), `dev` cho eKYC, tag theo `common_version` cho `dvnh-common`.
-- **Khi Hoàng giao Jarvis (claude) SỬA CODE**: Jarvis tự dùng `codegraph` / `serena` index của nó trong repo — phần đó Jarvis lo, Ultron KHÔNG cần trace/không cần lo nhánh cho nó, cũng không cần đồng bộ hai bên.
-- Vì graph là ảnh chụp theo commit nên **đừng dùng nó để khẳng định "không có code"** cho một nhánh khác (feature, release...): nói rõ là đang xét mốc nào, cần bản khác thì grep theo ref.
+Số tuyệt đối (câu "chi lương"): grep 1.026.483 token / 23 lượt vs LAI 204.636 / 6 lượt.
+Chi tiết 3 vòng đo: `references/ua-tool-playbook.md`.
 
-## Giới hạn đã đo của graph (2026-09-14, 19.953 node / 48.017 edge)
-- Edge chỉ có **cấu trúc**: `imports` 22.672 · `contains` 14.591 · `exports` 4.650 · `configures` 2.957 ·
-  `implements` 1.515 · `inherits` 1.431 · `defines_schema` 201. **KHÔNG có edge `calls`** ⇒
-  `trace_call_chain` trả về rỗng ("does not call any other functions"). Đừng dùng nó rồi kết luận "không gọi gì".
-- Vì vậy: câu hỏi **nghiệp vụ/phân tích** ⇒ domain graph (`get_domain_overview`, `get_domain_detail`,
-  `get_domain_flow_detail`) + summary node; câu hỏi **chuỗi gọi hàm/đường đi** ⇒ `find_entry_points` /
-  `get_node_source` rồi đọc code **theo ref** (`git show <ref>:<path>`).
-- `get_graph_metadata` có thể báo `health: HEALTHY` kèm cảnh báo `meta.json missing analyzedAt` — analyzer ghi
-  khoá `lastAnalyzedAt`, server đọc `analyzedAt`; cần thì thêm key `analyzedAt` vào `.ua/meta.json` (và MCP
-  phải được nạp lại mới thấy).
-- Summary mức file/class thường là mô tả thật; một số node mức `function` còn câu khuôn sáo kiểu
-  "Phương thức X xử lý logic trong X" ⇒ khi trả lời phải đọc `get_node_source` để chắc, đừng tin summary suông.
+**Chống "roam" (bắt buộc):** trong lúc trace, CẤM đọc skill, CẤM lưu memory, CẤM gọi `tool_describe` nhiều lần,
+CẤM grep mò. Vòng A/B đầu chỉ −8% vì agent tự làm mấy việc đó (21 lượt); ép recipe mới ra −80%.
 
-Playbook đầy đủ (22 tool + 5 công thức trace + bảo trì graph): `references/ua-tool-playbook.md`.
+**Code CHỐT 2 thứ, không lấy từ graph:** path API (graph hay SAI: `/transfer/payroll/init-internal` vs code
+thật `/transfer/payroll/internal/init`; `validate-internal` vs `/internal/validate`) và danh mục mã lỗi
+(graph chỉ có vài mã; mã đầy đủ nằm trong hằng số code / `AD_MESSAGE`).
 
-## Protocol (in order)
-1. `mcp__understand_anything__list_projects` — which graph is loaded (`vietbank-sme`, `Vietbank Digital`).
-2. Locate: `search_by_file_path` (known file) or `query_nodes` (known symbol/feature keyword).
-3. Follow: `trace_call_chain`, `find_entry_points`, `find_impact`, `get_class_hierarchy`, `get_relationships`.
-4. Get the code the graph points at: `get_node_source` / `get_node_detail` (prefer over opening the file).
-5. Business flows: `get_domain_flow_detail(flow_name=...)` / `get_domain_detail` / `get_domain_overview`.
-6. Only then, to confirm the exact branch/path: ONE targeted `read_file` slice or `grep` of the file(s) the graph named.
+## Đọc code phải theo REF, không đọc bản đang checkout
+`grep`/`read_file` đọc working tree = nhánh đang checkout. Đo 2026-09-14: `feature/goi-3.1-napas2.0` vs
+`origin/dev-sit` (vietbank-sme-omni) lệch **1.119 file / +52.644 −6.552 dòng** ⇒ có thể kết luận "không có code"
+trong khi code CÓ ở nhánh khác. Luật 3 lớp:
+1. **Graph trước** — ảnh chụp theo commit (meta.json ghi commit từng repo), không phụ thuộc checkout.
+2. **Grep theo ref** — `git -C <repo> grep -n "<pattern>" origin/dev-sit -- "*.java"`, `git -C <repo> show origin/dev-sit:<path>`:
+   đúng nhánh mà không cần checkout. Nhánh nguồn: omni = `dev-sit`, ekyc = `dev`, dvnh-common = tag theo `common_version`.
+3. **Nói rõ mốc** — mọi câu trả lời kèm "ở nhánh/commit nào".
+
+## Phân công công cụ
+- **Graph UA = của Ultron**, để GIẢI THÍCH NGHIỆP VỤ + PHÂN TÍCH (trả lời tester/dev, đánh giá ảnh hưởng).
+- **Hoàng giao Jarvis (claude) SỬA CODE** ⇒ Jarvis dùng `codegraph`/`serena` của nó; Ultron không trace hộ,
+  không đồng bộ hai bên.
+- Graph là ảnh chụp theo commit ⇒ **không dùng nó để khẳng định "không có code"** cho nhánh khác.
+
+## Giới hạn đã đo của graph (2026-09-14: 19.953 node / 48.017 edge / 9 layer)
+- Edge chỉ **cấu trúc**: `imports`, `contains`, `exports`, `configures`, `implements`, `inherits`, `defines_schema`.
+  **KHÔNG có edge `calls`** ⇒ `trace_call_chain` trả rỗng; đừng dùng nó rồi kết luận "không gọi gì".
+  Chuỗi gọi hàm phải đi bằng domain flow + `find_entry_points` + đọc source theo ref.
+- Domain graph (36 domain / 152 flow / 480 step) nằm ở `.ua/domain-graph.json`; bản tích luỹ là
+  `.ua/domain-graph.json.master`. **Sau MỖI lần rebuild phải khôi phục `.master` đè lên `domain-graph.json`** —
+  nếu không, `/understand` mới sẽ ghi đè bằng node rác type `module` (kiểu `domain:common-CHANGELOG.md`) và
+  `get_domain_overview` trả rỗng.
+- `meta.json` phải có khoá `analyzedAt` (analyzer chỉ ghi `lastAnalyzedAt`; MCP đọc `analyzedAt`) — thêm tay rồi
+  nạp lại MCP mới hết `freshness: UNKNOWN`.
+- Summary mức file/class thật; một số node `function` còn khuôn sáo ⇒ cần `get_node_source` để chắc.
+
+Playbook đầy đủ (22 tool · 5 công thức · cấm kỵ · bảo trì · 3 vòng A/B): `references/ua-tool-playbook.md`.
+
+## Recipe ngắn (dùng cái này, đừng roam)
+1. `get_domain_overview` → chọn domain/flow đúng.
+2. `get_domain_flow_detail(flow_name=...)` → entry point + các bước + node code + cross-domain.
+3. `get_node_source` cho 1-2 node quan trọng (nếu cần chi tiết).
+4. ≤3 lượt `grep`/`read_file` **theo ref** để chốt path API + mã lỗi.
+5. Trả lời: khung nghiệp vụ + path đã xác minh + mã lỗi + nói rõ mốc (nhánh/commit).
 
 ## Honesty rules
-- Coverage of `vietbank-sme` was **69%** (5,179 files) on 2026-09-14 ⇒ **an empty graph answer is not proof
-the code is missing.** Fall back to source and **say which path you used**.
-- Check freshness via `get_graph_metadata`; it reports `status: UNKNOWN` because `meta.json` writes
-`lastAnalyzedAt` while the server reads `analyzedAt` — say so when staleness matters.
-- Domain-graph paths are templates (`/api/v*`): confirm the real base URI before quoting an endpoint.
+- Câu trả lời rỗng từ graph KHÔNG phải bằng chứng code không tồn tại (coverage chưa 100%) ⇒ fallback source
+  và **nói rõ đã fallback**.
+- Path trong domain graph là template ⇒ xác nhận bằng annotation controller thật trước khi trích endpoint.
 
-## Why (evidence)
-Logs on 2026-09-14 showed the graph was effectively never used (5 × `list_projects`, 1 × `query_nodes`)
-while one thread burned **452 tool results for 39 questions** via grep chains. Every tool result is re-sent
-with the whole context to a provider with **no prompt cache**, and the 12k-char tool-output cap makes those
-dumps lossy too — so grep-first is less accurate AND far more expensive.
-
-## Rebuild rule (refresh the graph)
-`vietbank-sme` graph is always built from: `vietbank-sme-omni` → branch **`dev-sit`**, eKYC
-(`viet-bank-ekyc-sme`) → branch **`dev`**, `dvnh-common` → the **tag matching `common_version` in
-`vietbank-sme-omni`'s `dev-sit` `gradle.properties`** (re-read each time; 2026-09-14 was `5.0.9` → tag
-`v5.0.9`). Build with **agy**, never claude (claude = code only). Write a restore script and put the working
-copies back to their original branches when the build finishes.
+## Rebuild rule
+Graph `vietbank-sme` luôn build từ: `vietbank-sme-omni` → nhánh **`dev-sit`**, eKYC (`viet-bank-ekyc-sme`) →
+nhánh **`dev`**, `dvnh-common` → **tag khớp `common_version` trong `gradle.properties` của dev-sit** (đọc lại mỗi
+lần; 2026-09-14 là `5.0.9` → tag `v5.0.9`). Build bằng **agy** (ưu tiên `claude-opus-4-6-thinking`), KHÔNG dùng
+claude (claude = code only). Nghiệm thu: đếm nodes/edges, soi summary, `get_graph_metadata` health — **exit 0
+KHÔNG có nghĩa là graph đủ** (đã có lần exit 0 nhưng 0 edge). Nhớ backup `.ua` và trả nhánh về nguyên trạng.
 
 ## Disclosure
-Answer in business language for anyone but Hoàng (no class/file/method names outside the DM with Hoàng),
-while keeping the trace internally rigorous: endpoint → handler → client → core-banking path → DB table.
+Trả lời bằng ngôn ngữ nghiệp vụ với mọi người ngoài Hoàng (không nêu class/file/method ngoài DM với Hoàng),
+nhưng trace bên trong vẫn đủ chuỗi: endpoint → handler → client → core banking → bảng DB.

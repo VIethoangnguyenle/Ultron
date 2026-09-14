@@ -180,6 +180,7 @@ actions:
   # Thuần script, 0 token: ua_build_progress.py đọc log watcher + log build + artifact .ua/.
   # Mỗi 60 phút; tự im lặng khi build xong (--quiet). Tự hết hạn 2026-09-15.
   - id: ua-build-progress
+    enabled: false          # build graph 15/09 đã xong — tắt để khỏi gửi định kỳ; bật lại nếu build lại
     every_minutes: 60
     between: ["23:45", "07:00"]
     until: "2026-09-15"

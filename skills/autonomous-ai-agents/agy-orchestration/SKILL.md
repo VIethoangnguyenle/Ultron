@@ -52,6 +52,26 @@ lấy nhánh `feature/kafka-module` đang checkout.
 Trước khi build: fetch, kiểm nhánh dev-sit/dev có mới hơn không, và **trả lại đúng nhánh cũ sau khi xong**.
 
 ### Model cho build graph UA (Hoàng chốt 2026-09-14): ưu tiên `claude-opus-4-6-thinking`
+
+### Reasoning source = cũng dùng `claude-opus-4-6-thinking` (Hoàng chốt 2026-09-15: *"ưu tiên xài agy model opus 4.6 để reasoning source nha, nó tốt hơn đó"*)
+Mọi việc **đọc source rồi suy luận bằng agy** — viết mô tả node/summary, phân tích luồng, sửa mô tả khuôn sáo —
+**mặc định `--model claude-opus-4-6-thinking`**, KHÔNG mặc định `gemini-3.1-pro-high`. Gemini chỉ là
+*fallback* khi opus hết quota (theo thang model ở mục quota bên dưới). Đo thực tế 2026-09-15 (batch 19–33 node,
+prompt 19–47KB): opus ~57–75s/lô, còn nhanh hơn gemini-3.1-pro-high (~72–75s) — nên "đắt hơn" không có nghĩa
+chậm hơn; đừng tự hạ model cho nhanh.
+
+Lệnh kèm schema (đầu ra dễ parse, không phải bóc code fence bằng tay — vẫn nên strip ```` ```json ```` vì model
+có thể tự bọc):
+```
+agy --model claude-opus-4-6-thinking --print-timeout 15m --output-format json \
+  --json-schema schema.json -p "$(cat prompt.txt)" > out.json
+```
+`--output-format json` trả `{"conversation_id","status":"SUCCESS","response":"..."}` → parse field `response`.
+
+**Đừng tin `--json-schema`**: model vẫn có thể trả mảng trần `[{...}]` (không phải `{"items":[...]}`) và **dính rác
+sau mảng** kiểu `],"toolAction":"Finishing task","toolSummary":"Completed summaries"}` → `json.loads` báo
+`Extra data`. Parse an toàn: quét từ `[`/`{` đầu tiên, đếm độ sâu có xử lý chuỗi escape, cắt đúng đoạn JSON rồi
+`json.loads`; chuẩn hoá cả 3 dạng (mảng trần / `{"items":[…]}` / `{id: summary}`) về list `{id, summary}`.
 Khi build/đắp knowledge graph UA bằng agy, **ưu tiên model `claude-opus-4-6-thinking`** (Claude Opus 4.6
 Thinking của agy) — KHÔNG dùng `gemini-3.1-pro-high` làm mặc định cho việc này. Danh sách model lấy bằng
 `agy models` (2026-09-14 có: `claude-opus-4-6-thinking`, `claude-sonnet-4-6`, `gemini-3.8-flash-*`,
@@ -157,7 +177,8 @@ Thang model để thử (lấy từ `agy models`, chỉ nhóm Gemini theo mặc 
 Cách probe: 1 prompt cực ngắn trước khi chạy lại job thật —
 `timeout 90 agy --model <m> --print-timeout 1m --dangerously-skip-permissions -p "ok" >/tmp/probe.log 2>&1`
 (exit 0 + có trả lời = model còn quota; gặp pattern quota = hết).
-- **KHÔNG tự nhảy sang model Claude/GPT qua agy** (`claude-opus-4-6-thinking`, `claude-sonnet-4-6`, `gpt-oss-120b-medium`) khi chưa được Hoàng cho phép — luật "claude không tham gia reasoning" vẫn đứng; nhóm model đó để Hoàng quyết.
+- **Model Claude/GPT qua agy**: ĐƯỢC dùng cho **reasoning source + build graph** (Hoàng cho phép 2026-09-14 và nhắc lại 2026-09-15 "ưu tiên opus 4.6"). Vẫn KHÔNG tự ý dùng cho việc khác khi chưa hỏi; và luật "claude CLI (gói 3tr) chỉ để code" KHÔNG liên quan tới đây — agy dùng quota Antigravity, không phải gói claude.
+- **`--effort` bị model Claude/GPT qua agy TỪ CHỐI** (`DROPPED --effort`) — đừng truyền `--effort` khi chạy `claude-opus-4-6-thinking`; nó chỉ hợp nhóm `gemini-3.1-pro*`.
 - Wrapper v1.3 (`~/.local/bin/agy`) hiện **nhảy account ngay** (`hagy next --quiet`) khi gặp pattern quota, không có bước thử model khác ⇒ bước "thử model khác" phải làm ở phía Ultron cho tới khi Hoàng duyệt sửa wrapper (sửa wrapper = việc code).
 
 Wrapper print mode (`agy` → `agy.real` + guard) thử tối đa `MAX_RETRIES=2` lần: gặp pattern quota thì `hagy next --quiet` + chạy lại; **hết lượt thử thì nó `exit` và trả NGUYÊN văn lỗi quota** — không có đường lui thông minh nào. Nên gặp lỗi quota lần 2 ⇒ dừng, đừng chạy lại vô ích (mỗi lần thử vẫn tốn quota/CPU).

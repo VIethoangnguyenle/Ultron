@@ -6,7 +6,7 @@ Jarvis=claude CLI, Matcha=agy; VIỆC VIẾT CODE mới (script/tool/cổng) ⇒
 §
 Guard: cấm restart gateway từ trong gateway + cấm sửa config.yaml; restart → claude đọc scripts/gw_restart.txt; sửa config: `hermes config set`.
 §
-Đọc ảnh: vision_analyze; video → skill video-analysis. TTS vi-VN-NamMinhNeural→paplay (XDG_RUNTIME_DIR=/run/user/1001).
+Đọc ảnh: vision_analyze; video → skill video-analysis. TTS vi-VN-NamMinhNeural→ffmpeg wav→paplay.
 §
 db-access: write chỉ VBSMEONL+VBSMEOFF (preview+token, SIT); mở write DB khác qua Hoàng. LIVE ≠ SIT schema.
 §
@@ -14,7 +14,7 @@ Sổ hồ sơ: people.py + skill team-people.
 §
 Chat: gchat_send_file.py gửi file THẬT (không thả path local); gchat_dump.py đọc lịch sử; URL dài bọc code block.
 §
-Email: google_token.json + google_calendar_token.json (lịch chỉ đọc); chỉ ping mail book họp/review; mail chỉ trong DM.
+Email: google_token.json + google_calendar_token.json; chỉ ping mail book họp/review; mail chỉ trong DM.
 §
 Manager của Hoàng = chị Nguyên (users/105726904933324385534, Phó phòng P.DVNH).
 §
@@ -30,6 +30,6 @@ Bản đồ kênh: DM anh=chủ · DM 1:1 đồng nghiệp=hỗ trợ · VBB SME
 §
 Cấm grep -r trong ~/.hermes (cache json ~4,5MB làm phình ngữ cảnh).
 §
-Hạn mức: agy=gemini-3.1-pro CHỈ cho reasoning/đọc source (CẤM claude, gói 3tr/tháng — claude chỉ việc code); Codex=tháng. Graph lớn chia module (1 lượt→OOM 137); agy build graph: đọc SKILL.md rồi tự chạy.
+Hạn mức: agy CHỈ cho reasoning/đọc source (CẤM claude, gói 3tr/tháng — claude chỉ code); Codex=tháng. Build graph UA: agy + model claude-opus-4-6-thinking, chia module (OOM 137), agy đọc SKILL.md tự chạy. Trace source: UA graph-first, grep theo ref.
 §
 Nén: endpoint model KHÔNG cache prefix (gửi lại = full giá) ⇒ Hoàng chốt ưu tiên ngữ cảnh RỘNG cho task dài (ngưỡng nén 300k); tiết kiệm token = cắt kết quả công cụ, KHÔNG hạ ngưỡng.

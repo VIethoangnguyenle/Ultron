@@ -47,6 +47,12 @@ Tone: business-first, dễ hiểu. Technical details (đọc/ghi chi tiết, c�
 
 Post into the chat: a short **text summary only** (no mermaid code, no diagrams) — the flow in plain language, a few short lines + the file path. Mermaid/diagrams live ONLY in the markdown file (deliver via file, or a host-path notice if `/setup-files` is not active). Google Chat does NOT render mermaid — pasting it into chat turns into unreadable raw text.
 
+## Pitfalls tra cứu graph (đã gặp thật)
+
+- **Path API trong domain-graph có thể SAI/LỆCH so với code.** Ví dụ graph ghi `POST /api/v1/web/transfer/payroll/validate-internal` nhưng annotation thật là `/internal/validate` (`@RequestMapping("/api/v1/web/transfer/payroll")` + `@PostMapping("/internal/validate")`) và các path con kiểu `/transactions/detail`, `/cancel/init`, `/payment-order/export[/multi]`, `/validated/export`. ⇒ Trước khi đưa path cho tester/dev, luôn mở `get_node_source` trên **interface controller** (class có `@PostMapping`) để chốt path thật; graph chỉ để lấy luồng + bước.
+- **Gọi MCP theo lô đôi khi trả kết quả bị lược (chỉ hiện tên tool + số ký tự).** Khi cần nội dung (flow detail, domain detail, error-code query) thì gọi LẺ từng lượt rồi mới ghép; đừng coi kết quả lô là đã đọc.
+- **Domain-graph không phải danh mục mã lỗi.** Nó chỉ ghi vài mã tường minh gắn với bước (vd `WORKING_ACCOUNTS_IS_NOT_SUPPORTED`, `NOT_ALLOWED_FUTURES_TRANSACTION`). Hỏi "đủ bộ mã lỗi" ⇒ phải sang `AD_MESSAGE` (DB) như skill `vbsme-error-diagnosis`, KHÔNG bịa thêm mã từ graph.
+
 ## Sources of truth (in order)
 
 1. **Domain graph** — query `mcp__understand_anything__get_domain_flow_detail(flow_name=...)` / `get_domain_detail` for business flows. For base/framework questions use the `dvnh-common` project graph (also registered in understand-anything) + CodeGraph/Serena on `dvnh-common/` source.
