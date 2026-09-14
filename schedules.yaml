@@ -156,3 +156,19 @@ actions:
     date: "2026-09-15"
     script: gchat_send_text.py
     args: ["--space", "spaces/AAAADv4ib6s", "--text", "<users/102164964977711619261> Chị Oanh ơi, em nhắc chị việc chị dặn hôm qua nha — món \"source của anh Hoàng\" ấy ạ 👀"]
+
+  # BÁO CÁO NÉN NGỮ CẢNH (Hoàng yêu cầu 2026-09-14: "theo dõi 1 ngày rồi báo anh số thật").
+  # Thuần script = 0 token: compact_stats.py đọc agent.log, đếm số lần nén / thời gian / token thu hồi
+  # / lượt trả góp lỗi. Gửi 09:00 (24h qua) + 18:00 (12h qua), KHÔNG gửi khi không có dữ liệu.
+  # Tự hết hạn 2026-09-21 (đo 1 tuần rồi quyết P2); muốn dùng tiếp thì gia hạn `until`.
+  - id: compact-report-am
+    when: "09:00"
+    until: "2026-09-21"
+    script: compact_stats.py
+    args: ["--hours", "24", "--send", "--space", "spaces/AAQAZxc2km8"]
+
+  - id: compact-report-pm
+    when: "18:00"
+    until: "2026-09-21"
+    script: compact_stats.py
+    args: ["--hours", "12", "--send", "--space", "spaces/AAQAZxc2km8"]

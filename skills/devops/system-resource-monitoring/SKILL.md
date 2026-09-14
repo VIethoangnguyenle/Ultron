@@ -63,6 +63,51 @@ numbers, never from the scheduled budget report alone:
 Exact queries, the log parser, the lever audit and the report shape:
 `references/token-accounting.md`.
 
+## Context-compression audit ("nén ngữ cảnh có chạy không, chạy thế nào?")
+
+When the question is about compaction itself — how often a session stops to
+summarize, how much comes back, which layer is really running:
+
+1. Count the passes from the log, never from config: the
+   `context compression started/done` lines carry trigger tokens, tokens after,
+   messages dropped and (from the line timestamps) the wall time of each pass.
+   Use `~/.hermes/scripts/compact_stats.py` (`--hours | --since | --json |
+   --send`) instead of hand-rolling regexes each time, and re-run it yourself
+   plus spot-check two or three events against the raw lines before quoting its
+   numbers.
+2. Zero lines for a layer means "not proven to have run", NOT "cannot run".
+   Read the gate before concluding: grep the symbol's call sites
+   (`grep -rn "<symbol>" --include=*.py agent/`), then check for a knob whose
+   value doubles as an accumulation / re-arm runway (it can land at most once
+   per cycle), a sibling flag that force-disables the layer, a per-session
+   counter reset by another layer, and whether the layer logs at all. For a
+   silent layer the proof is a probe or a code read, never a grep for a line
+   that does not exist.
+3. Before judging any threshold, resolve TWO numbers: the model's declared
+   window (ask the provider — `curl -s <gateway>/v1/models` → `max_input_tokens`)
+   and whether `compression.threshold_tokens` (absolute) is set, because it caps
+   the `threshold` ratio. An absolute 100k on a 1M-window model fires at 10% of
+   the window — that arithmetic, not the layer wiring, is the usual cause of a
+   compaction treadmill.
+4. Price the pass in latency, not only tokens: one compaction is one auxiliary
+   LLM call on the main provider unless the summarizer model is overridden
+   (measured ~55 s of blocked turn time per pass). Switch the summarizer to a
+   fast sibling model on the same gateway BEFORE proposing anything that adds a
+   pass per turn.
+5. Check `sessions.cache_read_tokens / input_tokens` before arguing about
+   prompt-cache breaks — with cache hits near zero the breaks are cheap.
+
+Standing rules for this class of work: a threshold change is a MONEY decision —
+measure today's spend, then present threshold → est. tokens/turn → multiple of
+current spend → fewer passes → reading accuracy as one table and let Hoàng pick;
+never raise it quietly. Land all config-only, reversible levers in ONE batch with
+a single gateway restart (`scripts/gw_restart.txt`), and keep code levers
+(per-tool caps, file re-injection) behind an explicit go-ahead.
+
+Log regexes, the pairing rule, the Claude↔Hermes layer mapping, the ranked lever
+list (config vs code) and the threshold/spend table live in
+`references/context-compression-audit.md`.
+
 ## Pitfalls
 
 - `psutil.cpu_times()` (no args) returns a `scputimes` namedtuple, NOT a
@@ -98,3 +143,12 @@ Exact queries, the log parser, the lever audit and the report shape:
   colleagues, so no file paths, script names or DB identifiers in the message.
   Answer in the thread that asked and @mention the person who asked so they get
   notified.
+- Prove a mechanism ran from its own log line, not from its config value — but
+  first establish that the layer logs its passes. An absent line is proof of
+  idleness only for a logging layer; for a silent one read the gate (call sites,
+  sibling flag, re-arm runway) or run a probe. Declaring a knob "dead code" from
+  a grep alone is how a retunable value gets misdiagnosed as needing a code fix.
+- Compaction blocks inside the turn, so proposal order matters: switch the
+  summarizer to a fast sibling model first, then consider enabling a pass that
+  runs every N turns. Adding the pass while the summarizer is the slow main
+  model makes every turn pay its latency.

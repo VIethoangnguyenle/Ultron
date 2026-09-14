@@ -49,10 +49,10 @@ compression:
   threshold: 0.5
   target_ratio: 0.2
   protect_last_n: 20
-  min_tail_user_messages: 1
+  min_tail_user_messages: 3
   max_attempts: 3
-  proactive_prune_tokens: 80000
-  proactive_prune_min_result_chars: 8000
+  proactive_prune_tokens: 30000
+  proactive_prune_min_result_chars: 4000
   proactive_prune_min_reclaim_tokens: 4096
   hygiene_max_turn_hold_seconds: 10
   protect_first_n: 3
@@ -60,7 +60,9 @@ compression:
   codex_app_server_auto: native
   codex_responses_native: false
   idle_compact_after_seconds: 1800
-  threshold_tokens: 100000
+  threshold_tokens: 300000
+  micro_compact: true
+  micro_compact_every_n_turns: 5
 prompt_caching:
   cache_ttl: 5m
 display:
@@ -228,7 +230,7 @@ mcp_servers:
       - run
       - server.py
     env:
-      PROJECT_ROOTS: /home/zane/Desktop/work/vietbank/vietbank-sme,/home/zane/Desktop/work/dvnh-common,/home/zane/Desktop/work/vietbank/vietbank-digital/viet-bank-omni-ekyc,/home/zane/Desktop/work/vietbank/vietbank-digital/vietbank-omni
+      PROJECT_ROOTS: /home/zane/Desktop/work/vietbank/vietbank-sme,/home/zane/Desktop/work/vietbank/vietbank-digital
   agentmemory:
     command: npx
     args:

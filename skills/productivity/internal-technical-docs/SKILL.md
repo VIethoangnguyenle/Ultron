@@ -26,6 +26,26 @@ Tham khảo `references/diataxis.md`. Bốn loại: **Tutorial** (dạy người
 Bốn nguyên tắc không thương lượng: **rõ ràng · chính xác (số liệu đọc từ máy) · hướng người đọc (một tài
 liệu = một đối tượng + một mục tiêu) · nhất quán thuật ngữ**.
 
+## Memo ngắn trả MỘT câu hỏi (khác tài liệu tham chiếu nhiều trang)
+
+Khi Hoàng hỏi một câu nghiên cứu ("cơ chế X chạy thế nào", "làm được cái này không") ⇒ artifact là
+**memo 3–5 trang**, KHÔNG dùng nghi thức 12 mục + bìa + mục lục riêng trang (nghi thức đó dành cho tài
+liệu tham chiếu dài, khi Hoàng yêu cầu "tài liệu kỹ thuật"). Vẫn là file gửi DM kèm QA gate như mọi PDF.
+
+Khung 6 phần, viết theo thứ tự này:
+
+1. **Kết luận trong 3–5 dòng đầu** — được hay không được, và vì sao (không bắt người đọc tự suy).
+2. **Cơ chế tham chiếu** — nguồn ngoài (tài liệu chính thức) đang làm gì, 1 sơ đồ mermaid nhãn 2–5 từ.
+3. **Bảng đối chiếu** cơ chế tham chiếu ↔ hệ thống của mình, cột "trạng thái ở máy này".
+4. **Số liệu ĐỌC TỪ MÁY** (log / config / DB) — mỗi con số nêu nguồn đọc; cấm số ước lượng, cấm chép
+   lại số từ trí nhớ.
+5. **Bảng khoảng trống thật** — chỉ liệt kê cái thiếu kèm bằng chứng quan sát được (dòng log vắng
+   mặt, call site, số đo), không liệt kê suông.
+6. **Đề xuất chia giai đoạn**: P0 config (đảo ngược được, làm ngay) → P1 code (giao Jarvis qua cổng MCP +
+   tự verify) → P2 dài hạn; mỗi giai đoạn ghi rõ lợi ích + rủi ro + cách đo lại.
+
+Kết thúc chat bằng 1 câu hỏi chốt duy nhất (xin chạy P0 hay không) — không hỏi dồn.
+
 ## Thứ tự bắt buộc (đừng nhảy bước)
 
 1. **Đề mục trước** — gửi outline vài dòng (số mục + 1 dòng nội dung mỗi mục, kèm 4 điều đã chốt: loại
