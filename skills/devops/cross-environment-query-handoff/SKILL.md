@@ -1,0 +1,89 @@
+---
+name: cross-environment-query-handoff
+description: "Use when handing a query another env's owner will run."
+version: 1.0.0
+author: Ultron
+license: MIT
+platforms: [linux, macos]
+metadata:
+  hermes:
+    tags: [handoff, cross-environment, sql, evidence, tester-support, schema-drift, live, sit]
+    related_skills: [vbsme-db-lookup, vbsme-error-diagnosis, tester-support]
+---
+
+# Cross-environment query & report handoff
+
+Dùng khi bạn viết một câu query / báo cáo mà **người khác sẽ chạy hoặc kiểm ở môi trường bạn không vào được**
+(SIT → UAT/LIVE, nội bộ → hạ tầng bank/đối tác, máy tester → DB nhà bank), hoặc khi kết luận của bạn dựa
+trên log/dữ liệu mà bạn không thể đọc trực tiếp.
+
+Nguyên tắc gốc: **môi trường khác không bảo đảm cấu trúc giống nhau, và "tôi chạy sạch ở đây" không phải
+"nó chạy được ở kia".** Câu query/báo cáo phải tự đứng được ở nơi nó sẽ chạy.
+
+## Khi dùng
+
+- Tester/dev/bank nhận query của bạn để tự chạy trên môi trường họ có quyền (bạn chỉ có DB SIT).
+- Cần chứng minh "dữ liệu có tồn tại không" ở môi trường không truy cập được.
+- Kết luận phải rút ra từ log mà log chỉ ghi một phần sự thật (không ghi số bản ghi, không ghi nội dung).
+
+## Quy trình giao query cho người khác chạy
+
+1. **Chốt môi trường đích + ai chạy + họ có quyền gì.** (SIT? UAT? LIVE? user nào? tool nào?) Không có
+   thông tin này thì câu query không viết được đúng.
+2. **Viết bản “cột lõi” trước.** Chỉ dùng những cột chắc chắn tồn tại từ lâu và là cột nghiệp vụ cốt lõi;
+   cột trang trí (số tham chiếu, mã phản hồi, kênh, thông tin bổ trợ) để **lần chạy sau**. Ít cột mà chạy
+   được > đủ cột mà lỗi.
+3. **Gửi kèm một câu dò cột** để cả hai bên cắt lại nhanh thay vì đoán:
+   `SELECT table_name, column_name, data_type FROM all_tab_columns WHERE table_name IN ('BẢNG_1','BẢNG_2') ORDER BY table_name, column_id;`
+   — nếu user thiếu quyền `ALL_TAB_COLUMNS` thì dùng `USER_TAB_COLUMNS`; qua một số cổng truy vấn phải
+   prefix owner của dictionary view (vd `SYS.ALL_TAB_COLUMNS`), viết trần bị chặn.
+4. **Nói đúng mức tin cậy của mình.** Câu chuẩn: *"em chạy thử trên môi trường X thấy execute sạch; môi
+   trường Y em không có quyền vào DB"*. Không bao giờ nói như thể đã kiểm chứng ở nơi bạn không chạy.
+   Kèm 1 dòng "lệch cấu trúc giữa X và Y là phát hiện đáng báo dev/DB" khi phát hiện lệch.
+5. **Dự đoán kết quả để họ đối chiếu** — nói trước sẽ thấy dòng nào (mã nào, trạng thái nào, bước nào),
+   và kết quả ra sao thì kết luận gì. Người chạy không đọc được ý định của bạn trong câu SQL.
+6. **Vòng lặp sửa lỗi phải ngắn.** Khi họ dán lỗi vào, chỉnh đúng chỗ lỗi, không viết lại từ đầu.
+
+## Đọc lỗi của môi trường khác (không hoảng, không đổ cho query sai)
+
+- `ORA-00904: "X": invalid identifier` = **cột X không tồn tại ở môi trường đó**. Oracle trỏ vào **một vị trí
+  xuất hiện** của định danh (thường là nhánh thứ 2 của `UNION ALL`), không phải cả câu ⇒ bỏ/nuôi cột đó
+  rồi chạy lại, còn các cột khác chưa chắc đã có ⇒ cứ theo bước 2-3 ở trên.
+- Lỗi phân quyền / không thấy bảng (vd `ORA-01031`, `ORA-00942`) = khác schema owner, khác quyền user —
+  không phải query sai.
+- **Cột chỉ một nhánh `UNION` có** → nuôi bằng kiểu rõ ràng: `CAST(NULL AS VARCHAR2(50))` cho Oracle.
+- Môi trường đích thường **rỗng với dữ liệu của bạn** (SIT không chứa dữ liệu môi trường thật) ⇒ nói
+  trước "0 dòng ở đây là bình thường" để người chạy không tưởng query sai.
+
+## Kỷ luật bằng chứng — số liệu ghi nhận vs suy luận
+
+Khi kết luận dựa trên log/nhật ký mà nguồn **không ghi con số bạn cần**, đây là chỗ mất uy tín nhanh nhất.
+
+- **Phân biệt rõ hai thứ khi viết báo cáo:** (a) điều nguồn ghi lại (bộ lọc đã dùng, thời điểm, mã kết quả,
+  http status) và (b) điều mình **suy ra**. Ghi nhãn cho (b): *"đây là suy luận"*.
+- **Không được nâng suy luận thành số liệu.** Ví dụ điển hình: log tầng API chỉ ghi 1 dòng/lượt gọi, **không
+  ghi số bản ghi trả về** ⇒ không được viết "log cho thấy báo cáo trả rỗng" hay "log cho thấy vẫn có dữ
+  liệu". Con số "0 bản ghi" là **quan sát trên màn hình của người dùng**, không phải số liệu log.
+- **Muốn chứng minh số bản ghi** thì phải đổi tầng bằng chứng: dữ liệu nguồn (DB), hoặc ảnh chụp/kết quả
+  người dùng trích ra, hoặc báo cáo màn hình — không suy từ log vận hành.
+- **Người dùng sẽ replay từng câu của bạn** (nhất là tester leader). Sai thì **đính chính thẳng + phát hành
+  bản cập nhật (v2)** kèm 1 câu nói rõ điểm sửa; không bảo vệ câu cũ, không im lặng sửa ngầm.
+- Báo cáo kiểu "các bước đầy đủ" vẫn phải giữ nguyên: nguồn dữ liệu, các bước tra, trích nguồn, kết luận,
+  việc cần làm, phụ lục.
+
+## Ví dụ đã trả giá
+
+- Query union hai bảng lệnh (đang xử lý vs đã hoàn tất) chạy sạch trên SIT, tester chạy nguyên văn trên LIVE
+  → `ORA-00904: "STATUS": invalid identifier` (bản LIVE thiếu cột `STATUS`). Cách xử lý đúng: gửi bản cột
+  lõi + câu dò cột, nói rõ "SIT sạch / LIVE em không có DB".
+- Báo cáo v1 khẳng định từ log điều log không ghi (số bản ghi) → tester phản biện → phải làm v2 đính chính.
+
+Chi tiết bảng/cột và query mẫu của ca trên (VietBank SME, bảng lệnh `*_TRANS_REQ`):
+`references/vbsme-lenh-tables.md` — đọc khi cần dựng lại câu query theo CIF doanh nghiệp + ngày soạn lệnh.
+
+## Pitfalls
+
+- Đừng bảo "em đã test rồi" khi test khác môi trường đích — đó là nói quá mức chứng cứ.
+- Đừng gửi 1 câu query duy nhất cho môi trường mình chưa từng chạy; luôn kèm đường lui (câu dò cột / bản rút gọn).
+- Đừng coi "log báo 200/mã 00" là bằng chứng có dữ liệu — đó chỉ là "lời gọi thành công", không nói gì về số dòng.
+- Đừng để người chạy tự đoán cách đọc kết quả; viết sẵn "thấy dòng nào ⇒ kết luận gì".

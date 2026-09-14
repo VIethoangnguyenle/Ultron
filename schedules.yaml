@@ -136,3 +136,13 @@ actions:
     every_minutes: 2
     between: ["07:00", "21:30"]
     script: calendar_remind.py
+
+  # Nhắc chị Oanh (PM dự án) việc chị nhờ riêng trong group VBB SME 14/09:
+  # "nhắc tui mai gửi source của Hoàng nha". One-shot 09:00 ngày 15/09 → tự hết hạn.
+  # Ghi ĐÚNG thứ chị ấy dặn, KHÔNG tự động gửi file/source đi đâu (Ultron chỉ nhắc).
+  # Muốn đổi giờ sang 15/09: sửa `when`; bỏ hẳn: enabled -> false.
+  - id: oanh-remind-source-hoang
+    when: "09:00"
+    date: "2026-09-15"
+    script: gchat_send_text.py
+    args: ["--space", "spaces/AAAADv4ib6s", "--text", "<users/102164964977711619261> Chị Oanh ơi, em nhắc chị việc chị dặn hôm qua nha — món \"source của anh Hoàng\" ấy ạ 👀"]

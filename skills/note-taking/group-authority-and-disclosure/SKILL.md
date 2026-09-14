@@ -139,6 +139,40 @@ Khi việc có phép là ghi ra hệ thống ngoài (Jira, DB, file gửi lên g
 - Nếu việc lỡ hiện dưới tên Hoàng (user OAuth / PAT là của Hoàng) thì đó là bình thường, nhưng phải
   biết để nói rõ với Hoàng — và đừng hứa "của em" với ai.
 
+## "Sao anh m lơ tin nhắn t vậy?" — nghi Ultron ngó lơ trong group
+
+Trong space nhiều người, Google Chat **chỉ đẩy cho bot những tin @mention bot** (tin không tag thì bot
+không bao giờ thấy) — nên "bị lơ" gần như luôn là **thiếu tag**, hoặc bot không ở trong space, hoặc
+đúng là chậm hàng đợi. Phải **xác minh bằng bằng chứng TRƯỚC khi trả lời**: không nhận lỗi vội, cũng
+không khẳng định suông "em không nhận được gì".
+
+1. **Chữ `@Ultron` GÕ TAY không phải là tag** — Google chỉ đẩy event khi có mention chip
+   (`annotations[].userMention`). Tin chỉ chứa text `@Ultron` ⇒ **không event nào được gửi**, bot mù
+   y như tin không tag (mà người gửi thì tưởng đã tag, nên họ mới bực). Kiểm nhanh nhất:
+   `grep -c '<users/id>' ~/.hermes/logs/agent.log*` → **0 hit = tin chưa từng tới bot**, hết nghi ngờ.
+2. **Bot có nhận được tin chưa** — `~/.hermes/logs/gateway.log` ghi MỌI inbound adapter nhận; lọc
+   theo ngày + người gửi. Không có dòng nào ⇒ bot chưa từng thấy tin đó (space nhóm ⇒ tin không tag).
+   Có dòng mà `grep "response ready"` cho `time=` rất lớn ⇒ đang xếp hàng vì gateway xử lý TUẦN TỰ.
+3. **Tin có thật trong space không** — `scripts/gchat_dump.py --space spaces/XXX --limit N` bằng user
+   read token: thấy được cả tin KHÔNG tag, đủ để dẫn chứng "tin nằm ở thread này, nhưng không tag".
+4. **Bot có là member space đó không** — `spaces().list` bằng SA `google-chat-sa.json` (scope
+   `chat.bot`) trả danh sách space bot tham gia, gồm DM với bot ⇒ loại giả thuyết "DM bot mà bot lờ".
+
+Trả lời NGAY, NGẮN, đúng thread đang hỏi: em không lơ; bot Google Chat chỉ nhận tin có tag nên tin
+không tag thì hệ thống không đẩy sang; hỏi lại đúng tin/chủ đề họ cần; liệt kê việc làm được (task
+Jira, export, tra log…) để họ tag lại là chạy. Giọng theo hồ sơ người đó (`people.py show <id>`) —
+PM/leader/sếp thì ga-lăng, không cà khịa; đừng đổ lỗi ngược cho người hỏi và đừng hứa tính năng mới.
+
+Lệnh cụ thể + bảng quyết định: `references/missed-message-triage.md`.
+
+Khi phải quét lại lịch sử nhóm: lấy **1 trang duy nhất** rồi lọc bằng Python
+(`spaces.messages.list(parent=space, pageSize=500, orderBy="createTime desc")` → lọc `sender` /
+`thread.name`). Cuộn nhiều trang 1000 tin rất chậm — có lần quá 150s mà không ra kết quả.
+
+Cron `mention_poller` cũng chỉ bắt mention qua `annotations[].userMention`, nên nó MÙ với chữ
+`@Hoàng`/`@Ultron` gõ tay y như bot. Muốn bịt hẳn phải khớp text trong body — coi là feature mới,
+**xin ý Hoàng**, đừng tự bật.
+
 ## Pitfalls
 
 - **Đừng để nhịp đối đáp xã giao kéo dài**: mấy lượt "nói nghe coi", "ai bật", "hèn v" ngốn token

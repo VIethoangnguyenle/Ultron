@@ -228,7 +228,7 @@ mcp_servers:
       - run
       - server.py
     env:
-      PROJECT_ROOTS: /home/zane/Desktop/work/vietbank/vietbank-sme,/home/zane/Desktop/work/dvnh-common
+      PROJECT_ROOTS: /home/zane/Desktop/work/vietbank/vietbank-sme,/home/zane/Desktop/work/dvnh-common,/home/zane/Desktop/work/vietbank/vietbank-digital/viet-bank-omni-ekyc,/home/zane/Desktop/work/vietbank/vietbank-digital/vietbank-omni
   agentmemory:
     command: npx
     args:
