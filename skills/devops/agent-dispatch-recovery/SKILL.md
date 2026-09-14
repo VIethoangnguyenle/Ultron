@@ -74,6 +74,29 @@ or re-run.
 - Report what changed, the before/after numbers, what is still open, and — when a reset was involved —
   that the job is now scheduled rather than running.
 
+## 5. Did the scheduled run actually happen, and where did it go?
+
+"Did job X run at 19:00 yesterday?" / "I never saw that report" is answered from the scheduler's own
+records, not from memory: job state and delivery target in `~/.hermes/cron/jobs.json` (`last_run_at`,
+`last_status`, `deliver`, `next_run_at`, `repeat.completed`, `last_dispatch.lateness_seconds`), each
+attempt in `cron/executions.db` (`executions`, `cron_incidents`), proof of sending in
+`cron/deliveries.db` (`status='delivered'`), and the verbatim output in
+`cron/output/<job_id>/<date>_<time>.md` under `## Response`. Column-by-column map and the Python to read
+them: `references/cron-run-forensics.md`. Quote the real run time and status back to the owner —
+"probably ran" is not an answer.
+
+- **A missing report is almost always the delivery target, not a failed job.** Check `deliver` before
+  diagnosing anything: a job pointed at a DM never lands in a group, and vice versa.
+- **Re-route with** `cronjob_manage action=update job_id=<id> deliver='<platform>:<chat_id>'`. For a
+  recurring report (a new item, not an answer inside a thread) omit any `:thread_id` so it lands at the
+  top of the chat instead of being buried. Report the change back with `next_run_at`, and repost the
+  most recent report to the new target in the same turn if the owner wanted to read it.
+- **Changing `deliver` changes the audience, not just the routing.** Re-check who can read the target
+  (for a Hermes space: `scripts/gchat_members.py --space spaces/<id>`) before pointing an internal
+  report there; if anyone besides the owner is a human member, strip the internal sections or ask first.
+- `cron/usage_audit.jsonl` is per-run agent usage and carries no job name — looking for a job there
+  returns nothing; use `jobs.json`/`executions.db`.
+
 ## Pitfalls
 
 - Exit code 0 from a CLI agent means the process ended, not that the task succeeded. Read stdout.

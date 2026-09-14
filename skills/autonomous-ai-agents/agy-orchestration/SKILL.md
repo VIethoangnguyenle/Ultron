@@ -85,7 +85,16 @@ agy (`--model`), không phải trong config; muốn đổi thì sửa biến `AG
 xoay account bằng tay: cứ gọi `agy`, wrapper lo. Nếu số account trên máy ít hơn con số Hoàng nói thì BÁO
 lại, đừng tự thêm — và **không bao giờ nhận mật khẩu/credential qua chat** (Hoàng tự đăng nhập).
 
-### NGHIỆM THU graph: exit 0 KHÔNG có nghĩa là xong (2026-09-14)
+### Cạn quota KHÔNG báo lỗi: stdout RỖNG + exit 0 (đo 2026-09-15)
+Khi hết quota, wrapper tự tụt thang model rồi `hagy next` xoay account; hết cả 9 attempt nó **bỏ cuộc và để
+`stdout` rỗng, `stderr` rỗng, `exit=0`**. Nếu chỉ nhìn exit code sẽ tưởng thành công → mất cả lô dữ liệu mà
+không biết. Vì vậy: (1) mỗi lô phải kiểm `stat -c%s` của file output > 0; (2) ghi log 1 dòng/lô kèm
+`exit/size/giờ`; (3) trước khi chạy lô thật, probe bằng prompt `ping` ngắn — probe rỗng/quota thì
+**sleep 900 rồi thử lại** thay vì đốt cả thang model; (4) quota hồi theo cửa sổ nên retry vòng lặp
+(cách nhau ~15') sẽ thành công, đừng kết luận "prompt hỏng". Lô 04/06/07/08/09 của vietbank-digital
+đã fail đúng kiểu này 2 lần rồi thành công ở vòng retry sau.
+
+
 Một lượt build agy có thể kết thúc **exit 0 sau vài phút nhưng graph khuyết**: lần 2026-09-14 (model
 `gemini-3.1-pro-high`) sinh 7.647 node nhưng **0 edge**, summary toàn khuôn sáo `"File: <path>"`, layers=1,
 MCP báo `health: DEGRADED - graph has nodes but no edges - analysis phases likely skipped`. Graph loại này

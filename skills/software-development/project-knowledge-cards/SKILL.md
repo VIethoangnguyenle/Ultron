@@ -24,9 +24,21 @@ etag-cache, napas247-recon).
 `evidence[{file, ref, last_commit | sha256_prefix, proves}]`, `gate_ref`, `confidence`, `gaps[]`,
 `verified_at`, `verified_by`.
 
+## Vai trò của thẻ (Hoàng chốt 15/09) — CONTEXT KHỞI ĐẦU, không phải kết luận cuối
+Mục đích của thẻ là cho Ultron **đúng ngữ cảnh vấn đề ngay từ đầu** để tăng tốc trace: biết ngay vùng/file/
+API liên quan, bẫy đã gặp, phần còn thiếu — thay vì mò cả repo. Vì vậy:
+- Thẻ **không thay** việc kiểm chứng. Chuẩn cao nhất là **chính xác + chuẩn nghiệp vụ**: mã lỗi, trạng thái,
+  luồng, điều kiện phải khớp thực tế.
+- Câu hỏi cần độ chính xác cao (trả lời tester/khách, trước khi sửa code, bàn giao) ⇒ dùng thẻ để **đọc đúng
+  1-2 file bằng chứng và verify lại** rồi mới kết luận — vẫn nhanh hơn nhiều lần so với trace mò.
+- Câu hỏi thường, đúng phạm vi thẻ, thẻ còn hạn ⇒ trả lời từ thẻ nhưng **nói rõ mốc (nhánh + commit)**,
+  `confidence`, và phần `gaps`.
+- Đọc thẻ xong mà thấy mâu thuẫn với hiểu biết hiện tại ⇒ trace thật, **không bẻ kết luận cho khớp thẻ**.
+
 ## Quy trình 4 bước khi được hỏi
 1. **Tra**: khớp `aliases` của thẻ với câu hỏi (không phân biệt hoa/thường, khớp theo từ).
-2. **Đọc thẻ**: trả lời từ `conclusion` — nói rõ `confidence` và `gaps` cho người hỏi.
+2. **Đọc thẻ = lấy context**: xác định vùng/file/API cần kiểm, bẫy, `gaps`; đối chiếu với câu hỏi. Cần độ
+   chính xác cao ⇒ verify lại file bằng chứng rồi mới kết luận; luôn nói rõ mốc + `confidence` + `gaps`.
 3. **Kiểm hạn (BẮT BUỘC)**: mỗi `evidence` có `last_commit` phải khớp
    `git -C <repo> log -1 --format=%H origin/dev-sit -- <file>`; file ngoài git so `sha256sum`.
    Lệch ⇒ `git diff <last_commit>..origin/dev-sit -- <file>`, trace lại **chỉ file đó** rồi cập nhật thẻ.
