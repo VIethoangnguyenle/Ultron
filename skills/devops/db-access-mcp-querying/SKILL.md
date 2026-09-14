@@ -39,7 +39,7 @@ skill này lo phần **query sao cho ra kết quả đúng ngay lần đầu**.
    `SELECT COLUMN_NAME FROM SYS.ALL_TAB_COLUMNS WHERE OWNER='<SCHEMA>' AND TABLE_NAME='<TABLE>'`.
 4. **Kiểm kiểu dữ liệu trước khi so sánh số.** Cột "trông như số" nhưng là VARCHAR2 (vd cột `AMOUNT`
    của bảng request) → `AMOUNT > 0` lỗi `ORA-01722`; dùng `AMOUNT <> '0'`, hoặc lọc rỗng rồi `TO_NUMBER`.
-5. **Không select/alias tên cột trùng từ khoá Oracle** (vd `LEVEL`) → `ORA-01747`; bỏ hẳn cột đó.
+5. **Cột trùng từ khoá Oracle (vd `LEVEL`) phải BỌC NHÁY KÉP** — `"LEVEL"`; để trần trong SELECT list → `ORA-01747`, để trần trong danh sách cột của INSERT → `ORA-01788`. Bọc nháy thì SELECT/INSERT đều chạy bình thường ⇒ **đừng bỏ cột** khi câu lệnh buộc phải đủ cột (vd `INSERT ... SELECT` để move bản ghi).
 6. **Đừng kết luận từ một cột status số.** Enum trong source có thể khác dữ liệu môi trường đang chạy.
    Trình bày *giá trị thực + khác biệt giữa các bản ghi đối chứng*, đánh dấu chỗ chưa kiểm chứng.
 
@@ -68,8 +68,35 @@ bản sao/trạng thái trong hệ thống nghiệp vụ, và nhật ký gọi d
 3. Kiểm cả nhật ký đồng bộ giữa các tầng (trạng thái xác thực dân cư, cờ synced...) trước khi kết luận
    "dữ liệu còn hạn nên không thể lỗi".
 
+## Move bản ghi giữa bảng gốc và bảng `_CANCEL` (sửa bản ghi kẹt)
+
+Yêu cầu kiểu "bản ghi này bị kẹt, move nó xuống bảng CANCEL giúp" là **sửa dữ liệu thuần** —
+nguồn sự thật nằm ở dữ liệu, không phải source code:
+
+1. **Lấy mẫu từ bản ghi ĐỐI CHỨNG đã move xong; đừng đoán, đừng giao khảo sát source code.**
+   Tìm bản ghi cùng CIF/cùng công ty đã nằm trong bảng `_CANCEL` → đọc trạng thái đích thật
+   (giá trị status, có mang bản ghi con theo không, ID có giữ nguyên không). Mẫu thật nhanh và
+   đúng hơn suy luận từ code; giao Jarvis khảo sát source cho việc này chỉ tốn thời gian.
+2. **Bảng `_CANCEL` thường THIẾU vài cột so với bảng gốc** → `INSERT ... SELECT *` chết vì lệch số cột.
+   Lấy danh sách cột gọn rồi tự tính phần giao:
+   `SELECT TABLE_NAME, LISTAGG(COLUMN_NAME, ',') WITHIN GROUP (ORDER BY COLUMN_ID) AS COLS FROM SYS.ALL_TAB_COLUMNS WHERE OWNER='<SCHEMA>' AND TABLE_NAME IN (...) GROUP BY TABLE_NAME`.
+3. **Rà mọi bảng có thể đang giữ bản ghi con**:
+   `SELECT TABLE_NAME, COLUMN_NAME FROM SYS.ALL_TAB_COLUMNS WHERE OWNER='<SCHEMA>' AND COLUMN_NAME IN ('CUSTOMER_ID','USER_ID')`.
+4. **Thứ tự bắt buộc: INSERT vào bảng `_CANCEL` trước → verify → mới DELETE ở bảng gốc.**
+   Đứt giữa 2 bước thì còn bản sao (dọn lại được); làm ngược là mất dữ liệu thật.
+5. **Preview/token theo TỪNG câu lệnh** (token dùng một lần): move 4 câu = 4 cặp preview/execute.
+   Preview của INSERT trả `"Preview not available for this operation"` ⇒ **đo ảnh hưởng bằng preview
+   của chính câu DELETE tương ứng** (nó liệt kê đúng các dòng sẽ mất) + `COUNT(*)` hai bên, rồi trình
+   đúng số dòng đó cho người ra lệnh.
+6. **Trình kế hoạch dạng bảng (bảng nào · việc gì · mấy dòng) + cảnh báo không hoàn tác + xin xác nhận rõ.**
+   Nếu bản ghi lỗi có giá trị bất thường (vd status NULL) → hỏi **đúng 1 câu**: giữ nguyên hay set về
+   giá trị chuẩn như mẫu; KHÔNG tự chọn thay người ra lệnh.
+
 ## Tham chiếu theo dự án
 
+- `references/vbsme-cancel-record-move.md` — ca huỷ khách hàng kẹt ở VBSME: cặp bảng gốc ↔ `_CANCEL`,
+  dấu hiệu nhận dạng bản ghi kẹt, cột bị thiếu, mẫu đối chứng.
+- `templates/vbsme-move-customer-to-cancel.sql` — câu lệnh mẫu điền sẵn theo đúng thứ tự an toàn.
 - `references/vbsme-collect-biometric-tables.md` — bảng + luồng chẩn đoán khi lệnh duyệt bị chặn vì
   "chưa / hết hạn thu thập sinh trắc" (SME ⋈ eKYC ⋈ FacePay).
 - Dự án VBSME: bảng/cột đầy đủ + quy trình gửi SQL cho tester → skill `vbsme-db-lookup`.

@@ -229,6 +229,28 @@ escalation to `~/.hermes/escalations/` naming the tester + DB + table + what the
 Never edit `/home/zane/Desktop/tools/mcp/Db-Access/config.yaml`
 (`sources.default_agent.access.<DB>: [read, write]`) or restart `mcp-db-tools` yourself.
 
+## Move bản ghi khách hàng huỷ bị kẹt ở OMNI_CUSTOMER (bug)
+
+Dấu hiệu kẹt: bản ghi vẫn nằm ở `OMNI_CUSTOMER`, `STATUS` NULL (hoặc lệch), `PRE_STATUS`/`OLD_STATUS` = 14,
+`IS_ACTIVE` = 1, và CHƯA có dòng tương ứng trong `OMNI_CUSTOMER_CANCEL`.
+
+Move chuẩn = 4 câu DML, GIỮ NGUYÊN ID và dữ liệu:
+1. `INSERT INTO OMNI_CUSTOMER_CANCEL (<cột chung>) SELECT <cột chung> FROM OMNI_CUSTOMER WHERE ID=<id>`
+2. `INSERT INTO OMNI_WORKFLOW_STAGE_CUSTOMER_CANCEL (CUSTOMER_ID, ID, WORKFLOW_STAGE_ID, "LEVEL", CREATED_DATE, MODIFIED_DATE, CREATED_BY, MODIFIED_BY, WORKFLOW_ID, METHODS) SELECT ... FROM OMNI_WORKFLOW_STAGE_CUSTOMER WHERE CUSTOMER_ID=<id>` — bảng CANCEL **không có `LAST_USED_METHOD`**.
+3–4. `DELETE` khỏi `OMNI_WORKFLOW_STAGE_CUSTOMER` và `OMNI_CUSTOMER` theo cùng điều kiện.
+
+Bẫy đã trả giá:
+- `LEVEL` là từ khoá Oracle → phải viết `"LEVEL"`, không thì ORA-01788.
+- `OMNI_CUSTOMER` 84 cột vs `OMNI_CUSTOMER_CANCEL` 78 → dùng 78 cột giao; 6 cột chỉ bảng gốc có, KHÔNG mang sang được: `SOTP_EXPIRED_DATE`, `UNLOCK_TIME`, `ACTIVE_DATE`, `LAST_ACTIVE_DATE`, `NEW_DEVICE_UPDATE_EXPIRED_TIME`, `BYPASS_EKYC`.
+- Không `SELECT *` giữa 2 bảng lệch cột → ORA-00913/ORA-01790. Soát cột chung bằng `LISTAGG(COLUMN_NAME) ... FROM SYS.ALL_TAB_COLUMNS WHERE TABLE_NAME IN (...)`.
+- Phải đối chiếu 1 bản ghi cùng CIF đã move THÀNH CÔNG: nguồn còn 0 dòng, bảng CANCEL có dòng, và các dòng workflow stage cũng được chuyển theo (không chỉ bảng customer).
+- Cùng 1 CIF có thể có NHIỀU user (khác `COMPANY_ID`) → lọc theo `ID`, đừng lọc theo CIF.
+- Thứ tự an toàn: INSERT trước → verify → DELETE sau; preview + token trước khi chạy.
+- Luồng thật còn dọn `OMNI_CUSTOMER_NOTIFY` + `OMNI_OTT_ACCOUNT_NOTIFY` (→ bảng `_CANCEL` tương ứng) nếu còn dòng,
+  và xoá cache Redis sau commit — 2 việc này NGOÀI phạm vi move DB, phải hỏi Hoàng trước khi đụng hạ tầng.
+- Lưu ý tên cột khác nhau giữa các bảng: `OMNI_WORKFLOW_CANCEL` dùng `ID`, không phải `CUSTOMER_ID`.
+- Danh sách cột phải lấy từ CATALOG CỦA CHÍNH DB đang sửa (`SYS.ALL_TAB_COLUMNS` trên env đó), không bê từ env khác.
+
 ## Reference docs
 
 Full playbook (tables + status mapping + sample queries): `/home/zane/Desktop/work/vietbank/vietbank-sme/docs/tester-db-playbook.md`.
