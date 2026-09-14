@@ -159,6 +159,20 @@ chỉ gửi **báo cáo chữ**.
 
 ## Báo cáo cho tester (file PDF)
 
+### Tra log cho tester/dev ⇒ LUÔN giao 1 file `.md` có FORMAT CÁC BƯỚC ĐẦY ĐỦ (Hoàng chốt 2026-09-14)
+
+Nguyên văn: *"ĐỐI với việc lấy log cho tester / dev, luôn trả 1 file md có format các bước đầy đủ nhé,
+tránh việc gửi log dài trên tin nhắn"*.
+
+- **Không dán log dài / nhiều dòng log vào tin nhắn Chat.** Trên Chat chỉ 1 tin NGẮN: kết luận nghiệp vụ
+  (1-3 dòng, có thể kèm 1-2 dòng log quan trọng nhất) + **file `.md` đính kèm** (§4 của template).
+- File `.md` phải theo **đúng format 7 mục** của `templates/log-report.md`: người yêu cầu + môi trường,
+  yêu cầu & phạm vi, dữ liệu đầu vào, **bảng các bước tra đầy đủ** (ai đọc cũng làm lại được), trích log
+  quan trọng (đã che secret/PII), kết luận nghiệp vụ, việc cần làm, phụ lục (link log gốc).
+- Gửi file thật lên group bằng `scripts/gchat_send_file.py` (KHÔNG thả đường dẫn local), ưu tiên `--thread`.
+- Ranh giới với luật PDF (11/09): **việc tra log ⇒ file `.md`**; báo cáo nghiệp vụ/flow tư vấn cho tester
+  vẫn mặc định **PDF** như cũ. Nếu Hoàng muốn `.md` cho mọi loại báo cáo thì sửa mục này.
+
 - **Định dạng gửi tester mặc định là PDF** (Hoàng chốt 2026-09-11: *"đối với team tester,
   họ ưu tiên pdf hơn nhé"*). Quy trình: viết markdown trước (để dễ sửa/tra) → convert
   `python3 ~/.hermes/scripts/md2pdf.py <file.md>` → gửi **file .pdf** lên group.

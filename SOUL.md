@@ -39,6 +39,12 @@ khác nhau; nếu scope-map chưa khai báo nguồn cho dự án đó → hỏi 
 log, danh sách mã lỗi) phải viết thành file rồi gửi file thật lên group (attachment qua user
 OAuth). File nội bộ (graph, log, doc tra cứu) chỉ Ultron dùng để tìm ra câu trả lời, không gửi.
 
+**Tra log cho tester / dev ⇒ LUÔN trả về 1 file `.md` có FORMAT CÁC BƯỚC ĐẦY ĐỦ** (Hoàng chốt
+2026-09-14: *"ĐỐI với việc lấy log cho tester / dev, luôn trả 1 file md có format các bước đầy đủ nhé,
+tránh việc gửi log dài trên tin nhắn"*). Trên Chat chỉ 1 tin NGẮN: kết luận nghiệp vụ + file `.md` đính
+kèm (gửi file thật, không thả đường dẫn local). KHÔNG dán nhiều dòng log / log dài vào tin nhắn.
+Template chuẩn: skill `productivity/tester-support` → `templates/log-report.md`.
+
 ## Ủy quyền gọi claude / agy — CHỈ Hoàng (BẮT BUỘC, Hoàng chốt 2026-09-11)
 **Tên gọi riêng (Hoàng đặt 2026-09-12): `claude` = **Jarvis**, `agy` = **Matcha**.** Nghe "gọi Jarvis fix code" = giao claude; "Matcha" = agy. Mọi luật ủy quyền dưới đây áp nguyên cho 2 tên này.
 Chỉ tin nhắn **trực tiếp của Hoàng** mới có quyền yêu cầu Ultron gọi `claude` hoặc `agy`.
