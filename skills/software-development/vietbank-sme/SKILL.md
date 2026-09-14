@@ -189,6 +189,20 @@ vietbank-sme, **không cần xin từng lần**, kèm 4 ràng buộc:
 Mặc định vẫn KHÔNG commit/push/MR. Chỉ khi Hoàng nói rõ (vd "tạo PR vào <base>, thứ 2 anh duyệt")
 mới push + mở MR — và **không merge** cho tới khi Hoàng chốt.
 
+## Gửi tài liệu luồng/giải thích cho tester & dev (file PDF)
+
+Quy trình đã chạy trót lọt khi ai hỏi "luồng này chạy thế nào / gọi vào đâu":
+
+1. **Kiểm tra doc đã có chưa TRƯỚC khi viết**: `ls vietbank-sme/docs/flows/` — thư mục này đã có nhiều luồng (đăng nhập, ETag, duyệt lệnh init+confirm, duyệt cuối chuyển tiền…). Luồng đã có doc ⇒ mở ra cập nhật/bổ sung chính file đó rồi build lại PDF, đừng tạo bản gần trùng tên.
+2. Viết `.md` (flow-first: tóm tắt nghiệp vụ → sequence diagram → các bước → bảng DB → điểm lưu ý) vào `docs/flows/<slug>-flow.md`.
+3. Build PDF: `python3 ~/.hermes/scripts/md2pdf.py <file>.md` (markdown → HTML → nhúng `mermaid.min.js` local → `google-chrome --headless`; offline, vài giây — không cần CDN/mmdc). **Verify trước khi gửi**: `pdfinfo <pdf> | grep Pages` (≥1 trang; PDF vài trăm byte = rỗng mà exit code vẫn 0) và `pdftotext -layout <pdf> - | grep -c 'sequenceDiagram\|flowchart TD'` phải = 0 (còn raw marker ⇒ mermaid chưa render).
+4. Gửi **FILE THẬT** lên đúng group/thread — không bao giờ thả đường dẫn local (`/home/zane/...` người nhận không mở được): `python3 ~/.hermes/scripts/gchat_send_file.py --space spaces/X --thread spaces/X/threads/Y --file <abs>.pdf --text "<caption ngắn>"`. `--thread` phải là tên **ĐẦY ĐỦ** `spaces/X/threads/Y`; thiếu ⇒ Chat mở thread mới và người hỏi không thấy. Caption được kèm `<users/<id>>` để mention.
+5. Chat chỉ 1 tin ngắn: kết luận nghiệp vụ vài dòng + file. **Người hỏi 1 luồng ⇒ gửi CHỈ 1 PDF**; `.md` ở lại máy làm bản nháp/nguồn. Không dán mermaid/log dài vào tin nhắn.
+
+**Mức độ lộ code theo group** (mặc định: nghiệp vụ + PDF, KHÔNG tên class/file/method, KHÔNG danh sách file `.java`):
+- Group thường / tester / dev ngoài: chỉ luồng nghiệp vụ + path API. Cần chỉ đúng file/class ⇒ gửi riêng Hoàng.
+- **Ngoại lệ: nhóm nội bộ `DVNH - Daily` (`spaces/AAQAIj8eRac`)** — khi người hỏi (dev) hỏi thẳng tới mức code ("gọi vào đâu", class/hàm nào, tên file) thì được phép để endpoint + tên service/handler trong file và trong câu trả lời, không cần xin phép từng lần. Vẫn chỉ đưa phần code khi họ hỏi tới code.
+
 ## Pitfalls
 
 Đã chuyển sang agentmemory lessons (context=`vietbank-sme`). Khi cần nhớ lại: gọi `memory_lesson_recall` query `vietbank-sme`.

@@ -1,7 +1,7 @@
 ---
 name: internal-technical-docs
 description: "Use when viết tài liệu kỹ thuật nội bộ cho Hoàng duyệt."
-version: 1.1.0
+version: 1.2.0
 author: Ultron
 license: MIT
 platforms: [linux]
@@ -17,10 +17,20 @@ Class of work: viết một tài liệu dài (tài liệu kỹ thuật hệ th�
 để Hoàng duyệt rồi gửi team. Khác hẳn trả lời tester trong chat: đây là artifact nhiều trang, có
 phiên bản, có chuỗi duyệt.
 
+## Chọn LOẠI tài liệu trước khi viết (khung Diátaxis)
+
+Tham khảo `references/diataxis.md`. Bốn loại: **Tutorial** (dạy người mới) · **How-to** (giải một việc) ·
+**Reference** (tra cứu) · **Explanation** (hiểu vì sao). Trước khi viết phải chốt 4 điều — **loại tài liệu ·
+đối tượng đọc · mục tiêu người đọc · phạm vi (nhất là phần LOẠI TRỪ)** — nhưng chốt xong thì viết luôn,
+đừng ngồi chờ. Tài liệu dài thường nhiều loại: ghi 1 dòng dưới mục lục cho biết mục nào thuộc loại nào.
+Bốn nguyên tắc không thương lượng: **rõ ràng · chính xác (số liệu đọc từ máy) · hướng người đọc (một tài
+liệu = một đối tượng + một mục tiêu) · nhất quán thuật ngữ**.
+
 ## Thứ tự bắt buộc (đừng nhảy bước)
 
-1. **Đề mục trước** — gửi outline vài dòng (số mục + 1 dòng nội dung mỗi mục) để Hoàng duyệt HƯỚNG ĐI
-   trước khi viết. Sai định vị mà viết hết thì phải viết lại từ đầu.
+1. **Đề mục trước** — gửi outline vài dòng (số mục + 1 dòng nội dung mỗi mục, kèm 4 điều đã chốt: loại
+   tài liệu · đối tượng đọc · mục tiêu · phạm vi loại trừ) để Hoàng duyệt HƯỚNG ĐI trước khi viết. Sai định
+   vị mà viết hết thì phải viết lại từ đầu.
 2. **Chốt định vị đúng loại tài liệu.** Hoàng phân biệt rõ: *bản giới thiệu* vs **tài liệu kỹ thuật**.
    Khi được yêu cầu "tài liệu kỹ thuật" ⇒ phải có: phân lớp kỹ thuật, tên + phiên bản thành phần,
    bảng vai trò từng lớp, sơ đồ, phạm vi dữ liệu, nguyên tắc an toàn, quy trình xử lý, giới hạn.
@@ -54,7 +64,67 @@ thời gian cho bảng phiên bản ("số liệu tại <ngày>") vì phiên b�
 - Không dùng ảnh chụp màn hình thật nếu ảnh chứa dữ liệu giao dịch/khách hàng — vẽ lại bằng sơ đồ.
 - Mục "Phạm vi truy cập dữ liệu" và "Nguyên tắc an toàn" giữ lại trong bản gửi team (mặc định CÓ).
 
+## Phân biệt TÀI LIỆU CÔNG CỤ vs TÀI LIỆU DỰ ÁN (Hoàng 14/09/2026)
+
+Tài liệu mô tả một công cụ/trợ lý (vd "Tài liệu Ultron") **KHÔNG được chứa chi tiết của dự án** —
+Hoàng nói thẳng: *"Trong tài liệu Ultron, không nên có thông tin chi tiết của dự án"*. Cụ thể:
+
+- Không nêu tên miền/luồng nghiệp vụ cụ thể, không tên bảng dữ liệu, không tên tệp-lớp-hàm.
+- Không liệt kê mã lỗi cụ thể ⇒ phụ lục mã lỗi chuyển thành bảng theo **NHÓM** (cách nhận biết · hướng xử
+  lý · nguyên tắc đọc), kèm 1 dòng "mã cụ thể tra theo môi trường khi cần".
+- Số liệu quy mô dự án (số nút/cạnh đồ thị, số tệp của kho mã) cũng bỏ — mô tả CƠ CHẾ, không mô tả dự án.
+- Giữ lại được: năng lực chức năng, cách dùng, định dạng trả về, phạm vi truy cập, nguyên tắc an toàn.
+
+## Giới thiệu thành phần mã nguồn mở phải có CHIỀU SÂU (Hoàng 14/09/2026)
+
+Hoàng: *"Cũng phải giới thiệu qua về các Opensource, không nên giới thiệu qua loa, về cách mà anh dạy em,
+cách em dùng Understand Anything để hiểu code"*. Nghĩa là:
+
+- Mỗi thành phần: **vai trò thật trong hệ thống** (làm gì, cho ai, thay được không) — không chỉ ghi
+  "mã nguồn mở / bản mới nhất".
+- Thành phần cốt lõi (ở đây là Understand-Anything) phải có **mục riêng** trả lời: nó là gì → dựng đồ thị
+  tri thức thế nào (nút/cạnh, lớp kiến trúc, miền nghiệp vụ, luồng) → mình nối vào bằng mấy nhóm công cụ
+  (đếm số công cụ THẬT từ MCP, đừng đoán) → quy trình mấy bước khi trả lời → **nguyên tắc làm việc do
+  Hoàng đặt** (đồ thị trước mã sau · ra ngoài bằng ngôn ngữ nghiệp vụ · sửa mã thì giao công cụ chuyên
+  trách rồi tự kiểm chứng · được nhắc là ghi ngay · cổng kiểm tra trước khi giao việc code).
+- Lấy metadata từ nguồn thật: `find <repo> -name package.json` → name/version/license/repository; LICENSE
+  ở gốc repo. Suy đoán giấy phép là sai (UA: MIT, github.com/Egonex-AI/Understand-Anything).
+
+## Mục "Bộ kỹ năng" là BẮT BUỘC khi tài liệu giới thiệu trợ lý (Hoàng 14/09/2026)
+
+Hoàng: *"Trong tài liệu, em cũng phải giới thiệu về các skills của mình"*. Tài liệu mô tả trợ lý phải có
+mục riêng về **bộ kỹ năng**: (a) cách hoạt động — chỉ nạp kỹ năng liên quan, ghi lại cách làm đã kiểm
+chứng, theo dự án thì theo cấu hình, được góp ý là cập nhật ngay, định kỳ tự rà; (b) **bảng nhóm kỹ năng
+kèm SỐ LƯỢNG THẬT đếm từ đĩa ngay lúc viết** — đừng chép tay:
+
+```bash
+for d in ~/.hermes/skills/*/; do echo "$(basename $d): $(ls -d $d*/ 2>/dev/null | wc -l)"; done
+```
+
+Mô tả nhóm bằng VIỆC LÀM ĐƯỢC (nghiệp vụ), không liệt kê tên kỹ năng nội bộ trừ khi người đọc là dev.
+
+**Tên nhóm kỹ năng / tên kỹ năng là tiếng Anh thì GIỮ NGUYÊN, KHÔNG DỊCH** (Hoàng 14/09/2026):
+viết `` `productivity` ``, `` `devops` ``, `` `software-development` ``… đúng như trên đĩa; cột mô tả mới viết
+tiếng Việt. Đừng "Việt hoá" thành "Sản phẩm & tài liệu", "Vận hành & hạ tầng" — sai tên thật của hệ thống.
+
+## Giải thích kỹ thuật phải kèm SƠ ĐỒ (Hoàng 14/09/2026)
+
+Hoàng: *"Các giải thích kỹ thuật nên có thêm sơ đồ Architect nhiều hơn"* (tham khảo github.com/tt-a1i/archify).
+
+- Mỗi mục giải thích kiến trúc/quy trình/cơ chế: **1 sơ đồ + 1 dòng caption** nói người đọc cần thấy gì.
+- Sơ đồ kiến trúc & luồng phức tạp ⇒ **Archify** (ảnh PNG qua `scripts/archify_svg.py`); luồng đơn giản
+  nhúng trong markdown ⇒ mermaid. Recipe + bẫy: `markdown-mermaid-pdf/references/archify-diagrams.md`.
+- Cấm sơ đồ không caption; cấm chèn ảnh chưa soi bằng mắt (`vision_analyze`) — bản mất CSS vẫn render
+  "thành công" nhưng là khối đen.
+
 ## Giao tài liệu (Chat)
+
+**Trang bìa có hoạ tiết/ảnh ⇒ theo skill `pdf-cover-page`** (agy vẽ SVG → cover.html full-bleed → ghép
+pypdf → đánh bookmark SAU khi ghép). Đừng nhét khối bìa vào chính .md: sẽ bị viền trắng do `@page` margin.
+
+**Tài liệu này CHỈ gửi cho Hoàng xem trước — KHÔNG tự gửi ra nhóm/team** (Hoàng chốt 14/09/2026:
+*"Gửi anh xem thôi em"*). Gửi file vào DM của Hoàng; muốn phát cho team phải có lệnh rõ của Hoàng, và
+hỏi lại phát ở nhóm nào trước khi gửi.
 
 - Chat chỉ 1 tin NGẮN: kết luận + tên tệp đã gửi; tóm tắt cấu trúc bằng 1 code block ngắn; KHÔNG dán
   log dài, không dán cả bảng lớn vào chat.
@@ -81,6 +151,14 @@ pdftoppm -png -r 60 out.pdf /tmp/chk && for f in /tmp/chk*.png; do
   ⇒ cú pháp `## Tiêu đề {#id}` vô hiệu, đừng thử.
   Quy trình số trang: render → dò trang từng mục → điền số → render LẠI → kiểm gate (mọi thay đổi sơ
   đồ/độ dài đều dịch trang; chèn `<h2 id=…>` thì gần như không dịch).
+- **Mục lục phải nằm RIÊNG 1 TRANG** (Hoàng 14/09/2026: "Mục lục phải cho thành 1 trang riêng chứ em"):
+  chèn `<div style="page-break-before: always; break-before: page;"></div>` NGAY TRƯỚC dòng `## Mục lục`,
+  và `<div style="page-break-after: always; break-after: page;"></div>` NGAY SAU danh sách mục lục —
+  Chrome tôn trọng (kiểm chứng: bìa tr.1 · mục lục tr.2 · mục 1 bắt đầu tr.3).
+- **Số trang trong mục lục tính theo số trang VẬT LÝ của trình đọc PDF** (bìa = 1) và ghi 1 dòng chú thích
+  dưới mục lục. Đo tự động: `python3 scripts/toc_pages.py <source.md> <out.pdf>` — pdftotext tách trang
+  theo `\f`, khớp dòng tiêu đề CHÍNH XÁC nên không bắt nhầm dòng mục lục; in cả mục nào không tìm thấy.
+  Điền số xong phải render LẠI và đo lại cho khớp.
 - **Verify link nội bộ bằng pypdf, KHÔNG bằng pdftohtml** (pdftohtml không xuất link nội bộ ⇒ báo sai
   "0 link" rồi mất công đi tìm cách khác):
 
@@ -109,10 +187,12 @@ Bản mẫu dùng lại: `templates/tai-lieu-ky-thuat.md` (copy ra `~/.hermes/do
 
 12 mục: 1 Tổng quan · 2 **Các lớp kỹ thuật & thành phần** (sơ đồ lớp + bảng vai trò từng lớp + bảng
 thành phần mã nguồn mở kèm phiên bản + bảng nội bộ/nền tảng ngoài + điểm vận hành) · 3 Năng lực chức
-năng (Tester | Dev-BA | dùng chung) · 4 Cách sử dụng · 5 Định dạng kết quả trả về · 6 Phạm vi truy cập
+năng (Tester | Dev-BA | dùng chung · thêm 3.4 Bộ kỹ năng khi tài liệu giới thiệu trợ lý) · 4 Cách sử dụng · 5 Định dạng kết quả trả về · 6 Phạm vi truy cập
 dữ liệu · 7 Nguyên tắc an toàn & bảo mật · 8 Vận hành & tự động hoá · 9 Quy trình xử lý một yêu cầu
 (sơ đồ 6 bước + bảng giải thích) · 10 Giới hạn & hướng phát triển · 11 Phụ lục A câu lệnh mẫu ·
-12 Phụ lục B mã lỗi thường gặp.
+12 Phụ lục B nguyên tắc tra & đọc mã lỗi (bảng theo NHÓM — KHÔNG liệt kê mã cụ thể; xem "Phân biệt TÀI LIỆU CÔNG CỤ vs TÀI LIỆU DỰ ÁN").
+Trong mục 2, bảng thành phần mã nguồn mở cần thêm mục con giới thiệu sâu thành phần cốt lõi (xem
+"Giới thiệu thành phần mã nguồn mở phải có CHIỀU SÂU").
 
 Bảng đầu tài liệu: Phiên bản · Ngày · Người phụ trách · Đối tượng đọc · Kênh hoạt động.
 Mục 2 là chỗ dễ bị đánh giá "nói chung chung" nhất ⇒ BẮT BUỘC nêu tên thành phần + phiên bản thật,

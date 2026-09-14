@@ -47,6 +47,12 @@ Pipeline: markdown → HTML (python-markdown, extensions `fenced_code,tables,san
    nên `## Tên {#id}` vô hiệu). Chi tiết + cách verify (pypdf, KHÔNG pdftohtml):
    `references/pdf-render-pitfalls.md` mục 5.
 
+8. **Cần sơ đồ kiến trúc đẹp (không phải luồng mermaid đơn giản) ⇒ dùng Archify** qua cầu nối
+   `scripts/archify_svg.py` (render JSON IR → SVG + PNG), rồi nhúng `![...](file:///...png)` vào .md.
+   Bẫy lớn nhất: **SVG của Archify không self-contained** (CSS ở `<head>` của HTML ⇒ tách SVG ra là
+   thành khối đen) và **validator layout rất chặt** (phải sửa theo gợi ý `labelDy`/`fromSide`/cột rồi
+   render lại 2–4 vòng). Recipe đầy đủ + lệnh kiểm chứng: `references/archify-diagrams.md`.
+
 Chi tiết + số đo: agentmemory lesson (context=`markdown-mermaid-pdf`) — gọi `memory_lesson_recall`
 query `markdown-mermaid-pdf`.
 

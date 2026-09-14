@@ -12,9 +12,11 @@
 
 ---
 
+<div style="page-break-before: always; break-before: page;"></div>
+
 ## Mục lục
 
-_Bấm vào tên mục để nhảy đúng trang._
+_Bấm vào tên mục để nhảy đúng trang. Số trang tính theo số trang của trình đọc PDF (bìa là trang 1)._
 
 1. [Tổng quan](#m1) — tr. 1
 2. [Các lớp kỹ thuật & thành phần](#m2) — tr. 2
@@ -27,7 +29,9 @@ _Bấm vào tên mục để nhảy đúng trang._
 9. [Quy trình xử lý một yêu cầu](#m9) — tr. 8
 10. [Giới hạn đã biết & hướng phát triển](#m10) — tr. 10
 11. [Phụ lục A — Câu lệnh mẫu](#m11) — tr. 10
-12. [Phụ lục B — Mã lỗi thường gặp](#m12) — tr. 11
+12. [Phụ lục B — Nguyên tắc tra & đọc mã lỗi](#m12) — tr. 11
+
+<div style="page-break-after: always; break-after: page;"></div>
 
 ---
 
@@ -201,10 +205,15 @@ flowchart TD
 
 ---
 
-<h2 id="m12">12. Phụ lục B — Mã lỗi thường gặp</h2>
+<h2 id="m12">12. Phụ lục B — Nguyên tắc tra & đọc mã lỗi</h2>
 
-| Mã lỗi | Nghĩa nghiệp vụ | Xử lý |
+Phân loại theo **NHÓM** mã lỗi; KHÔNG liệt kê mã cụ thể của dự án trong tài liệu (mã cụ thể tra theo
+môi trường khi cần).
+
+| Nhóm mã lỗi | Cách nhận biết | Hướng xử lý |
 |---|---|---|
+| Lỗi đến từ hệ thống lõi / đối tác | <khác mã hiển thị của ứng dụng> | <không thực hiện lại; lấy đoạn trao đổi làm bằng chứng> |
+| Giao dịch chờ kết quả cuối | <lõi đã ghi nhận, chưa trả kết quả cuối> | <giữ "chờ tra soát", theo dõi> |
 
 **Nguyên tắc đọc mã lỗi** — <nhóm lỗi đến từ đâu, kết luận phải kèm bằng chứng gì.>
 

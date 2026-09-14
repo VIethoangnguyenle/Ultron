@@ -57,7 +57,7 @@ Yêu cầu thực tế: "Mục lục phải route tới trang đó luôn" — gh
 ```bash
 grep -a -c "/Subtype */Link" out.pdf        # phải = số mục trong mục lục
 uv venv /tmp/pdfvenv --python 3.11 && uv pip install --python /tmp/pdfvenv/bin/python pypdf
-/tmp/pdfvenv/bin/python /tmp/pdf_links.py out.pdf    # in trang đích của từng link
+/home/zane/.hermes/scripts/pdf_verify.py out.pdf    # in bookmark + link + trang đích từng link
 ```
 
 - Pitfall khi tự viết script đọc link: `/Dest` là **NameObject** (`'/m2'`) — NameObject là `str` con,
@@ -66,3 +66,27 @@ uv venv /tmp/pdfvenv --python 3.11 && uv pip install --python /tmp/pdfvenv/bin/p
   `~/.hermes/scripts/pdf_add_outline.py <in.pdf> -o <out.pdf> --md <source.md>` (dựng outline 2 cấp từ
   heading Markdown, tự dò trang, đặt `/PageMode /UseOutlines`). Verify: pypdf đọc `reader.outline` +
   `/PageMode` trong catalog, và `pdftotext` 2 file rồi `diff` phải = 0.
+
+## 6. Mục lục phải nằm RIÊNG 1 trang
+
+Chèn `<div style="page-break-before: always; break-before: page;"></div>` trước `## Mục lục` và
+`<div style="page-break-after: always; break-after: page;"></div>` sau danh sách. Kiểm chứng bằng
+`pdftotext -f 1 -l 3`: bìa tr.1 · mục lục tr.2 · mục 1 (Tổng quan) tr.3.
+
+## 7. Đo số trang mục lục tự động
+
+`python3 ~/.hermes/scripts/toc_pages.py <source.md> <out.pdf>` → in `N <title> tr. <page>` cho từng mục
++ danh sách mục không tìm thấy. Khớp dòng tiêu đề CHÍNH XÁC (dòng mục lục có đuôi "— tr. N" nên bị loại).
+Điền số vào mục lục rồi render LẠI, đo lại — số phải khớp. Số trang ghi theo trang VẬT LÝ của trình đọc
+(bìa = 1) và nên có 1 dòng chú thích dưới mục lục.
+
+## 8. Thứ tự thao tác cuối cùng (đừng đảo)
+
+render → đo trang mục lục (`scripts/toc_pages.py`) → điền số → render LẠI → thêm cây bookmark
+(`scripts/pdf_add_outline.py … --md <source.md>`) → verify (`scripts/pdf_verify.py`). Bookmark dựng theo
+số trang tại thời điểm chạy ⇒ chạy trước khi chốt mục lục là bookmark lệch trang.
+
+## 9. Đừng `grep -r` trong `~/.hermes`
+
+File cache `~/.hermes/models_dev_cache.json` nặng ~4,5 MB làm phình ngữ cảnh (từng bị). Giới hạn phạm vi:
+`search_files` trong `skills/` · `scripts/` · `docs/`, hoặc dùng `--include`/`-maxdepth`.

@@ -17,6 +17,9 @@ agentmemory (npm `@agentmemory/agentmemory`, Apache-2.0, repo rohitg00/agentmemo
 is a local memory server that gives Hermes cross-session memory: 54 MCP tools
 for save/recall/search/lessons/slots/audit/export. It runs on iii-engine v0.11.2.
 
+Tra cứu metadata/link khi cần: npmjs.com chặn `curl` (403) → dùng `curl https://registry.npmjs.org/@agentmemory%2Fmcp`
+(trả `homepage`, `license`, `dist-tags`), hoặc GitHub API `api.github.com/repos/rohitg00/agentmemory` cho license + stars.
+
 ## Architecture (two npm packages — do not confuse them)
 
 - `@agentmemory/agentmemory` = the MEMORY SERVER. REST + MCP HTTP on 3111,

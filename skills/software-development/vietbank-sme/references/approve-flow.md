@@ -1,6 +1,6 @@
 # Luồng DUYỆT LỆNH (approve) — init + confirm, và finalStage
 
-Nguồn: trace source thật 2026-09-12 (repo vietbank-sme-omni). Trả lời nhóm nghiệp vụ: docs/flows/duyet-lenh-init-confirm-flow.md.
+Nguồn: trace source thật 2026-09-12 (repo vietbank-sme-omni). Trả lời nhóm nghiệp vụ: docs/flows/duyet-lenh-init-confirm-flow.md. Bản mô hình hoá riêng bước confirm ("init xong thì xác nhận gọi vào đâu"): docs/flows/duyet-lenh-confirm-sau-init-flow.md.
 
 ## Endpoints (client)
 - Init duyệt: `POST /api/v1/{web|app}/trans-reqs/approve/init` (+ batch: /trans-reqs/batch-approve/init)
@@ -22,15 +22,22 @@ Nguồn: trace source thật 2026-09-12 (repo vietbank-sme-omni). Trả lời nh
    - Lỗi trạng thái lệnh → `syncActiveTransReq` (đồng bộ lại lệnh doanh nghiệp) rồi mới throw.
 7. Response: transToken + authMethods + thông tin lệnh; hiệu lực theo `CONFIRM_TRANSACTION_DURATION` (AD_CONFIG).
 
-## Confirm (transaction-service)
-`BaseTransactionConfirmExecutor`:
-1. Lock theo transToken (`CandidateLockingExecutor`) — double submit → lỗi confirm trùng.
-2. `getWaitConfirmTransaction(transToken)` — hết hạn/không có → lỗi.
-3. `getConfirmType(phase)`: INIT_APPROVED_TRANSACTION → CONFIRM_APPROVED_TRANSACTION; INIT_FINAL_APPROVED_TRANSACTION → **default ⇒ CONFIRM_FINAL_APPROVED_TRANSACTION** (các loại khác: INIT/REJECT/CANCEL...).
-4. Verify auth method (OTP/SoftOTP/password) → `evictWaitConfirmTransaction` (xoá cache, không confirm lại).
-5. Executor theo service code → `onConfirmedTransaction` (gRPC `IApprovalClient.confirmTransReq`) → approval side: nếu `activeTransReqModel.isFinalApprovingStage()` → `completeActiveTransReq` (đóng lệnh, trả transactionId) else chuyển sang stage kế tiếp.
-6. Duyệt cuối → thực thi hạch toán (core) → status SUCCESS/FAILED/PENDING_RESULT; ghi lastApproved*; phi tài chính áp dụng thay đổi qua event.
-7. Fail → `onConfirmedFailure` → đánh dấu thất bại + bắn topic.
+## Confirm — "init xong thì xác nhận gọi vào đâu"
+**Endpoint không nằm ở approval-service, và logic cũng không nằm trong service nghiệp vụ:** controller của service nghiệp vụ nhận request (tài chính: transfer-service `/transfer/confirm`, batch `/transfer/batch-confirm`; phi tài chính: auth-service `/auth/nonfinancial/confirm`) nhưng **handler + executor confirm nằm ở module dùng chung `transaction/business`** (`BaseConfirmTransactionHandler` → `BaseTransactionConfirmExecutor` + `*ConfirmExecutorManager`). Grep confirm trong từng service riêng sẽ không thấy logic ⇒ nhớ điểm này khi trả lời "gọi vào đâu" hoặc khi định vị bug.
+
+`BaseConfirmTransactionHandler.preHandle` (chạy TRƯỚC executor):
+1. Lock phân tán `TRANSACTION_CONFIRM_<transToken>` (`ExpirableLockRegistry`) — không lấy được lock (double submit / 2 thiết bị cùng bấm) → `INVALID_REQUEST` ngay.
+2. `buildConfirmRequest` → `getWaitConfirmTransaction(sessionId, customerId, transToken)`; hết hạn/không có → lỗi, phải init lại.
+3. `getConfirmType(phase)` đầy đủ: INIT_REQUEST | ACCEPT_SUSPICIOUS_TRANSACTION → `CONFIRM_TRANS_REQ`; INIT_REJECTED → `CONFIRM_REJECTED`; INIT_APPROVED → `CONFIRM_APPROVED`; INIT_UNAPPROVED → `CONFIRM_UNAPPROVED`; INIT_CANCEL → `CONFIRM_CANCEL`; còn lại (INIT_FINAL_APPROVED) → **default ⇒ `CONFIRM_FINAL_APPROVED`**.
+4. `decorateTransaction`: chỉ final-approved / rejected mới ghi `lastApproved*`; chỉ CONFIRM_TRANS_REQ / CONFIRM_UNAPPROVED mới sinh `traceNo`.
+5. Verify auth method (OTP/SoftOTP/password) → **evict cache wait-confirm** với key `sessionId` + `customerId` (KHÔNG có transToken) ⇒ mã chỉ dùng được 1 lần.
+
+`BaseTransactionConfirmExecutor.onConfirmed` rẽ theo `confirmType` (tạo lệnh / không phê duyệt / từ chối / huỷ), mặc định → `onConfirmTransReq`:
+6. Chọn executor theo `serviceCode` (`getExecutor`) — không có executor → `UNSUPPORTED`.
+7. `onCallApprovalServiceConfirmTransReq` → **gRPC `IApprovalClient.confirmTransReq`** (hàng loạt: `confirmTransReqs` qua `BaseTransactionsBatchConfirmExecutor`) gửi transReqId + transToken + auth methods + customer/session.
+8. Approval side (`ConfirmTransReqHandler`): load lại active req theo transToken trong cache wait-confirm → `isFinalApprovingStage()` ? `completeActiveTransReq` (đóng lệnh, trả transactionId) : `update` → stage kế tiếp; `postHandle` evict cache wait-confirm + cache overview lệnh của người thực hiện.
+9. Chỉ `CONFIRM_FINAL_APPROVED` (và nhánh không phê duyệt) mới gọi `onConfirmedTransaction` → **hạch toán core**, response `finalApproved=true`. Duyệt cấp giữa **KHÔNG** hạch toán — lệnh vẫn ở trạng thái đang duyệt, cấp sau phải init + confirm lại.
+10. Fail → `onConfirmedFailure`: lỗi thuộc `CONFIRM_APPROVAL_SERVICE_FAILED_ERRORS` → phase **`WAITING_REAPPROVAL`** ("chờ duyệt lại", KHÔNG phải thất bại hẳn); còn lại → status theo loại lỗi (FAILED / TIMEOUT / PENDING).
 
 ## finalStage true khi nào
 - = stage duyệt kế tiếp có `IS_FINALIZED = 1`.

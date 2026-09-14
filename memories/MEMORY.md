@@ -14,7 +14,7 @@ Sổ hồ sơ: people.json + scripts/people.py (list/show/note/habit) + skill te
 §
 Chat: gchat_dump.py (đọc lịch sử), gchat_send_file.py --space --file (gửi file THẬT lên chat, không thả path local). URL dài có `_`/`*` phải bọc code block — Chat ăn ký tự.
 §
-Email: token google_token.json + google_calendar_token.json (chỉ đọc lịch). Hoàng chốt 14/09: chỉ ping mail book họp nội bộ / review tài liệu dự án; mail chỉ trong DM.
+Email: google_token.json + google_calendar_token.json (lịch chỉ đọc); chỉ ping mail book họp nội bộ/review tài liệu; mail chỉ trong DM.
 §
 Manager của Hoàng = chị Nguyên (users/105726904933324385534, Phó phòng P.DVNH).
 §
@@ -27,3 +27,5 @@ Siri/widget: cổng local :9444 speak + :9445 chat + gateway :9443 (127.0.0.1) s
 KHÔNG nhận/lưu mật khẩu, credential Hoàng gửi qua chat; từ chối + đưa cách không cần secret.
 §
 Bản đồ kênh: DM anh=chủ · DM 1:1 đồng nghiệp=hỗ trợ (phong thái thường, theo hồ sơ người đó) · VBB SME=dự án · DVNH-Daily=nội bộ · chồn ăn dưa=tán gẫu · Agent Space=gặp bot khác. Chi tiết: people.py.
+§
+Cấm grep -r trong ~/.hermes (cache json ~4,5MB làm phình ngữ cảnh).

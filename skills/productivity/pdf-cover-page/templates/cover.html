@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Bìa</title><style>
+/* Bìa PHẢI render riêng thành PDF rồi ghép vào tài liệu: @page margin 0 mới bleed được. */
+@page{ size:A4; margin:0; }
+html,body{margin:0;padding:0;width:210mm;height:297mm;overflow:hidden;background:#070B14;
+  font-family:'Helvetica Neue',Arial,'DejaVu Sans',sans-serif;}
+/* Ảnh nền: 1240x1754 (A4 @150dpi) */
+img.art{position:absolute;left:0;top:0;width:210mm;height:297mm;object-fit:cover;}
+/* Khối chữ — toạ độ mm trong khung 210x297mm */
+.kicker{position:absolute;left:22mm;top:124mm;font-size:10.5pt;letter-spacing:.34em;font-weight:700;color:#22D3EE;}
+.rule{position:absolute;left:22mm;top:131mm;width:44mm;height:1.4px;background:linear-gradient(90deg,#22D3EE,rgba(34,211,238,0));}
+.sub{position:absolute;left:22mm;right:22mm;top:139mm;font-size:15.5pt;line-height:1.5;color:#E6EDF6;font-weight:500;}
+.meta{position:absolute;left:22mm;right:22mm;bottom:26mm;font-size:10.5pt;line-height:1.75;color:#9FB0C6;}
+</style></head><body>
+<img class="art" src="file:///ABSOLUTE/PATH/cover-bg.png" alt="">
+<div class="kicker">TÀI LIỆU KỸ THUẬT · NỘI BỘ</div>
+<div class="rule"></div>
+<div class="sub">Dòng phụ đề 1<br>Dòng phụ đề 2</div>
+<div class="meta">Phiên bản X.Y · DD/MM/YYYY<br>Người phụ trách: …<br>Đối tượng đọc: …</div>
+</body></html>
