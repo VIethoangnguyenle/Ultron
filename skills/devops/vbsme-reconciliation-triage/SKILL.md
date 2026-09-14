@@ -15,7 +15,7 @@ metadata:
 
 Dùng khi tester hỏi kiểu: *"job chuyển tiền 247 chạy lúc HH:00 mà giao dịch <trace> vẫn chưa đổi trạng thái"*, *"giao dịch treo chờ xử lý"*, *"kiểm tra nguyên nhân"* cho một giao dịch 247, khách thấy mã **500069**, hoặc *"sao chạy job thì cột mã phản hồi SME/nội dung không đổi mà bấm nút thì đổi"* (câu hỏi về **bộ thông tin mà job đối soát ghi lại** — xem mục dưới).
 
-Đây là quy trình riêng cho **trạng thái treo do đối soát**. Các nguồn chính vẫn là 2 skill nền (user-owned): `tester-support` (scope-map, quy tắc trả lời, báo cáo PDF) và `vbsme-error-diagnosis` (tra mã lỗi, trace journey). Chi tiết đầy đủ của lớp việc này: `references/pending-transaction-reconciliation.md`.
+Đây là quy trình riêng cho **trạng thái treo do đối soát**. Các nguồn chính vẫn là 2 skill nền (user-owned): `tester-support` (scope-map, quy tắc trả lời, khuôn báo cáo .md) và `vbsme-error-diagnosis` (tra mã lỗi, trace journey). Chi tiết đầy đủ của lớp việc này: `references/pending-transaction-reconciliation.md`.
 
 ## Rule cốt lõi — trả lời đúng ngay, đừng để tester báo bug sai chỗ
 
@@ -37,7 +37,7 @@ Thêm 2 điều tester luôn cần biết: TRN có **thời gian sống** (`fina
    - Service cần: `napas-service` (bước duyệt cuối / gọi lõi), `worker-service` (**job đối soát**), `approval-service` (danh sách chờ duyệt), `transfer-service`.
 3. **Đọc container đối soát trong `worker-service`**: mỗi giao dịch là 1 container `requestId = NapasRecon-<traceNo>`. Đối chiếu 3 kết cục (bảng trong reference) để kết luận giao dịch **đã chốt** / **còn chờ phía NAPAS (bình thường)** / **lõi không có bản ghi (treo vô thời hạn)**.
 4. **Thống kê CẢ LƯỢT chạy**, không chỉ giao dịch được hỏi → trả lời được "có phải riêng giao dịch của tôi không". Lỗi kiểu này thường đến **theo đợt** (lõi không phản hồi vài phút → hàng chục giao dịch treo cùng lúc).
-5. **Báo cáo PDF** cho tester: timeline bảng + sequence diagram + danh sách giao dịch treo cùng đợt + "việc cần xác minh tiếp"; ngôn ngữ nghiệp vụ, **không** tên class/file/hằng số. Quy trình gửi file: `tester-support` (md2pdf + `gchat_send_file.py --space ... --thread ...`).
+5. **Báo cáo cho tester = file `.md` đủ các bước**, không phải PDF: mục tiêu/phạm vi → dữ liệu đầu vào (nguồn log + khoảng thời gian) → các bước tra → trích log quan trọng → kết luận → việc cần làm → phụ lục. Gửi thành **file thật** vào đúng space/thread (`gchat_send_file.py --space ... --thread ...`); trên Chat chỉ **1 tin ngắn**: kết luận nghiệp vụ + file đính kèm — **KHÔNG dán log dài / nhiều dòng log vào tin nhắn**. PDF chỉ dùng khi giải thích **luồng nghiệp vụ** (markdown + diagram). Ngôn ngữ nghiệp vụ, **không** tên class/file/hằng số.
 
 ## Nút "Tra soát" trên app ≠ job đối soát (và mã 500004 khi giao dịch không đủ điều kiện)
 
@@ -52,6 +52,18 @@ Nguyên nhân gốc hay gặp nhất của biến thể này: **bước cập nh
 Bảng/trạng thái để kiểm chứng + cách chứng minh bằng dữ liệu (SIT không có log) + cấu trúc báo cáo: `references/tra-soat-giao-dich.md`.
 
 Trong luồng tra soát chỉ có **đúng một điểm** ném `500004` ⇒ đừng gán các mã khác của cùng luồng (chống bấm nhanh ~30s, dịch vụ không hỗ trợ, lỗi quyền) cho cùng nguyên nhân, và luôn đọc trạng thái **cả tầng lệnh lẫn tầng giao dịch** — chính chỗ hai tầng lệch nhau là bằng chứng. Bảng mã theo trạng thái + cách đọc 2 tầng + quy trình chứng minh lỗi độ-dài-byte (mục 10–11): `references/tra-soat-giao-dich.md`.
+
+## Tra soát trên UAT — đọc kết quả đối tác trực tiếp từ log
+
+UAT không truy vấn được DB ⇒ chứng minh bằng log `napas-service`: mỗi lượt tra soát là một lời gọi `/ibft/transactionStatus` theo **TRN** (không theo traceNo), trả về `{code, desc, result:{responseCode, success, pending, failed}}`.
+
+- `code 000` + `responseCode 00` / `success=true` → chốt **thành công**.
+- `code 000` + `responseCode 68` / `pending=true` / `failed=false` → **vẫn chờ** ⇒ hệ thống giữ nguyên trạng thái (đúng cơ chế, không phải lỗi nút bấm).
+- `code 400` *"No record found for TRN"* → không có căn cứ chốt.
+
+Lưu ý dễ kết luận sai: kết quả lúc **xác nhận lệnh** là `{"code":"068","desc":"NAPAS ERROR: 68", ...}` — có mã core nhưng **trn rỗng**, nên giao dịch vào nhánh chờ tra soát; TRN dùng để tra soát về sau là TRN **hệ thống tự gắn** trên giao dịch (dạng `62xxVNTTA2FFxxxx`) ⇒ đừng kết luận "không có TRN nên không tra soát được".
+
+Cách ghép traceNo↔TRN, cách chứng minh job đối soát **chưa từng quét** giao dịch (đọc lô job đẩy sang `transaction.napas_reconciliation.process_item` trong log `worker-service`), và đường bấm nút trên app (phân hệ phê duyệt, `.../completed-trans-reqs/check-pending`): `references/tra-soat-giao-dich.md` mục 13.
 
 ## Job đối soát và nút tra soát ghi lại KHÁC bộ trường (báo cáo sẽ tự mâu thuẫn)
 
@@ -92,7 +104,7 @@ luôn đứng trước mốc tạo lệnh, đừng coi là bất thường.
 
 Trả lời dạng này là **tra cứu nhanh**: 1–2 giao dịch thì trả thẳng trong group bằng bảng bọc code block
 (trạng thái, TRN + ngày cấp, số tiền, người hưởng, mã risk nếu tester đang hỏi risk) — **KHÔNG cần dựng
-PDF**; chỉ báo cáo/điều tra nhiều bước mới xuất PDF (đừng bắt tester chờ PDF cho một tra cứu 30 giây).
+PDF**; chỉ khi điều tra nhiều bước mới gửi file báo cáo **`.md` đủ các bước** (đừng bắt tester chờ file cho một tra cứu 30 giây).
 
 ## Thông tin risk core của một giao dịch (mã risk / bản ghi rủi ro)
 
@@ -132,9 +144,10 @@ lệnh đã cập nhật trạng thái thành công thì nói rõ, lệnh còn "
 - **Kết luận "có/không bản ghi rủi ro" phải dựa vào cờ kiểm tra risk của CHÍNH giao dịch, KHÔNG dựa vào mốc giờ bật/tắt cấu hình.** Cấu hình bị đội test bật/tắt liên tục (nạp lại hàng chục lần/ngày) ⇒ hai giao dịch cùng ngày có thể khác nhau: lệnh tạo trước lúc bật thì không có bản ghi rủi ro, dù được xác nhận sau đó. Gặp chênh lệch → giải thích đúng cơ chế này cho tester ("khác nhau vậy là bình thường"), đừng để bị hiểu là bug.
 - **Nhãn cột hiển thị trên màn hình/báo cáo (tiếng Việt, kiểu "mã phản hồi SME", "Báo cáo chi tiết giao dịch chuyển khoản") KHÔNG nằm trong repo backend** — grep theo nhãn trả 0 kết quả và rất tốn thời gian. Muốn map nhãn → trường thật: xác định bảng/cột DB (đối chiếu entity hoặc `sql_get_columns`) rồi mới đọc luồng nghiệp vụ theo tên trường.
 - **Mốc giờ trong ngữ cảnh tin nhắn group lệch 7 giờ so với log**: mốc tin nhắn hiện theo UTC, còn autoindex + header log theo giờ VN (+07) ⇒ giao dịch tester hỏi lúc `07:5x` nằm ở `14:3x` trong log. Đừng kết luận "log ghi giờ tương lai" hay chọn nhầm pod — cộng 7 tiếng rồi mới khoanh vùng thời gian.
+- **Đừng đếm/gán trạng thái bằng grep trên dòng log.** Mỗi dòng log là **một container của một request** nhưng bên trong chứa **nhiều giao dịch** ⇒ đếm `"status":"X"` theo dòng sẽ gán trạng thái của giao dịch này sang giao dịch khác. Phải `json.loads` dòng đó rồi duyệt cấu trúc, chỉ nhận object mang đúng `traceNo`/`transactionId` đang hỏi, và lấy mốc thời gian từ entry `REQUEST` của container.
 - **Trước khi kết luận "sau đó lệnh không có hoạt động nào"**: xác nhận file log đang đọc phủ từ **lúc lệnh tạo tới hiện tại** (đọc mốc dòng đầu/dòng cuối file). Pod đang chạy gộp nhiều ngày vào **một** file, pod cũ là file riêng; cửa sổ không phủ thì phải lấy thêm pod / `worker-service` rồi mới kết luận.
 
 ## Verification
 
 - Câu trả lời nêu được: (1) mốc thời gian nào lõi không phản hồi, (2) kết quả lượt đối soát gần nhất cho giao dịch đó, (3) phạm vi ảnh hưởng cả đợt, (4) vì sao không tự đổi trạng thái, (5) việc cần xác minh tiếp — và **không** có tên class/file/hằng số.
-- File PDF đã gửi lên đúng space/thread (đọc lại message vừa gửi để chắc).
+- File báo cáo **`.md`** đã gửi lên đúng space/thread dưới dạng file thật (đọc lại message vừa gửi để chắc), và tin nhắn Chat chỉ có kết luận ngắn — không dán log dài.

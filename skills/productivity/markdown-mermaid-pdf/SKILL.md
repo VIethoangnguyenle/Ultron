@@ -35,6 +35,17 @@ Pipeline: markdown → HTML (python-markdown, extensions `fenced_code,tables,san
    PDF 660 byte (chỉ gặp khi tự dựng pipeline ngoài `md2pdf.py`).
 4. **Mermaid v11 "Syntax error in text"** khi message sequenceDiagram chứa `;` (hiểu là phân tách câu
    lệnh) hoặc lồng nhiều `:` → đổi `;` thành `+`/dấu phẩy, `A->>B: nhãn: giá trị` → `A->>B: nhãn (giá trị)`.
+5. **Chrome tự in header/footer `file:///tmp/....html` + `9/14/26, 11:26 AM` ở mọi trang** — trông như rác
+   khi gửi khách/team. Đã thêm cờ `--no-pdf-header-footer` vào `md2pdf.py` (2026-09-14). Kiểm chứng:
+   `pdftotext out.pdf - | grep -c "file:///tmp"` phải = 0.
+6. **`nl2br` bật ⇒ đừng tự ngắt dòng trong Markdown**: xuống dòng giữa câu bị render thành `<br>`
+   (gãy dòng giữa đoạn/bullet). Viết mỗi đoạn và mỗi bullet trên MỘT dòng, để trình duyệt tự wrap.
+7. **Mục lục phải ghi số trang VÀ bấm được**: render 1 lần → dò trang từng mục bằng
+   `for p in $(seq 1 N); do pdftotext -f $p -l $p out.pdf - | grep -q "^<số>. <tên mục>" && echo $p; done`
+   → điền số trang vào mục lục rồi render lại. Để bấm được: tiêu đề mục viết bằng raw HTML
+   `<h2 id="m2">2. …</h2>` + mục lục dùng `[Tên mục](#m2)` (`md2pdf.py` không bật `toc`/`attr_list`
+   nên `## Tên {#id}` vô hiệu). Chi tiết + cách verify (pypdf, KHÔNG pdftohtml):
+   `references/pdf-render-pitfalls.md` mục 5.
 
 Chi tiết + số đo: agentmemory lesson (context=`markdown-mermaid-pdf`) — gọi `memory_lesson_recall`
 query `markdown-mermaid-pdf`.

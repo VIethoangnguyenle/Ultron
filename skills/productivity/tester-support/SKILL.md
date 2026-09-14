@@ -159,19 +159,24 @@ chỉ gửi **báo cáo chữ**.
 
 ## Báo cáo cho tester (file PDF)
 
-### Tra log cho tester/dev ⇒ LUÔN giao 1 file `.md` có FORMAT CÁC BƯỚC ĐẦY ĐỦ (Hoàng chốt 2026-09-14)
+### Tra log cho tester/dev ⇒ LUÔN giao 1 file PDF, nội dung FORMAT CÁC BƯỚC ĐẦY ĐỦ (Hoàng chốt 2026-09-14)
 
-Nguyên văn: *"ĐỐI với việc lấy log cho tester / dev, luôn trả 1 file md có format các bước đầy đủ nhé,
-tránh việc gửi log dài trên tin nhắn"*.
+Hai lần chốt trong cùng ngày 14/09, **bản sau thắng**:
+1. Buổi sáng: *"ĐỐI với việc lấy log cho tester / dev, luôn trả 1 file md có format các bước đầy đủ nhé,
+   tránh việc gửi log dài trên tin nhắn"* → phần **FORMAT** vẫn giữ.
+2. Sửa lại sau đó: *"gửi file cho tester sửa lại giúp anh luôn ưu tiên file PDF để mô tả nhé, kể cả log
+   em cũng để ở trong đó"* → phần **định dạng** đổi thành **PDF**: báo cáo tra log cũng là PDF, không
+   gửi `.md` làm bản chính nữa.
 
 - **Không dán log dài / nhiều dòng log vào tin nhắn Chat.** Trên Chat chỉ 1 tin NGẮN: kết luận nghiệp vụ
-  (1-3 dòng, có thể kèm 1-2 dòng log quan trọng nhất) + **file `.md` đính kèm** (§4 của template).
-- File `.md` phải theo **đúng format 7 mục** của `templates/log-report.md`: người yêu cầu + môi trường,
+  (1-3 dòng, có thể kèm 1-2 dòng log quan trọng nhất) + **file PDF đính kèm** (nội dung = §1-§7 của template).
+- Nội dung PDF phải theo **đúng format 7 mục** của `templates/log-report.md`: người yêu cầu + môi trường,
   yêu cầu & phạm vi, dữ liệu đầu vào, **bảng các bước tra đầy đủ** (ai đọc cũng làm lại được), trích log
   quan trọng (đã che secret/PII), kết luận nghiệp vụ, việc cần làm, phụ lục (link log gốc).
+- Quy trình: viết `.md` theo template → `python3 ~/.hermes/scripts/md2pdf.py <file.md> -o <file>.pdf` →
+  gửi **file `.pdf`**. File `.md` chỉ là bản nháp nội bộ, KHÔNG gửi làm bản chính.
 - Gửi file thật lên group bằng `scripts/gchat_send_file.py` (KHÔNG thả đường dẫn local), ưu tiên `--thread`.
-- Ranh giới với luật PDF (11/09): **việc tra log ⇒ file `.md`**; báo cáo nghiệp vụ/flow tư vấn cho tester
-  vẫn mặc định **PDF** như cũ. Nếu Hoàng muốn `.md` cho mọi loại báo cáo thì sửa mục này.
+- ⇒ Không còn ngoại lệ nào dùng `.md` làm file chính cho tester: **mọi báo cáo gửi tester đều là PDF**.
 
 - **Định dạng gửi tester mặc định là PDF** (Hoàng chốt 2026-09-11: *"đối với team tester,
   họ ưu tiên pdf hơn nhé"*). Quy trình: viết markdown trước (để dễ sửa/tra) → convert
@@ -225,8 +230,10 @@ kẻ bảng text thay diagram):
 - Đầu ra là file HTML (self-contained, nhúng SVG+CSS) — mở bằng trình duyệt là xem được.
 - Nội dung diagram lấy từ kết quả trace: domain-graph (flow/step) + knowledge-graph (code) qua
   MCP `understand-anything` — KHÔNG bịa, vẽ đúng flow thực tế.
-- Khi xuất file cho tester: file diagram (.html) gửi lên group như file báo cáo; KHÔNG thả link local.
-  Có thể kèm 1 file .md mô tả ngắn nếu cần.
+- Khi xuất file cho tester: file diagram gửi lên group như file báo cáo; KHÔNG thả link local.
+ **Ưu tiên PDF** (Hoàng chốt 2026-09-14: *"gửi file cho tester… luôn ưu tiên file PDF để mô tả"*) —
+ nếu diagram là HTML thì in sang PDF (`google-chrome --headless --print-to-pdf`), hoặc vẽ lại bằng
+ mermaid trong `.md` rồi `md2pdf.py`. Không gửi `.md`/`.html` làm bản chính.
 
 ## Cách trả lời trong group (quan trọng)
 

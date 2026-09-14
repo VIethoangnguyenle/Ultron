@@ -1,6 +1,9 @@
 # Tra log: <MÃ LỖI / HIỆN TƯỢNG> — <TÊN DỰ ÁN>
 
 > Mẫu bắt buộc cho mọi báo cáo tra log gửi tester/dev (Hoàng chốt 2026-09-14).
+> **Đầu ra là FILE PDF** (Hoàng sửa lại cùng ngày 14/09: *"gửi file cho tester… luôn ưu tiên file PDF để
+> mô tả nhé, kể cả log em cũng để ở trong đó"*) — viết `.md` theo mẫu này rồi convert:
+> `python3 ~/.hermes/scripts/md2pdf.py <file>.md -o <file>.pdf`; `.md` chỉ là bản nháp nội bộ.
 > Giữ đủ 7 mục, viết bằng NGÔN NGỮ NGHIỆP VỤ (không tên class/file/hàm, không dán source).
 > Che token/secret/mật khẩu/PII trong mọi đoạn trích log.
 

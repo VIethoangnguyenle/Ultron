@@ -124,6 +124,7 @@ def main() -> int:
     cmd = [
         CHROME, "--headless", "--no-sandbox", "--disable-gpu",
         "--disable-dev-shm-usage",
+        "--no-pdf-header-footer",
         f"--virtual-time-budget={args.time_budget_ms}",
         f"--print-to-pdf={out}",
         str(tmp_html),

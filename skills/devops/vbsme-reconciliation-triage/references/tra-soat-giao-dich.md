@@ -194,3 +194,23 @@ SELECT * FROM (
   WHERE p.NAME LIKE '%Tra soát%'
   ORDER BY p.CREATED_DATE DESC) WHERE ROWNUM <= 15;
 ```
+
+## 13. Tra soát trên UAT — đọc kết quả đối tác từ log (UAT không truy vấn được DB)
+
+Chứng minh bằng log pod `napas-service` đang chạy: mỗi lượt tra soát là container `GRPC: FinancialTransactionBusinessService/checkPendingTransaction`, bên trong có 1 lời gọi HTTP `/api/extend/v1/omni-sme/ibft/transactionStatus` với body `{userName, trn, transactionDateTime}` — tra theo **TRN**, KHÔNG theo traceNo.
+
+```
+Kết quả đối tác trả về                          Ý nghĩa / hành vi hệ thống
+--------------------------------------------   ------------------------------------------
+code 000, responseCode 00, success=true        -> chốt THÀNH CÔNG
+code 000, responseCode 68, pending=true,       -> vẫn CHỜ: giữ nguyên trạng thái,
+                 failed=false                     trả thông báo "chờ đối soát" cho khách
+code 400 "No record found for TRN: <trn>"      -> không có căn cứ chốt, giữ nguyên
+```
+
+- **Kết quả lúc XÁC NHẬN lệnh khác chỗ lưu**: response của bước duyệt cuối là `{"code":"068","desc":"NAPAS ERROR: 68","result":{...coreRef, coreTrans..., "trn": null}}` — có mã core nhưng **trn rỗng** ⇒ giao dịch vào nhánh chờ tra soát. Dù response không trả trn, hệ thống **vẫn có TRN riêng** gắn trên giao dịch (dạng `62xxVNTTA2FFxxxx`) và tra soát dùng chính nó ⇒ đừng kết luận "không có TRN".
+- **Ghép traceNo → TRN** khi tester chỉ đưa mã SME: duyệt các dòng log chứa traceNo rồi bắt regex `62\d\dVNTTA2FF[A-Z0-9]{4}` — mỗi giao dịch ra đúng 1 TRN (lặp lại vài lần trong cùng container, đừng lấy nhầm TRN của giao dịch khác trong container).
+- **Chứng minh job đối soát tự động CHƯA TỪNG quét một giao dịch** (mạnh hơn câu "job chạy mỗi 30 phút"): trong log `worker-service`, mỗi giao dịch được đẩy vào hàng đợi là 1 dòng `Sending message to topic: transaction.napas_reconciliation.process_item, key: <transactionId>, value: {"traceNo":"...","transactionId":<id>}`. Gom theo mốc thời gian ⇒ danh sách **lượt job chạy + giao dịch của từng lượt**; giao dịch không có mặt ở bất kỳ lượt nào = chưa từng được đối soát tự động ⇒ phải tra soát thủ công.
+- **Đường bấm nút trên app (UAT)**: `POST /api/v1/app/completed-trans-reqs/check-pending` ở phân hệ phê duyệt → `checkPendingTransaction` → đối tác. Muốn biết tester đã bấm cho giao dịch nào: lọc container `completed-trans-reqs/check-pending` rồi đọc `transactionId` trong body từng lượt — request **chỉ mang transactionId**, grep traceNo ở đây sẽ không ra.
+- **Đối chiếu số lượt tester nói đã bấm với số lượt thật trong log**: tester thường giả định bấm nút nào cũng có 1 lượt gọi đối tác; giao dịch không có lượt nào trong log thì **nêu thẳng ra** trong báo cáo (kèm danh sách mã chưa từng được tra soát), đừng suy là "đã tra soát mà không thấy kết quả".
+- Trả lời dạng này bằng **file `.md` đủ các bước** + 1 tin ngắn trên Chat (xem step 5 trong SKILL.md), không cần PDF.
