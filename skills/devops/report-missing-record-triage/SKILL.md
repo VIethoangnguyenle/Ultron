@@ -30,6 +30,9 @@ Dùng khi ai đó báo kiểu *"báo cáo X không tìm thấy <mã>"* / *"màn 
    bản ghi đang ở trạng thái/bước nào? Phần lớn báo cáo chỉ tổng hợp bản ghi **đã hoàn tất/đã phát sinh**,
    nên bản ghi ở trạng thái trung gian (chờ duyệt, nháp, chờ xử lý) không có dòng nào. Phân biệt rõ
    *đúng thiết kế* vs *bug* trước khi kết luận.
+   Câu "bản ghi hạ nguồn (giao dịch/bút toán) có tồn tại không" phải kiểm **trên chính môi trường đang hỏi**: hành
+   vi sinh bản ghi hạ nguồn có thể khác nhau giữa các môi trường ⇒ nhờ người có quyền chạy 1 câu đếm tồn tại,
+   đừng suy từ env mình có quyền, và ghi rõ kết luận đã kiểm ở env nào.
 4. **Chỉ sau khi loại (1)(2)(3)** mới nghi lỗi dữ liệu/báo cáo → chuyển dev kèm bằng chứng đã thu.
 
 ## Bắt buộc: trả kèm một PHÉP ĐỐI CHIẾU CHÉO cho người hỏi
@@ -56,6 +59,9 @@ không phải bug hiện hữu.
   nói rõ trong báo cáo cái gì KHÔNG kiểm chứng được thay vì suy đoán.
 - Grep repo local không ra code của màn hình báo cáo: màn hình/báo cáo có thể thuộc service khác (BO) — kết luận
   bằng log + dữ liệu, đừng đào repo tiếp.
+- **Đừng suy hành vi giữa môi trường.** Cùng một bản ghi ở trạng thái trung gian có thể *có* bản ghi hạ nguồn ở SIT
+  mà *không có* ở LIVE (hoặc ngược lại) ⇒ chỉ nói "đúng thiết kế" sau khi kiểm ở env đang hỏi; lệch như vậy cũng là
+  phát hiện đáng báo dev.
 
 ## Trình bày
 

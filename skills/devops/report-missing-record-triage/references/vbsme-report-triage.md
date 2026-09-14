@@ -44,6 +44,11 @@ Báo cáo trên BO gọi API báo cáo của backend (1 hop) → log BO ghi nguy
 - Lệnh `PENDING_APPROVED` (`currentStageLevel=1/2`, "Soạn lệnh") = chưa phát sinh giao dịch ⇒ **không có dòng
   nào** trong báo cáo chi tiết GD chuyển khoản. Đó là hành vi thiết kế; muốn báo cáo gồm cả lệnh chờ duyệt/hủy
   thì là yêu cầu mới cho BA/dev.
+- Lệnh chờ duyệt **không phải lúc nào cũng trắng ở bảng giao dịch**: trên SIT lệnh `1/2` *vẫn có* dòng
+  `OMNI_TRANSACTION` (`STATUS = 1` = chờ duyệt, gắn `TRANS_REQ_ID`), trên LIVE thì *không có* dòng nào ⇒ trước khi
+  kết luận "đúng thiết kế" phải kiểm tồn tại trên chính env đang hỏi (nhờ tester chạy
+  `select * from omni_transaction where trace_no = '<mã lệnh>'` / bảng giao dịch của DB offline tương ứng), và đối
+  chiếu lệnh "anh em" đã duyệt cùng ngày + cùng tiền.
 - Cách tìm bản ghi "anh em" để đối chiếu chéo: cùng doanh nghiệp + cùng ngày + cùng số tiền + cùng tài khoản
   thụ hưởng, nhưng trạng thái đã duyệt (khách thường tạo lại lệnh thứ 2 sau khi lệnh đầu không duyệt).
 
@@ -53,3 +58,5 @@ Báo cáo trên BO gọi API báo cáo của backend (1 hop) → log BO ghi nguy
 2. Bộ lọc khớp (đúng CIF, đúng chi nhánh, khoảng ngày bao 24/08) mà vẫn 0 bản ghi → chuyển sang vòng đời lệnh.
 3. Log SME: lệnh vẫn `PENDING_APPROVED` suốt 24→26/08 (poll lặp lại), chưa từng qua bước duyệt ⇒ chốt nguyên nhân.
 4. Đưa tester tra mã lệnh "anh em" đã duyệt để xác nhận quy tắc báo cáo.
+5. Kiểm bản ghi hạ nguồn *trên chính env đang hỏi* (tester chạy câu đếm tồn tại ở bảng giao dịch — SIT/LIVE có thể
+   khác nhau) rồi mới chốt "đúng thiết kế" hay "lỗi dữ liệu".

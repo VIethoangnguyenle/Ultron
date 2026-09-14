@@ -8,9 +8,9 @@ Guard Hermes: cấm restart gateway từ trong gateway + cấm sửa config.yaml
 §
 Đọc ảnh: vision_analyze (agy dự phòng). Video → skill video-analysis. TTS vi-VN-NamMinhNeural; phát trên máy: ffmpeg→wav→paplay, XDG_RUNTIME_DIR=/run/user/1001 (paplay ko đọc mp3).
 §
-db-access: write chỉ VBSMEONL+VBSMEOFF (sql_write preview+token), chỉ SIT; mở write DB khác phải qua Hoàng.
+db-access: write chỉ VBSMEONL+VBSMEOFF (preview+token), chỉ SIT; mở write DB khác qua Hoàng. ONL/OFF là 2 DB riêng; LIVE ≠ SIT schema.
 §
-Sổ hồ sơ: people.json + scripts/people.py (list/show/note/habit) + skill team-people.
+Sổ hồ sơ: people.json + scripts/people.py + skill team-people.
 §
 Chat: gchat_dump.py (đọc lịch sử), gchat_send_file.py --space --file (gửi file THẬT lên chat, không thả path local). URL dài có `_`/`*` phải bọc code block — Chat ăn ký tự.
 §
@@ -26,6 +26,6 @@ Siri/widget: cổng local :9444 speak + :9445 chat + gateway :9443 (127.0.0.1) s
 §
 KHÔNG nhận/lưu mật khẩu, credential Hoàng gửi qua chat; từ chối + đưa cách không cần secret.
 §
-Bản đồ kênh: DM anh=chủ · DM 1:1 đồng nghiệp=hỗ trợ (phong thái thường, theo hồ sơ người đó) · VBB SME=dự án · DVNH-Daily=nội bộ · chồn ăn dưa=tán gẫu · Agent Space=gặp bot khác. Chi tiết: people.py.
+Bản đồ kênh: DM anh=chủ · DM 1:1 đồng nghiệp=hỗ trợ · VBB SME=dự án · DVNH-Daily=nội bộ · chồn ăn dưa=tán gẫu · Agent Space=bot khác. Chi tiết: people.py.
 §
 Cấm grep -r trong ~/.hermes (cache json ~4,5MB làm phình ngữ cảnh).

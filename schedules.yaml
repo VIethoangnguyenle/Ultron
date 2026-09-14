@@ -123,6 +123,16 @@ actions:
     until: "2026-09-20"
     script: widget_progress.py
 
+  # Tiến độ 2 run Understand-Anything của dự án vietbank-digital (Hoàng yêu cầu 2026-09-14:
+  # "chốt full" → index cả ekyc + vietbank-omni). Thuần script = 0 token, chỉ gửi khi
+  # chữ ký tiến độ THẬT SỰ đổi; khi cả 2 run dừng thì gửi 1 tin chốt rồi tự im (cờ quiet).
+  # Tự hết hạn 2026-09-21 để không thành rác; muốn dùng tiếp thì gia hạn.
+  - id: ua-progress
+    every_minutes: 15
+    between: ["07:00", "22:30"]
+    until: "2026-09-21"
+    script: ua_progress.py
+
   # NHẮC HỌP từ Google Calendar của Hoàng (Hoàng chốt 2026-09-14):
   # "em vào calendar của anh để biết anh có những lịch họp nào trong ngày, tới giờ thì nhắc anh họp
   #  (có thể bằng giọng nói trên máy)".

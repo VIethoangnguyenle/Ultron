@@ -106,6 +106,27 @@ Có **hai nhóm hạn mức theo ngày khác nhau**, kiểm ở hai bước khá
 - Hệ quả thường bị báo nhầm là bug: user tạo (soạn) nhiều lệnh cộng dồn vượt hạn mức giao dịch/ngày vẫn OK, chỉ bị chặn (500028/500029) khi mở bước duyệt. Đây là **đúng luồng hiện tại**. Muốn chặn ngay ở bước soạn lệnh thì phải dùng hạn mức **lập lệnh** (500022) + bật `IS_INIT_LIMIT` cho loại dịch vụ — hoặc hỏi BA/dev nếu muốn đổi thiết kế.
 - Bảng tra: `AD_PACKAGE_LIMIT` (gói), `AD_PACKAGE_SERVICE_TYPE_LIMIT` (`DAILY_AMOUNT_LIMIT` = HM giao dịch, `DAILY_CUS_TRANS_REQ_AMOUNT_LIMIT` = HM lập lệnh), `AD_PACKAGE_SERVICE_LIMIT` (dịch vụ), `AD_SERVICE_TYPE.IS_INIT_LIMIT`, `OMNI_DAILY_TRANS_REQ_LIMIT` (override theo công ty).
 
+## Trạng thái lệnh nằm ở ĐÂU (đừng lấy từ bảng header)
+
+`OMNI_ACTIVE_TRANS_REQ.STATUS` (header lệnh đang xử lý) là **cột chết**: SIT 928/928 dòng = NULL, app không map/không ghi (entity chỉ map STATUS ở bảng ĐÃ XONG).
+
+| Cần biết | Lấy ở đâu |
+|---|---|
+| Trạng thái từng cấp duyệt của lệnh đang chờ | `OMNI_ACTIVE_TRANS_REQ_STAGE.STATUS` (mỗi cấp 1 dòng — nguồn thật) |
+| Lệnh đã xong: đã duyệt / bị từ chối / duyệt thất bại | `OMNI_COMPLETED_TRANS_REQ.STATUS` (0 REJECTED · 1 APPROVED · 2 FAILED) |
+| Lệnh còn đang chờ duyệt hay không | có/không có dòng trong `OMNI_ACTIVE_TRANS_REQ` |
+
+⇒ Query trả cho tester **không** select `STATUS` từ bảng header đang xử lý; đọc trạng thái từ bảng cấp duyệt.
+
+## Không được khẳng định chuyện môi trường mình không query được
+
+Ultron chỉ query được DB test (VBSMEONL/VBSMEOFF...). **LIVE/PROD không có đường vào, và cũng không tự vào** (đọc lẫn ghi đều cần Hoàng cho phép).
+
+- Suy ra từ **mã lỗi** (vd `ORA-00904` khi chạy query trên kết nối LIVE) **KHÔNG phải** bằng chứng về cấu trúc bảng của môi trường đó → phải nói rõ *"em suy luận, em không vào được LIVE"*, tuyệt đối không nói "môi trường X lệch cấu trúc" như sự thật.
+- Khi cần chốt: đưa **đúng 1 câu** cho người có kết nối LIVE chạy (`SELECT owner, table_name, column_name FROM all_tab_columns WHERE column_name='...' AND table_name IN (...)`) rồi mới kết luận.
+- Trên kết nối LIVE, tên bảng **phải kèm tiền tố schema** (`VBSMEONL.`) — script vận hành của team luôn ghi kèm; viết trần có thể trỏ vào object khác.
+- Đã trả lời sai 1 lần kiểu này (nói với tester "LIVE thiếu cột, 2 môi trường lệch cấu trúc" chỉ từ mã lỗi) → Hoàng gọi lại. Rút kinh nghiệm: nêu giả thuyết + cách kiểm, không kết luận thay môi trường mình không thấy.
+
 ## Environment scope — log available only in UAT & LIVE
 
 - **Log portal covers UAT and LIVE only** (`https://10.22.17.219:10443/omni-sme/`; LIVE = `.../omni-sme/live/`). There is **NO log for SIT**.

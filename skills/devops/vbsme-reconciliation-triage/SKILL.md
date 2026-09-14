@@ -15,7 +15,7 @@ metadata:
 
 Dùng khi tester hỏi kiểu: *"job chuyển tiền 247 chạy lúc HH:00 mà giao dịch <trace> vẫn chưa đổi trạng thái"*, *"giao dịch treo chờ xử lý"*, *"kiểm tra nguyên nhân"* cho một giao dịch 247, khách thấy mã **500069**, hoặc *"sao chạy job thì cột mã phản hồi SME/nội dung không đổi mà bấm nút thì đổi"* (câu hỏi về **bộ thông tin mà job đối soát ghi lại** — xem mục dưới).
 
-Đây là quy trình riêng cho **trạng thái treo do đối soát**. Các nguồn chính vẫn là 2 skill nền (user-owned): `tester-support` (scope-map, quy tắc trả lời, khuôn báo cáo .md) và `vbsme-error-diagnosis` (tra mã lỗi, trace journey). Chi tiết đầy đủ của lớp việc này: `references/pending-transaction-reconciliation.md`.
+Đây là quy trình riêng cho **trạng thái treo do đối soát**. Các nguồn chính vẫn là 2 skill nền (user-owned): `tester-support` (scope-map, quy tắc trả lời, khuôn báo cáo PDF) và `vbsme-error-diagnosis` (tra mã lỗi, trace journey). Chi tiết đầy đủ của lớp việc này: `references/pending-transaction-reconciliation.md`.
 
 ## Rule cốt lõi — trả lời đúng ngay, đừng để tester báo bug sai chỗ
 
@@ -33,11 +33,12 @@ Thêm 2 điều tester luôn cần biết: TRN có **thời gian sống** (`fina
 2. **Tải log về local rồi grep** (portal Apache autoindex, `curl -k`):
    - **Log THÁNG HIỆN TẠI nằm ngay ở thư mục service** (`<svc>/sme-<svc>-<pod>.log`); thư mục `<svc>/<YYYY-MM>/` chỉ chứa log **archive của tháng trước** → curl vào đó rỗng, đừng tưởng hết log.
    - Tên file trên index bị cắt bằng `..&gt;` ở phần text → **parse thuộc tính `href`**, đừng lấy text của link.
-   - File vài MB, trộn nhiều ngày → tải về `/tmp/<thu-muc>/`, grep local (`grep -c` để đếm, `cut -c1-400`/`head` khi in cho khỏi tràn ngữ cảnh). Trace không thấy ở pod đang xem → tải nốt pod khác **trước khi** kết luận "log không có". Log chứa payload thô (số TK, CIF, tên KH) → **xoá `/tmp` sau khi xong**.
+   - File vài MB–vài chục MB, trộn nhiều ngày → tải về **thư mục BỀN `~/.hermes/cache/uatlogs/<service>/`**, grep local (`grep -c` để đếm, `cut -c1-400`/`head` khi in cho khỏi tràn ngữ cảnh). **KHÔNG tải vào `/tmp`**: `/tmp` bị dọn giữa các lượt nên sang câu hỏi kế tiếp là mất sạch, phải tải lại file 30 MB. (Log chứa payload thô — số TK, CIF, tên KH — nên dọn thư mục cache định kỳ.)
+   - **Không thấy trace trong bản cache thì CHƯA được kết luận "log không có":** file của pod đang chạy vẫn lớn lên giữa 2 lượt hỏi (giao dịch vừa tạo/vừa duyệt vài phút trước chỉ nằm ở đó) ⇒ (a) tải lại chính file đó trước, (b) grep cả traceNo đầy đủ **và** nhóm số đuôi (`016257164595287` / `2571645952` — tester hay gõ thiếu/thừa một chữ số), (c) mới tải nốt pod khác.
    - Service cần: `napas-service` (bước duyệt cuối / gọi lõi), `worker-service` (**job đối soát**), `approval-service` (danh sách chờ duyệt), `transfer-service`.
 3. **Đọc container đối soát trong `worker-service`**: mỗi giao dịch là 1 container `requestId = NapasRecon-<traceNo>`. Đối chiếu 3 kết cục (bảng trong reference) để kết luận giao dịch **đã chốt** / **còn chờ phía NAPAS (bình thường)** / **lõi không có bản ghi (treo vô thời hạn)**.
 4. **Thống kê CẢ LƯỢT chạy**, không chỉ giao dịch được hỏi → trả lời được "có phải riêng giao dịch của tôi không". Lỗi kiểu này thường đến **theo đợt** (lõi không phản hồi vài phút → hàng chục giao dịch treo cùng lúc).
-5. **Báo cáo cho tester = file `.md` đủ các bước**, không phải PDF: mục tiêu/phạm vi → dữ liệu đầu vào (nguồn log + khoảng thời gian) → các bước tra → trích log quan trọng → kết luận → việc cần làm → phụ lục. Gửi thành **file thật** vào đúng space/thread (`gchat_send_file.py --space ... --thread ...`); trên Chat chỉ **1 tin ngắn**: kết luận nghiệp vụ + file đính kèm — **KHÔNG dán log dài / nhiều dòng log vào tin nhắn**. PDF chỉ dùng khi giải thích **luồng nghiệp vụ** (markdown + diagram). Ngôn ngữ nghiệp vụ, **không** tên class/file/hằng số.
+5. **Báo cáo cho tester = viết `.md` để nháp, GỬI bản `.pdf`** (Hoàng chốt 14/09/2026: *"gửi file cho tester… luôn ưu tiên file PDF để mô tả, kể cả log em cũng để ở trong đó"*): mục tiêu/phạm vi → dữ liệu đầu vào (nguồn log + khoảng thời gian) → các bước tra → trích log quan trọng → kết luận → việc cần làm → phụ lục. Quy trình: viết `.md` theo các mục đó → `python3 ~/.hermes/scripts/md2pdf.py <file>.md` → gửi **file `.pdf`** thành **file thật** vào đúng space/thread (`gchat_send_file.py --space ... --thread ...`); trên Chat chỉ **1 tin ngắn**: kết luận nghiệp vụ + file đính kèm — **KHÔNG dán log dài / nhiều dòng log vào tin nhắn**. Bản `.md` chỉ là nháp nội bộ, không gửi làm bản chính. Tra cứu nhanh 1–2 giao dịch (mục mã TRN) thì trả thẳng trong group, không dựng file. Ngôn ngữ nghiệp vụ, **không** tên class/file/hằng số.
 
 ## Nút "Tra soát" trên app ≠ job đối soát (và mã 500004 khi giao dịch không đủ điều kiện)
 
@@ -101,6 +102,16 @@ luôn đứng trước mốc tạo lệnh, đừng coi là bất thường.
   đã thực thi là có **mã giao dịch lõi** (`coreRef`)/ngày tham chiếu — không phải TRN.
 - TRN có thời gian sống (`...napas_v2.trn.ttl_hours`) nên TRN lúc tạo khác TRN lúc duyệt cuối là bình
   thường ⇒ khi trả TRN cho tester **luôn kèm ngày cấp**, và đừng khẳng định một con số TTL cụ thể.
+- **Lệnh kẹt "Chờ duyệt" nhiều ngày ⇒ TRN ĐÃ BỊ CẤP LẠI.** Ở bước duyệt cuối, TRN cũ hết hạn thì hệ
+  thống tự tra cứu lại và cấp TRN mới — log `napas-service`: `Napas V2 TRN expired, re-inquiry for fresh
+  napasRef` → `Refreshed napasRef: <mã mới>`; sau đó `refThirdParty` = mã mới. Vì vậy một lệnh có thể có
+  **2 TRN**: mã cấp lúc tạo lệnh và mã cấp lại lúc duyệt.
+  ⇒ Tester hỏi "lấy mã TRN của mã SME X" mà lệnh đó nằm Chờ duyệt lâu → trả **CẢ HAI** và nói rõ **mã
+  nào đang hiệu lực** (tra soát theo mã cũ sẽ không ra kết quả). Lượt cấp lại có thể kèm
+  `Napas Risk Score [<mã>] not found in config` + cờ kiểm tra risk tắt — đó là nhánh cấu hình risk,
+  KHÔNG phải lỗi cấp TRN (đọc mục risk bên dưới trước khi kết luận).
+- **Mã SME tester đưa (traceNo) → `transactionId` = "lệnh"; TRN nằm ngay trong metadata cùng dòng sự
+  kiện.** Lệnh chưa duyệt chỉ có 2 dòng log (tạo lệnh / xác nhận) — hết, thiếu diễn biến sau là đúng.
 
 Trả lời dạng này là **tra cứu nhanh**: 1–2 giao dịch thì trả thẳng trong group bằng bảng bọc code block
 (trạng thái, TRN + ngày cấp, số tiền, người hưởng, mã risk nếu tester đang hỏi risk) — **KHÔNG cần dựng
@@ -150,4 +161,4 @@ lệnh đã cập nhật trạng thái thành công thì nói rõ, lệnh còn "
 ## Verification
 
 - Câu trả lời nêu được: (1) mốc thời gian nào lõi không phản hồi, (2) kết quả lượt đối soát gần nhất cho giao dịch đó, (3) phạm vi ảnh hưởng cả đợt, (4) vì sao không tự đổi trạng thái, (5) việc cần xác minh tiếp — và **không** có tên class/file/hằng số.
-- File báo cáo **`.md`** đã gửi lên đúng space/thread dưới dạng file thật (đọc lại message vừa gửi để chắc), và tin nhắn Chat chỉ có kết luận ngắn — không dán log dài.
+- File báo cáo **`.pdf`** (bản nháp `.md` để nội bộ) đã gửi lên đúng space/thread dưới dạng file thật (đọc lại message vừa gửi để chắc), và tin nhắn Chat chỉ có kết luận ngắn — không dán log dài.

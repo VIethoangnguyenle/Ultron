@@ -68,6 +68,26 @@ hermes mcp test <name> # actually connects + lists tools; confirms auth/headers 
 (`${MCP_...KEY}`) in display. To confirm the on-disk placeholder is intact, grep the
 file (`grep MCP_DB_ACCESS_API_KEY ~/.hermes/config.yaml`) — never trust the display.
 
+## Đổi `env` của server: chỉ có hiệu lực ở SESSION MỚI
+
+`hermes config set 'mcp_servers.<name>.env' '{...}'` sửa file ngay, nhưng tiến trình MCP server đã
+spawn từ đầu session vẫn giữ env cũ — công cụ trong session hiện tại (`mcp__<server>__*`) KHÔNG thấy
+thay đổi. Nên:
+- Verify bằng `hermes config get mcp_servers.<name>.env` (đọc lại file), KHÔNG cố chứng minh bằng
+  cách gọi tool MCP trong session đang chạy.
+- Nói rõ với người dùng "mở session mới là thấy" thay vì thử restart gateway (guard cấm restart từ
+  trong gateway).
+
+Ví dụ thật: server đồ thị mã nguồn đọc danh sách dự án từ `PROJECT_ROOTS` (env, phân cách dấu phẩy) —
+thêm dự án mới = set lại đúng chuỗi cũ + path mới (set là GHI ĐÈ cả object env, không merge từng key).
+
+## Đoán sai key cha ⇒ CLI báo "Config key not set"
+
+`hermes config set/get` chỉ hiểu đúng tên key cha thật trong file. Đoán mò (vd `mcp.servers.<name>`
+thay vì `mcp_servers.<name>`) sẽ im lặng trả "Config key not set" — KHÔNG phải lỗi mạng hay lỗi tool.
+Cách chắc ăn: liệt kê key cấp 1 bằng `grep -n -E '^[a-z_]+:' ~/.hermes/config.yaml`, đọc đúng tên
+nhóm (`mcp_servers:`), rồi mới set.
+
 ## Pitfalls
 
 Đã chuyển sang agentmemory lessons (context=`hermes-mcp-config`). Khi cần nhớ lại: gọi `memory_lesson_recall` query `hermes-mcp-config`.

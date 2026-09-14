@@ -42,6 +42,40 @@ agy --add-dir /home/zane/Desktop/work/vietbank/vietbank-sme \
 ```
 
 - Run in background (`background=true, notify=true`) — each domain takes several minutes.
+
+### /understand (build the knowledge graph) → chạy bằng CLAUDE, không phải agy
+
+`agy --print "/understand <path>"` **KHÔNG mở slash command**: print mode của agy không expand skill,
+nó chỉ trả lời như chat bình thường rồi thoát (exit 0 trong <60s, không sinh `.ua/`). Dấu hiệu nhận biết:
+output là một đoạn tóm tắt kiến trúc kèm câu hỏi lại, không có `[Phase N/7]`, không có `.ua/`.
+
+Đường chạy đúng cho việc build graph:
+1. Nối skill UA vào claude một lần (đã làm 2026-09-14): symlink
+   `~/.understand-anything/repo/understand-anything-plugin/skills/understand*` → `~/.claude/skills/`,
+   và `.../agents/*.md` → `~/.claude/agents/`.
+2. Chạy claude headless ở đúng repo, kèm chỉ thị bỏ cổng xác nhận (repo lớn sẽ DỪNG lại hỏi scope
+   nếu không có câu này):
+
+```bash
+cd <repo> && timeout 14400 claude -p "/understand <repo> --language vi --no-auto-update  Chạy full repo này, KHÔNG hỏi lại, tự quyết và hoàn thành cả 7 phase." --dangerously-skip-permissions > /tmp/ua_<repo>.log 2>&1
+```
+
+3. agy chỉ dùng cho việc *sau khi* đã có graph: `/understand-domain`, đọc source, đọc ảnh (`--model gemini-…`).
+
+### Workspace lạ phải được “trust” trước khi agy nạp skill
+
+Antigravity đọc skill theo workspace đã tin cậy; thư mục mới chưa có trong `trustedWorkspaces`
+(`~/.gemini/antigravity-cli/settings.json`) thì skill coi như không tồn tại. Thêm path vào mảng
+`trustedWorkspaces` (backup file trước) rồi chạy lại.
+
+### Repo nhiều module: index TỪNG repo con, đừng index thư mục cha
+
+Nếu thư mục cha không có `.git` (chỉ các repo con có), graph ở gốc sẽ **không có `gitCommitHash`**
+⇒ mọi lần chạy lại đều full rebuild, không incremental. Index từng repo con (mỗi cái là git repo thật)
+rồi khai từng path đó vào `PROJECT_ROOTS`:
+`hermes config set 'mcp_servers.understand-anything.env' '{"PROJECT_ROOTS": "<a>,<b>,<c>"}'`
+(đường dẫn dot-key là `mcp_servers.<tên>.env`; MCP chỉ nạp root mới ở **session mới**).
+Trước khi chạy lần đầu, copy `.understandignore` đã tinh chỉnh sang repo đích để lọc build/test/.idea.
 - One domain per invocation (not all at once); the domain-analyzer writes to `.ua/intermediate/domain-analysis.json` then merges into `.ua/domain-graph.json`.
 - Back up `domain-graph.json` before each run: `cp domain-graph.json domain-graph.json.bak-$(date +%Y%m%d-%H%M%S)`.
 

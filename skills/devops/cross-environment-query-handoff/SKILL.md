@@ -29,7 +29,8 @@ Nguyên tắc gốc: **môi trường khác không bảo đảm cấu trúc gi�
 ## Quy trình giao query cho người khác chạy
 
 1. **Chốt môi trường đích + ai chạy + họ có quyền gì.** (SIT? UAT? LIVE? user nào? tool nào?) Không có
-   thông tin này thì câu query không viết được đúng.
+   thông tin này thì câu query không viết được đúng. Chốt luôn **tên DB/schema của môi trường đích** — không
+   biết thì đưa câu dò hoặc xin tên/ảnh danh sách kết nối, đừng viết chung chung kiểu "bảng này".
 2. **Viết bản “cột lõi” trước.** Chỉ dùng những cột chắc chắn tồn tại từ lâu và là cột nghiệp vụ cốt lõi;
    cột trang trí (số tham chiếu, mã phản hồi, kênh, thông tin bổ trợ) để **lần chạy sau**. Ít cột mà chạy
    được > đủ cột mà lỗi.
@@ -43,6 +44,19 @@ Nguyên tắc gốc: **môi trường khác không bảo đảm cấu trúc gi�
 5. **Dự đoán kết quả để họ đối chiếu** — nói trước sẽ thấy dòng nào (mã nào, trạng thái nào, bước nào),
    và kết quả ra sao thì kết luận gì. Người chạy không đọc được ý định của bạn trong câu SQL.
 6. **Vòng lặp sửa lỗi phải ngắn.** Khi họ dán lỗi vào, chỉnh đúng chỗ lỗi, không viết lại từ đầu.
+
+## Ghi hẳn tên DB / schema / bảng trong câu query
+
+Người chạy không đọc được ý định của bạn: câu query phải tự chỉ đúng nơi lấy dữ liệu — `SCHEMA.BẢNG`, và nếu môi
+trường đích có nhiều DB/instance thì phải nói rõ **DB nào**, kèm tên kết nối/link nếu truy vấn chéo.
+
+- **Đừng trả lời kiểu "bảng cùng tên, chỉ khác kết nối".** Người nhận không có nghĩa vụ biết schema hai bên trùng
+  tên; họ copy nguyên văn câu của bạn vào phiên đang mở. Ghi `SCHEMA.BẢNG` ngay trong câu SQL.
+- **Hai DB riêng thì `SCHEMA.BẢNG` trong cùng phiên vẫn không đủ** — schema của instance khác không nhìn thấy được.
+  Đưa đúng 1 trong 2 đường: (a) câu query để chạy *trong phiên kết nối tới DB đó*, (b) câu chéo instance có
+  `@<DB_LINK>`, kèm câu dò link.
+- **Không biết tên schema/link của môi trường đích** (mình không có quyền vào đó) → gửi câu dò tên
+  (`all_tables` theo owner / `all_db_links`) **và xin tên DB/schema** rồi điền sẵn vào câu query, đừng để họ tự ghép.
 
 ## Đọc lỗi của môi trường khác (không hoảng, không đổ cho query sai)
 
@@ -66,6 +80,9 @@ Khi kết luận dựa trên log/nhật ký mà nguồn **không ghi con số b�
   liệu". Con số "0 bản ghi" là **quan sát trên màn hình của người dùng**, không phải số liệu log.
 - **Muốn chứng minh số bản ghi** thì phải đổi tầng bằng chứng: dữ liệu nguồn (DB), hoặc ảnh chụp/kết quả
   người dùng trích ra, hoặc báo cáo màn hình — không suy từ log vận hành.
+- **Không suy hành vi của môi trường mình có quyền sang môi trường đích.** Cùng một bản ghi ở trạng thái trung gian
+  có thể *có* bản ghi hạ nguồn ở env này mà *không có* ở env kia ⇒ nhờ người có quyền chạy 1 câu đếm tồn tại, và
+  ghi rõ kết luận đã kiểm ở env nào.
 - **Người dùng sẽ replay từng câu của bạn** (nhất là tester leader). Sai thì **đính chính thẳng + phát hành
   bản cập nhật (v2)** kèm 1 câu nói rõ điểm sửa; không bảo vệ câu cũ, không im lặng sửa ngầm.
 - Báo cáo kiểu "các bước đầy đủ" vẫn phải giữ nguyên: nguồn dữ liệu, các bước tra, trích nguồn, kết luận,
@@ -79,7 +96,8 @@ Khi kết luận dựa trên log/nhật ký mà nguồn **không ghi con số b�
 - Báo cáo v1 khẳng định từ log điều log không ghi (số bản ghi) → tester phản biện → phải làm v2 đính chính.
 
 Chi tiết bảng/cột và query mẫu của ca trên (VietBank SME, bảng lệnh `*_TRANS_REQ`):
-`references/vbsme-lenh-tables.md` — đọc khi cần dựng lại câu query theo CIF doanh nghiệp + ngày soạn lệnh.
+`references/vbsme-lenh-tables.md` — đọc khi cần dựng câu query theo CIF doanh nghiệp + ngày soạn lệnh; file này
+còn có câu quét một lượt tìm mã lệnh trong mọi bảng giao dịch, và ghi chú DB online vs DB offline là hai DB riêng.
 
 ## Pitfalls
 
@@ -87,3 +105,5 @@ Chi tiết bảng/cột và query mẫu của ca trên (VietBank SME, bảng l�
 - Đừng gửi 1 câu query duy nhất cho môi trường mình chưa từng chạy; luôn kèm đường lui (câu dò cột / bản rút gọn).
 - Đừng coi "log báo 200/mã 00" là bằng chứng có dữ liệu — đó chỉ là "lời gọi thành công", không nói gì về số dòng.
 - Đừng để người chạy tự đoán cách đọc kết quả; viết sẵn "thấy dòng nào ⇒ kết luận gì".
+- Đừng trả lời "cùng tên bảng, chỉ khác kết nối" — ghi hẳn `SCHEMA.BẢNG` (và tên DB/link nếu chéo instance);
+  người chạy không có ngữ cảnh của bạn và sẽ chạy y nguyên câu đó.

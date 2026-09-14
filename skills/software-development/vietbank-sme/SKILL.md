@@ -43,6 +43,22 @@ Oracle rules (these waste real time when forgotten):
 - Every TABLE reference MUST carry a schema prefix (`VBSMEONL.AD_MESSAGE`, not `AD_MESSAGE`) — bare table names are rejected with "missing a schema prefix". But SYS dictionary views (`all_tables`/`user_tables`) are NOT owned by the business schema: prefixing them (`VBSMEONL.all_tables`, `VBSMEONL.user_tables`) throws ORA-00942, not a clean result. To discover tables/columns, use the `sql_list_tables` / `sql_get_columns` MCP tools instead of hand-writing dictionary-view queries.
 - Each `db_name` is a SEPARATE connection with its OWN user, NOT a schema switch. To read a table in `VBSMEOFF` you pass `db_name=VBSMEOFF` — never `VBSMEONL` with a `VBSMEOFF.` prefix in the SQL. Tables are not shared across DBs: `AD_MESSAGE` (holds the VPG error catalog) exists in `VBSMEONL` only; `VBSMEOFF.AD_MESSAGE` throws ORA-00942. Run `sql_list_tables` before assuming a table exists in a given DB.
 
+## KHÔNG dùng DBLINK trong dự án VBSME (Hoàng chốt 2026-09-14)
+
+Luật cứng, áp cho **mọi việc thuộc dự án VBSME**: không dùng DBLINK — không tạo, không đề xuất,
+không viết query xuyên DB qua DBLINK, không đưa DBLINK vào tài liệu luồng/giải pháp.
+Cần dữ liệu từ DB khác (VBSMEOFF, VBSMERLE, VBSMESOTP, VBSMEFACE, VBSMEEKYC, VBEKYCSTORAGE…) thì:
+- Khi **tra cứu/test**: gọi riêng từng connection (`db_name=<DB>` cho từng lần) rồi ghép kết quả ở tầng trên.
+- Khi **thiết kế/luồng nghiệp vụ**: đồng bộ dữ liệu qua API/service hoặc job, không query xuyên DB.
+Nếu ai (dev/tester) đề nghị dùng DBLINK cho VBSME → từ chối và nói rõ quy định dự án là không dùng,
+rồi đề xuất phương án thay thế (query từng DB / gọi API).
+
+**Khi tester hỏi "câu query cho DB offline":** phải đưa câu query có tên DB/schema cụ thể — giải thích
+kiểu "cùng tên bảng, khác kết nối" bị bác. Tên schema: test/SIT `VBSMEONL` (online) – `VBSMEOFF` (offline);
+trên LIVE Hoàng xác nhận schema DB offline cũng là `VBSMEOFF` → dạng
+`SELECT * FROM VBSMEOFF.OMNI_TRANSACTION WHERE TRACE_NO = '<mã>'` (chạy trong phiên kết nối tới DB đó).
+Nếu chưa chắc tên, đưa thêm câu dò `SELECT owner, table_name FROM all_tables WHERE table_name='OMNI_TRANSACTION'` thay vì đoán.
+
 ## Error codes
 
 - Message catalog lives in `AD_MESSAGE` (columns `CODE, DESCRIPTION, VI_CONTENT, EN_CONTENT, IS_ACTIVE`) in `VBSMEONL`.
