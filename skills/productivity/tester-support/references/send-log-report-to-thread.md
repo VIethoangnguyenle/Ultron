@@ -43,6 +43,9 @@ scripts/gchat_send_file.py --space spaces/XXXX --thread spaces/XXXX/threads/YYYY
 - Kiểm lại bằng `gchat_dump.py --space ...` xem tin đã nằm đúng thread.
 - **Tên người gửi:** đường user-OAuth (implicit) ⇒ tin hiện dưới tên **Hoàng**, không phải tên bot.
   Gửi cho người khác thì phải nói rõ việc này cho Hoàng biết.
+- **Luôn ghi rõ trong caption**: mở đầu caption bằng *"... ạ 📄 (file gửi qua tài khoản anh Hoàng)"*.
+  Lý do (gặp thật 15/09/2026, group VBB SME): team thấy tin đứng tên Hoàng nên tưởng Hoàng tự gửi tài liệu,
+  phải hỏi lại *"ủa là ai chat dị, Hoàng hay Ultron"* — ghi rõ một dòng là hết thắc mắc.
 
 ## 3. Chọn ĐÚNG file log trên portal (bẫy tốn thời gian)
 - Danh mục log có thể có ~95 file pod; **xếp theo cột ngày-giờ trên autoindex, KHÔNG sort theo tên**.
