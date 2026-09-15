@@ -76,6 +76,13 @@ python3 -c "import json;d=json.load(open('<plugin>/package.json'));print(d['name
 Chỉ ghi giấy phép khi đọc được từ metadata (vd `package.json.license`); không suy đoán. Ghi kèm mốc
 thời gian cho bảng phiên bản ("số liệu tại <ngày>") vì phiên bản sẽ lệch về sau.
 
+**Trích dẫn phải IN LẠI trước khi viết.** Output dài (file cấu hình, log, kết quả lệnh) bị cắt hoặc bị elide
+âm thầm — viết tiếp `file:dòng` từ trí nhớ sẽ sinh ra dòng/tên key **không tồn tại**, mà người đọc là Hoàng
+và anh kiểm chứng từng dòng. Trước khi ghi bất kỳ citation nào: in lại ĐÚNG khoảng dòng đó
+(`python3 -c` đọc file + `enumerate`, hoặc `sed -n 'a,bp'`) và chỉ viết khi đã thấy tận mắt; chưa xác minh thì
+ghi thẳng `KHÔNG XÁC MINH ĐƯỢC` + cách đã thử. Báo cáo tự-audit runtime (Ultron khai báo cấu hình thật của
+chính nó, kèm bảng nguồn từng mục) dùng skill `hermes-runtime-audit`.
+
 ## Nội dung an toàn (tài liệu gửi team)
 
 - Mô tả môi trường ở mức NGHIỆP VỤ (SIT/UAT/LIVE, log, DB test, Jira/Confluence) — KHÔNG IP, hostname,
