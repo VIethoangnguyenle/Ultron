@@ -1,6 +1,6 @@
 ---
 name: api-endpoint-discovery
-description: Use when asked which API/endpoint does X.
+description: "Use when asked which API/endpoint does X, or which address an env calls an external system at."
 version: 1.0.0
 ---
 
@@ -35,6 +35,26 @@ bọc bảng trong code block; là dev thì được kèm path API (xem "Ranh gi
 6. **Nếu không có API "chỉ lấy bản ghi có X"** (vd "chỉ người ĐÃ tạo lệnh") ⇒ nói thẳng là không có API
    riêng: query danh sách rồi distinct theo field id, đừng bịa endpoint.
 
+## Địa chỉ dịch vụ ngoài theo môi trường ("ở SIT đang gọi <đối tác> ở IP nào?")
+
+Cùng họ câu hỏi "endpoint nào", nhưng đích là **hệ thống ngoài** (payment gateway, VB gateway, eKYC…)
+chứ không phải API nội bộ ⇒ đi theo cây config, không grep controller.
+
+1. **Source chỉ khai tên biến, không chứa giá trị.** `common.client.external.<đối tác>.uri` trong
+   `config/application-thirdparty-config.yml` thường là `${ENV_VAR}` ⇒ grep source chỉ ra key, không ra IP.
+2. **Giá trị theo môi trường nằm ở cây deploy**, không nằm trong repo app:
+   `test-workload/vnp-ocp-svc/<app>/<cluster>/config-map-*thirdparty*.yaml` — configmap đã triển khai, URI điền cứng.
+3. **Chốt cluster ↔ môi trường bằng host** trong file deploy cùng thư mục (vd `<app>-sit.vnpaytest.vn` = SIT).
+   Không suy môi trường từ tên thư mục cluster.
+4. **`.env` của repo app là cấu hình dev local** — trùng giá trị với SIT chỉ là tiện lợi, không phải bằng chứng
+   cho môi trường đang được hỏi.
+5. **Trả lời:** 1 bảng `MÔI TRƯỜNG | ĐÍCH GỌI RA` trong code block + 1 câu nêu nguồn (file deploy nào).
+   Nếu có quyền `kubectl` vào cluster thì đọc configmap sống để xác nhận; không thì nói rõ kết luận lấy từ
+   config trong repo (bản sao có thể cũ hơn cluster) — đừng trình bày như đã kiểm tra trên môi trường chạy.
+6. **Đích gọi ra ≠ IP nguồn.** "IP gọi đối tác là bao nhiêu" hay bị hiểu hai chiều: đích trong config là địa
+   chỉ mình gọi tới; IP mà đối tác thấy và phải whitelist (egress/NAT) **không** nằm trong config app. Trả lời
+   theo nghĩa thứ nhất rồi nói rõ chiều còn lại phải lấy từ hạ tầng — đừng gộp thành một số.
+
 ## Trả lời
 - Bảng `endpoint | định danh (session hay body) | trả về gì`, trong code block.
 - Nêu mốc đã đọc (nhánh/ref) — tránh người đọc tin vào bản đã cũ.
@@ -50,8 +70,13 @@ bọc bảng trong code block; là dev thì được kèm path API (xem "Ranh gi
 - **Đừng lẫn "danh sách nhân viên công ty" với "người đã tạo lệnh"**: API nhóm đầu trả toàn bộ nhân viên
   theo công ty; nhóm sau phải suy ra từ danh sách bản ghi.
 - Luôn nói mốc nhánh/ref trong câu trả lời (vbsme: `origin/dev-sit`).
+- **File config đối tác chứa cả `private-key`/`public-key`** ⇒ khi trích chỉ lấy đúng dòng `uri`; không dán
+  cả block config, không đưa key sang group.
+- **Đừng trộn đối tác giữa các dự án**: nhiều repo trong cùng workspace đều khai "payment gateway" (bản digital,
+  terra-bff, teko-payment…) — chỉ trả lời cho dự án của group/người đang hỏi.
 
 ## Ranh giới
 - Group dự án: được kèm **path API** khi người hỏi là dev; **không** dán source, tên class/file/method,
   stack trace, không liệt kê file `.java`.
 - Kết quả đã chốt cho vbsme (người dùng công ty, filter người tạo lệnh): `references/vbsme-company-users.md`.
+- Cây config theo môi trường + bảng đích gọi ra hệ thống ngoài đã chốt: `references/env-external-endpoints.md`.

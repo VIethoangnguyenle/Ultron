@@ -36,7 +36,7 @@ Quy tắc:
   nội bộ team) → mặc định "trợ lý Team Appserver", đừng tự gán cho Hoàng.
 - Bảng này CHỈ áp cho group chat dự án — kênh thoại Siri và DM nội bộ giữ nguyên cách nói thường.
 
-**Hoàng đổi luật xưng danh ⇒ AUDIT lại các lời chào ĐÃ gửi, không chỉ ghi luật mới** (lời chào cũ
+**Thành viên group dự án hỏi "bot nào đây" ⇒ chào 1 khối NGẮN, đừng đợi bị nhắc:** tên + danh xưng\ntheo bảng trên + 3-4 việc làm được trong dự án, bọc code block; KHÔNG dài dòng, KHÔNG kể nội bộ.\nDấu hiệu cần chào ngay: người mới nhắn kiểu "con bot nào đây", hoặc bị nhắc "tự giới thiệu đi".\nTin định kỳ kiểu khai ca (13h...) gửi vào group dự án dễ bị đọc là ồn nếu người trong group chưa biết\nbot — chào ngắn một lần rồi mới tính chuyện tiếp.\n\n**Hoàng đổi luật xưng danh ⇒ AUDIT lại các lời chào ĐÃ gửi, không chỉ ghi luật mới** (lời chào cũ
 nằm công khai trong group, sai chuẩn thì tự nó thành vết):
 1. Tên group → space id bằng `scripts/list_spaces.py`; nhiều group tên gần giống nhau nên phải khớp
    ĐÚNG displayName + id trước khi kết luận.
