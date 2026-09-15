@@ -36,6 +36,7 @@ LOG_DIR = HH / "logs"
 LOG_GLOB = "agent.log*"
 REPORT = HH / "reports" / "token_budget.md"
 STATE = HH / "token_budget_state.json"
+OVERRIDES = HH / "token_budget_overrides.json"
 ESCALATIONS = HH / "escalations"
 
 # Ngưỡng (chỉnh ở đây khi cần siết/nới)
@@ -71,6 +72,42 @@ def save_state(st: dict) -> None:
     try:
         STATE.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
     except OSError:
+        pass
+
+
+def day_threshold(day: str) -> tuple[int, bool]:
+    """Ngưỡng token hiệu dụng của MỘT ngày: trả (ngưỡng, có override hay không).
+
+    File `token_budget_overrides.json` dạng {"2026-09-15": 120000000} — khoá là ngày ISO,
+    giá trị là số token. Thiếu file / JSON hỏng / kiểu sai / giá trị <= 0 đều rơi về hằng
+    mặc định. Hàm này chạy trong cron nên TUYỆT ĐỐI không ném exception.
+    """
+    try:
+        raw = json.loads(OVERRIDES.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return DAY_INPUT_ALERT_TOKENS, False
+    if not isinstance(raw, dict):
+        return DAY_INPUT_ALERT_TOKENS, False
+    val = raw.get(day)
+    if isinstance(val, bool) or not isinstance(val, int) or val <= 0:
+        return DAY_INPUT_ALERT_TOKENS, False
+    return val, True
+
+
+def prune_overrides(day: str) -> None:
+    """Dọn các ngày đã qua khỏi file override; chỉ ghi lại khi thật sự có thay đổi."""
+    try:
+        raw = json.loads(OVERRIDES.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if not isinstance(raw, dict):
+        return
+    kept = {k: v for k, v in raw.items() if not (isinstance(k, str) and k < day)}
+    if len(kept) == len(raw):
+        return
+    try:
+        OVERRIDES.write_text(json.dumps(kept, ensure_ascii=False, indent=2), encoding="utf-8")
+    except (OSError, ValueError):
         pass
 
 
@@ -171,6 +208,7 @@ def label(s: dict | None) -> str:
 
 def render(d: dict) -> str:
     log = d["log"]
+    limit, overridden = day_threshold(d["day"])
     db_in = sum(s["input"] for s in d["db_today"])
     L = [f"# Ngân sách token — {d['day']}", "",
          "> Số theo log là **mức sàn**: `agent.log*` xoay vòng nên phần cũ đã bị xoá.",
@@ -179,6 +217,8 @@ def render(d: dict) -> str:
          f"- output tổng (log): {log['output']:,}",
          f"- lượt API: {log['calls']:,} · {log['sessions']} session có hoạt động",
          f"- đối chiếu DB (chỉ session MỞ hôm nay): {db_in:,} tok · {len(d['db_today'])} session",
+         f"- ngưỡng ngày hiệu dụng: {limit:,} token "
+         f"({'override riêng của ngày' if overridden else 'mặc định'})",
          "", "## Top session đốt nhất (trong ngày)", ""]
     if not log["ranked"]:
         L.append("- (không có lượt API nào trong log hôm nay)")
@@ -239,15 +279,17 @@ def check_alerts(d: dict, dry_run: bool) -> list[str]:
     log = d["log"]
     fired: list[str] = []
 
+    limit, overridden = day_threshold(day)
+    note = " (ngưỡng riêng của ngày)" if overridden else ""
     heaviest = log["ranked"][0] if log["ranked"] else None
-    if log["input"] > DAY_INPUT_ALERT_TOKENS and "day" not in done:
+    if log["input"] > limit and "day" not in done:
         top = (f" Nặng nhất: {heaviest['input']:,} tok / {heaviest['calls']} lượt — "
                f"{label(heaviest['db'])}." if heaviest else "")
-        msg = (f"⚠️ Token hôm nay ({day}) đã vượt ngưỡng: {log['input']:,} token vào qua "
-               f"{log['calls']:,} lượt API (số theo log, là mức sàn).{top} "
+        msg = (f"⚠️ Token hôm nay ({day}) đã vượt ngưỡng {limit:,}{note}: {log['input']:,} "
+               f"token vào qua {log['calls']:,} lượt API (số theo log, là mức sàn).{top} "
                f"Đề xuất: chốt việc rồi gõ `/new` để mở session mới.")
         if not dry_run:
-            escalate(msg, f"ngưỡng ngày {DAY_INPUT_ALERT_TOKENS:,} token")
+            escalate(msg, f"ngưỡng ngày {limit:,} token{note}")
             done.append("day")
         fired.append("day")
 
@@ -277,6 +319,8 @@ def main() -> int:
     args, _unknown = ap.parse_known_args()
 
     d = collect()
+    if not args.dry_run:
+        prune_overrides(d["day"])
     if not d["ok"]:
         print(f"token-budget: {d['why']}")
         return 0
@@ -289,10 +333,12 @@ def main() -> int:
 
     fired = check_alerts(d, args.dry_run)
     log = d["log"]
+    limit, overridden = day_threshold(d["day"])
     top = log["ranked"][0] if log["ranked"] else None
     line = (f"token-budget {d['day']}: input={log['input']:,} output={log['output']:,} · "
             f"{log['calls']:,} lượt · {log['sessions']} session" +
-            (f" · nặng nhất={top['input']:,} `{top['id']}`" if top else ""))
+            (f" · nặng nhất={top['input']:,} `{top['id']}`" if top else "") +
+            f" · ngưỡng ngày={limit:,} ({'override' if overridden else 'mặc định'})")
     print(line)
     print(f"  → sống quá lâu: {len(d['long_lived'])} session (mức sàn theo log, DB là cộng dồn)")
     if fired:

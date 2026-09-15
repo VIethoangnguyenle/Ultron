@@ -14,7 +14,24 @@ features.
 | True per-day attribution (incl. sessions opened on earlier days) | `~/.hermes/logs/agent.log*` lines `agent.conversation_loop: API call #N: ... in=<n> out=<n>` |
 | Fixed per-call floor | `hermes prompt-size` (system prompt / tool schemas / memory tier sizes) |
 | Scheduled summary + alerting state | `~/.hermes/reports/token_budget.md`, `~/.hermes/token_budget_state.json` |
+| Per-day alert threshold override | `~/.hermes/token_budget_overrides.json` = `{"YYYY-MM-DD": <tokens>}`, read by `scripts/token_budget.py:day_threshold()` |
 | Which scheduled jobs actually call an LLM | `~/.hermes/cron/jobs.json` (`no_agent` true/false) |
+
+## Nới/siết ngưỡng cảnh báo theo NGÀY (one-day override)
+
+Hoàng nói "hôm nay ngưỡng X" → KHÔNG sửa hằng `DAY_INPUT_ALERT_TOKENS` trong script
+(đổi là đổi luôn mọi ngày, phá phạm vi anh chốt). Ghi vào `~/.hermes/token_budget_overrides.json`:
+`{"2026-09-15": 120000000}`. Ngày nào có key thì ngưỡng ngày hiệu dụng = giá trị đó, kèm nhãn
+"(ngưỡng riêng của ngày)" trong alert; ngày khác vẫn 60M mặc định. Key cũ tự bị dọn
+(`prune_overrides`, chạy mỗi lượt thật) ⇒ override tự hết hạn, không rác tích tụ.
+
+Một lượt cảnh báo "day" chỉ bắn MỘT lần/ngày (`token_budget_state.json` → `alerts[day]` chứa `"day"`).
+Nâng ngưỡng giữa ngày mà muốn nó còn báo khi vượt mức mới ⇒ phải XOÁ `"day"` khỏi danh sách
+của ngày hôm nay, nếu không nó im luôn tới hết ngày.
+
+Kiểm chứng không cần chờ cron: `python3 scripts/token_budget.py --dry-run` (in `→ SẼ báo Hoàng: day`
+khi vượt ngưỡng, KHÔNG ghi state). Test đường override: tạm set giá trị nhỏ hơn số hiện tại → phải
+in "SẼ báo"; xoá file → rơi về mặc định 60M; JSON hỏng → không crash, rơi về mặc định.
 
 ## Queries that work
 

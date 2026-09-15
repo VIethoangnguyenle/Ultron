@@ -92,10 +92,22 @@ Dự án là chuyện của **cổng**, không để agent tự suy luận:
 - `find_path`/`trace_impact` gốc chỉ hiểu ref mức code (`class:`/`file:`/`function:`) — muốn hỏi bằng ref
   nghiệp vụ (`domain:`/`flow:`/`step:`) thì phải resolve qua domain graph trước.
 
+## Bài kiểm "đúng mục tiêu" (chạy sau mỗi đợt sửa lớn)
+5 câu BA hay hỏi nhất — phải trả lời được *không cần đọc source*:
+1. luồng gồm bước nào + API vào → `get_flow` (trả `entry_point.api_path` + `steps`).
+2. ràng buộc nghiệp vụ của luồng → `get_business_rules(flow=...)` (kèm nguồn gốc + độ tin cậy).
+3. "<nghiệp vụ> hay lỗi gì" → `search_error_codes(module="BATCH_AND_PAYROLL")` (tra theo NHÓM, có
+   `modules_gathered` + phân trang). Tra bằng từ khoá tiếng Việt đã bỏ dấu cho kết quả rộng hơn.
+4. bảng/cột lưu dữ liệu → `get_db_dictionary(keyword=...)`.
+5. "sửa X thì luồng nào ảnh hưởng" → `trace_impact(flow=...)`: `total` (call-graph) có thể = 0,
+   phải đọc `data.business_impact` (`related_total`, `related_flows`, `shared_entities`, `basis_note`).
+   **Luôn trích `basis_note`** trong tài liệu: đó là suy theo quan hệ nghiệp vụ, KHÔNG phải call-graph.
+
 ## Giới hạn dữ liệu đã biết (nói thẳng khi bàn giao)
 - 6/36 domain của vbsme không có đường xuống code (graph dựng thiếu), vd `quan-ly-mat-khau`; tool trả
   NOT_FOUND có giải thích — muốn hết phải **dựng lại graph**, không phải lỗi cổng.
-- `vietbank-digital`: meta.json ghi `gitCommitHash: not-a-git-repo` ⇒ không có mốc git, độ mới là `UNKNOWN_REF`.
+- `vietbank-digital`: meta.json ghi `gitCommitHash: not-a-git-repo` (thư mục gộp không phải git) — nhưng **3 repo con ĐỀU là git thật** (git.vnpay.vn): `vietbank-omni` (dev-sit), `viet-bank-omni-ekyc` (master), `dvnh-common` (feature/kafka-module). Mốc độ mới ⇒ lấy commit của từng repo con, đừng tin `UNKNOWN_REF`.
+- Graph digital sinh lại **đi từ nhánh `dev-sit`** (Hoàng chốt 15/09). Chỉ `vietbank-omni` có nhánh này; 2 repo con còn lại không có ⇒ phải hỏi Hoàng chốt nhánh trước khi dựng lại.
 - `trace_impact` ra `total=0` cho handler đăng ký qua registry (cạnh import nằm ở mức file) — giới hạn của graph.
 - `get_db_dictionary` trả trọn cột mỗi bảng ⇒ trang vài bảng có thể vượt `max_chars`; dùng `offset` để lấy nốt.
 

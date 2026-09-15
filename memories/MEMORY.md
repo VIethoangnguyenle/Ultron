@@ -20,8 +20,6 @@ Manager của Hoàng = chị Nguyên (users/105726904933324385534, Phó phòng P
 §
 Luật dạy qua KÊNH nào chỉ áp kênh đó (Siri: gọn, hỏi từng phần) — đừng lẫn kênh.
 §
-Lịch: schedules.yaml, không tạo cron job
-§
 Siri/widget: cổng local :9444 speak + :9445 chat + gateway :9443 (127.0.0.1) sống sau teardown 17h30; chỉ node Tailscale tắt.
 §
 KHÔNG nhận/lưu mật khẩu, credential Hoàng gửi qua chat; từ chối + đưa cách không cần secret.
@@ -35,3 +33,5 @@ Build graph UA + reasoning source: agy + model claude-opus-4-6-thinking
 Nén: endpoint KHÔNG cache prefix; Hoàng chốt ngữ cảnh RỘNG cho task dài (ngưỡng 300k); tiết kiệm = cắt output công cụ, KHÔNG hạ ngưỡng.
 §
 Lô agy to (≥25 node / ≥30KB) hay fail rỗng + exit 0 khi cạn quota → cắt nhỏ ≤16KB/14 node; LUÔN kiểm size từng lô, đừng tin exit code.
+§
+Skill dự án (tester-support, ua-source-trace…) là user-owned → curator KHÔNG patch được; cần sửa thì báo Hoàng `hermes curator adopt <skill>`.

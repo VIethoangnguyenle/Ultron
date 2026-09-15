@@ -30,6 +30,58 @@
         ]
       },
       "kb_dir": "references/knowledge/vietbanksme/"
+    },
+    "vietbankdigital": {
+      "spaces": [],
+      "spaces_note": "Chưa có space id — Ultron chưa được add vào group vietbank-digital (Hoàng xác nhận 15/09). Điền id ngay khi được add.",
+      "graph_source": "/home/zane/Desktop/work/vietbank/vietbank-digital/.ua",
+      "graph_build": {
+        "method": "giống vietbanksme (Understand-Anything, project BA MCP đã đăng ký)",
+        "branch_rule": "sinh graph đi từ nhánh dev-sit (Hoàng chốt 15/09)",
+        "repos": [
+          {
+            "path": "vietbank-omni",
+            "remote": "https://git.vnpay.vn/dvnh/vietbank/app-backend-omni/vietbank-omni",
+            "branch": "dev-sit"
+          },
+          {
+            "path": "viet-bank-omni-ekyc",
+            "remote": "https://git.vnpay.vn/dvnh/vietbank/app-backend-omni/viet-bank-omni-ekyc.git",
+            "branch": "master",
+            "note": "repo KHÔNG có nhánh dev-sit (chỉ master/dev/draft/*) — chờ Hoàng chốt nhánh"
+          },
+          {
+            "path": "dvnh-common",
+            "remote": "https://git.vnpay.vn/dvnh/dvnh-common-lib/java/dvnh-common.git",
+            "branch": "feature/kafka-module",
+            "note": "repo KHÔNG có nhánh dev-sit (chủ yếu dev/dev-spring3/feature/*) — chờ Hoàng chốt nhánh"
+          }
+        ]
+      },
+      "log_source": {
+        "uat": "https://10.22.17.219:10443/omni-digital/",
+        "live": "https://10.22.17.219:10443/omni-digital/live/"
+      },
+      "log_analyzer": "/home/zane/.claude/skills/vnpay-log-analyzer/vblog.py",
+      "error_code_source": {
+        "db": "VBDIGIONL",
+        "table": "AD_MESSAGE",
+        "note": "Digital đọc mã lỗi từ AD_MESSAGE (entity MessageEntity trong vietbank-omni/common/base), giống SME. Hoàng chốt 15/09: schema của digital = bản SME đổi SME→DIGI (VBDIGIONL, VBDIGIOFF, VBDIGIFACE, VBDIGISOTP, VBDIGIEKYC). CHƯA tra được: cổng db-access chưa có connection tới VBDIGIONL (báo 'not found or access denied'), và đọc chéo từ VBSMEONL sang VBDIGIONL bị ORA-01031 insufficient privileges ⇒ cần Hoàng cho phép thêm kết nối read-only rồi giao claude sửa cổng DB (Ultron không tự sửa config cổng DB)."
+      },
+      "db_source": {
+        "env": "SIT",
+        "databases": [
+          "VBDIGIONL",
+          "VBDIGIOFF",
+          "VBDIGIFACE",
+          "VBDIGISOTP",
+          "VBDIGIEKYC",
+          "VBDIGILOGS",
+          "VBEKYCSTORAGE"
+        ],
+        "note": "Quy tắc Hoàng chốt 15/09: danh sách schema digital = của SME nhưng thay SME→DIGI. Ngoại lệ (Hoàng nói rõ): KHÔNG có bản RLE cho digital; VBSMELOGS → VBDIGILOGS (mongo, như SME); VBEKYCSTORAGE DÙNG CHUNG với SME (không đổi tên). Chưa có connection nào trong db-access ⇒ tra dữ liệu digital phải chờ mở kết nối."
+      },
+      "kb_dir": "references/knowledge/vietbankdigital/"
     }
   }
 }

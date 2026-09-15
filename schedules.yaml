@@ -125,7 +125,10 @@ actions:
   # - Chỉ gửi khi có THAY ĐỔI thật (chữ ký: git hash + file mới + pid đang chạy).
   # - 3 lượt không có gì chạy và không đổi ⇒ gửi 1 tin "xong" rồi tự im (cờ quiet).
   # - Im lặng 22:00–06:00. Hết hạn 20/09 để không thành rác; muốn dùng tiếp thì gia hạn.
+  # ⛔ TẮT theo yêu cầu Hoàng sáng 15/09 ("Tiến độ gì thế, bỏ đi được không").
+  #    Bật lại: đổi thành enabled: true (chỉ khi Hoàng bảo tiếp tục báo tiến độ widget).
   - id: widget-progress
+    enabled: false
     every_minutes: 15
     between: ["07:00", "22:30"]
     until: "2026-09-20"
@@ -169,20 +172,19 @@ actions:
     args: ["--space", "spaces/AAAADv4ib6s", "--text", "<users/102164964977711619261> Chị Oanh ơi, em nhắc chị việc chị dặn hôm qua nha — món \"source của anh Hoàng\" ấy ạ 👀"]
 
   # BÁO CÁO NÉN NGỮ CẢNH (Hoàng yêu cầu 2026-09-14: "theo dõi 1 ngày rồi báo anh số thật").
-  # Thuần script = 0 token: compact_stats.py đọc agent.log, đếm số lần nén / thời gian / token thu hồi
-  # / lượt trả góp lỗi. Gửi 09:00 (24h qua) + 18:00 (12h qua), KHÔNG gửi khi không có dữ liệu.
-  # Tự hết hạn 2026-09-21 (đo 1 tuần rồi quyết P2); muốn dùng tiếp thì gia hạn `until`.
-  - id: compact-report-am
+  # Thuần script = 0 token: compact_stats.py đọc agent.log, đếm số lần nén / thời gian / token thu hồi.
+  # ⛔ GIẢM TẦN SUẤT 2026-09-15: Hoàng than "báo cáo hoài vậy ta" (đang 2 tin/ngày → thành tiếng ồn
+  #    giữa lúc trao đổi). Nay CHỈ gửi 1 lần/tuần, Chủ nhật 09:00, cửa sổ 7 ngày. Bản 18:00 đã bỏ.
+  #    Muốn bật lại kiểu cũ: thêm 1 action `when: "18:00"` với args --hours 12.
+  #    Muốn "chỉ báo khi có bất thường" (nén lỗi / session sống quá lâu) → cần Jarvis thêm cờ
+  #    --only-anomaly cho compact_stats.py (việc code, ~10 phút), chưa làm.
+  # Tự hết hạn 2026-09-21; muốn dùng tiếp thì gia hạn `until`.
+  - id: compact-report-weekly
     when: "09:00"
+    days: [sun]
     until: "2026-09-21"
     script: compact_stats.py
-    args: ["--hours", "24", "--send", "--space", "spaces/AAQAZxc2km8"]
-
-  - id: compact-report-pm
-    when: "18:00"
-    until: "2026-09-21"
-    script: compact_stats.py
-    args: ["--hours", "12", "--send", "--space", "spaces/AAQAZxc2km8"]
+    args: ["--hours", "168", "--send", "--space", "spaces/AAQAZxc2km8"]
 
   # BÁO TIẾN ĐỘ BUILD GRAPH UA (vietbank-sme) — Hoàng yêu cầu cập nhật tiến độ cho việc chạy nền dài.
   # Thuần script, 0 token: ua_build_progress.py đọc log watcher + log build + artifact .ua/.

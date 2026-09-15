@@ -688,6 +688,24 @@ def render_tokens(tokens: dict | None) -> list[str]:
     return lines
 
 
+def session_activity_line(tokens: dict | None, per_session: dict | None) -> str | None:
+    """Dòng đối chiếu "session có hoạt động / có nén / không nén".
+
+    Chỉ in khi bảng sessions đọc được và con số còn hợp logic (số session bị nén không
+    thể lớn hơn số session có hoạt động trong cùng cửa sổ). Thiếu dữ liệu hoặc lệch cửa
+    sổ -> trả None để báo cáo bỏ qua dòng này, không làm hỏng phần còn lại.
+    """
+    if not isinstance(tokens, dict) or not tokens.get("available"):
+        return None
+    active = (tokens.get("metrics") or {}).get("sessions")
+    if not isinstance(active, int):
+        return None
+    compressed = len(per_session or {})
+    if compressed > active:
+        return None
+    return f"Session có hoạt động: {active} | có nén: {compressed} | không nén: {active - compressed}"
+
+
 def render(report: dict) -> str:
     batch = report["batch"]
     micro = report["micro"]
@@ -713,6 +731,14 @@ def render(report: dict) -> str:
     lines.append(f"Ghép đủ started->done   : {batch['paired_total']}")
     lines.append(f"Chưa thấy dòng done     : {batch['unpaired_total']}")
     lines.append(f"Đỉnh trong 1 giờ        : {batch['peak_per_hour']}")
+    lines.append("")
+    lines.append("Ghi chú cơ chế: nén ngữ cảnh chỉ chạy trong lượt đang xử lý (session vừa nhận tin")
+    lines.append("nhắn) và chỉ khi ngữ cảnh của session đó vượt ngưỡng; session im lặng không bao giờ")
+    lines.append("bị nén. Vì vậy \"Tổng số lần bắt đầu nén\" là số lần nén của CÁC SESSION ĐANG ĐƯỢC")
+    lines.append("TRÒ CHUYỆN, không phải \"số cuộc trò chuyện bị nén\".")
+    activity_line = session_activity_line(report.get("tokens"), batch["per_session"])
+    if activity_line:
+        lines.append(activity_line)
     lines.append("")
     lines.append("Theo session:")
     for session, count in sorted(batch["per_session"].items(), key=lambda kv: (-kv[1], kv[0])):
