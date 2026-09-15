@@ -42,12 +42,52 @@ transfer-service         worker-service
   thêm kết nối READ-ONLY rồi giao claude sửa cổng DB (Ultron KHÔNG tự sửa `config.yaml` của
   db-access, KHÔNG tự restart `mcp-db-tools`).
 - Đối chiếu tạm trước khi có kết nối: cùng cơ chế AD_MESSAGE nên một số mã dùng chung vẫn tra được
-  ở `VBSMEONL.AD_MESSAGE` (`500050` → Soft OTP bị tạm khóa; `500002` → dịch vụ không hỗ trợ),
-  nhưng mã riêng của digital (`40205043`, `40210019`) thì KHÔNG có ở đó — phải chờ `VBDIGIONL`.
+  ở `VBSMEONL.AD_MESSAGE`, nhưng mã riêng của digital (`40205043`, `40210019`) thì KHÔNG có ở đó.
+- **NỘI BỘ — KHÔNG đưa ra câu trả lời cho tester:** mỗi dự án có bảng mã lỗi riêng; cùng một số mã
+  có thể mang nội dung khác nhau (đã gặp ở `500050`). Vì vậy trả lời tester digital thì LUÔN tra
+  `VBDIGIONL.AD_MESSAGE` — tuyệt đối không tra bảng của dự án khác, và cũng KHÔNG nhắc/so sánh với
+  dự án khác trong group (Hoàng chốt 15/09: kiến thức dự án nào chỉ dùng trong group dự án đó).
+- `40205043`, `40210019`: không có trong `VBDIGIONL.AD_MESSAGE` ⇒ nhiều khả năng là mã core/đối tác,
+  không phải mã message.
+
+## 6. Quyền truy cập DB (đã mở 15/09)
+- Hoàng cho phép 15/09: mở READ-ONLY cho toàn bộ DB của dự án digital.
+- Đã thêm vào source `default_agent` (key mà Hermes đang dùng) 6 entry read-only: `VBDIGIONL`,
+  `VBDIGIEKYC`, `VBDIGIFACE`, `VBDIGISOTP`, `VBDIGILOGS`, `VBDIGIOFF`. Đã verify độc lập: `list_databases` trả 14 DB.
+- `VBDIGIOFF`: ĐÃ MỞ read-only 15/09 (cùng instance `127.0.0.1:2114` / `DVNHTEST`, entry `VBDIGIOFF`).
+  Kiểm chứng 15/09: 23 bảng — nhóm giao dịch OFF/lô/định kỳ: `OMNI_TRANSACTION*`, `OMNI_TRANSACTION_BATCH_GIFT`,
+  `OMNI_TRANSACTION_SCHEDULE*`, `OMNI_AUTO_PAYMENT_*`, `OMNI_SAVING_PRODUCT_METADATA`, `AD_SERVICE*`, `AD_TRANS_TYPE`.
+  **KHÔNG có bảng `AD_MESSAGE`** ⇒ tra mã lỗi vẫn phải vào `VBDIGIONL`.
+- Cổng ở `127.0.0.1:8443/mcp`, chạy bằng user unit `mcp-db-tools`; server TỰ hot-reload config
+  (`fs.watchFile` ~1s) nên sửa config không cần restart service.
+- **Pitfall:** session MCP đang mở giữ SNAPSHOT quyền cũ → sửa quyền xong, phiên Hermes đang chạy vẫn
+  chỉ thấy quyền cũ cho tới khi mở session MCP mới (restart gateway). Muốn tra ngay mà chưa restart:
+  gọi thẳng cổng bằng key của source `vietbank_omni` (đọc trong `.env` của `Db-Access`, KHÔNG in ra ngoài).
+- Các DB đang có entry connection cho digital: VBDIGIONL / VBDIGIEKYC / VBDIGIFACE / VBDIGISOTP /
+  VBDIGILOGS (tất cả `127.0.0.1:2114` service `DVNHTEST`, riêng LOGS là mongo `localhost:27018/omnivietbank`).
 
 ## 4. Repo & graph
-- 3 repo con là git thật (git.vnpay.vn), KHÔNG phải `not-a-git-repo` như `meta.json` ghi:
-  `vietbank-omni` (dev-sit) · `viet-bank-omni-ekyc` (master) · `dvnh-common` (feature/kafka-module).
+- 3 repo con là git thật (git.vnpay.vn), KHÔNG phải `not-a-git-repo` như `meta.json` ghi.
+- Quy tắc lấy mã nguồn để dựng graph (Hoàng chốt 15/09) + đã kiểm chứng:
+  ```
+  vietbank-omni        → nhánh dev-sit        (local & origin đều khai common_version = 5.0.8)
+  viet-bank-omni-ekyc  → nhánh dev            (khai common_version = 4.6.11.2 — KHÁC omni)
+  dvnh-common          → tag v5.0.8 = 1092139e (2026-08-26), theo common_version của vietbank-omni
+                         (working tree hiện là 5.0.9 ⇒ KHÔNG lấy working tree)
+  ```
+- Lệch cần Hoàng biết: ekyc khai common 4.6.11.2 còn omni khai 5.0.8 — graph gộp 2 mốc khác nhau,
+  đã báo Hoàng; mặc định vẫn theo version của omni (5.0.8) như anh chốt.
 - 15/09: `origin/dev-sit` của vietbank-omni đã đi trước bản local vài commit (`5f175dded` vs `53f7f6124`)
-  ⇒ graph hiện có là bản của hôm 14/09, muốn "tươi" phải fetch + dựng lại.
-- Chỉ vietbank-omni có nhánh `dev-sit`; 2 repo còn lại không có ⇒ chờ Hoàng chốt nhánh.
+  ⇒ graph hiện có là bản hôm 14/09, muốn "tươi" phải fetch + dựng lại.
+
+## 8. eKYC của DIGITAL (ghi 15/09/2026)
+- Source: `vietbank-digital/viet-bank-omni-ekyc` (570 file .java, nhánh local `master`; quy tắc graph: nhánh `dev`)
+  + phần eKYC trong `vietbank-omni/common/ekyc` & `transaction/business/.../init_transaction`.
+- Log: `.../omni-digital/facepay-service/` (mới nhất 08/04/2026 — `ekyc-facepay-f569c9c46-wvj6l.log`, 998 KB,
+  6.990 dòng, 26 ERROR) và `.../omni-digital/onboard-service/` (mới nhất 04/08/2026).
+- DB: `VBDIGIEKYC` (read-only, 25 bảng: `CUSTOMER_EKYC`, `MESSAGE_EKYC` (272 dòng), `EKYC_ERROR`,
+  `CARD_INFO*`, `HTE_REQUEST_FACE_PAY`, `SDK_VERSION`, `FACEPAY_FAILED_INTERVALS`, …) + `VBEKYCSTORAGE` (dùng chung).
+- Mã lỗi eKYC tra ở `VBDIGIEKYC.MESSAGE_EKYC` / `EKYC_ERROR` — **KHÔNG** nằm trong `VBDIGIONL.AD_MESSAGE`.
+- Trace thật: `[VBB_OMNI13243678706058423] [] [POST:/api/v1/face-pay/payment]`.
+- Phân biệt với SME (tên file log eKYC GIỐNG NHAU, không dùng được): dùng đường dẫn portal,
+  tiền tố requestId (`VBB_OMNI` vs `VBB`), và profile (digital KHÔNG có tiền tố `ekyc-`).

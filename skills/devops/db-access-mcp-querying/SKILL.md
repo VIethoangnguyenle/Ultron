@@ -28,6 +28,44 @@ skill này lo phần **query sao cho ra kết quả đúng ngay lần đầu**.
 | Script SQL | `sql_execute_script` — **không dùng cho DDL**, xem SOUL.md |
 | Mongo | `mongo_list_collections`, `mongo_get_schema`, `mongo_read`, `mongo_write` |
 
+## Quyền truy cập: theo SOURCE (apiKey), không phải theo connection
+
+- Cổng là MCP HTTP ở `127.0.0.1:8443/mcp`, chạy bằng **user unit** `mcp-db-tools`,
+  config `~/Desktop/tools/mcp/Db-Access/config.yaml` (block `databases:` = connection thật,
+  block `sources:` = apiKey + `access:` db → `[read|write]`).
+- Host trong `databases:` là `127.0.0.1:<port>` **qua SSH tunnel** (user unit `mcp-db-tunnel`) ⇒ lỗi
+  `NJS-503 / ECONNREFUSED 127.0.0.1:<port>` là lỗi TẦNG TUNNEL/MẠNG, khác hẳn lỗi thiếu quyền — xem
+  bảng phân biệt 3 lớp lỗi trong `references/db-access-gateway-access-model.md` trước khi đi xin quyền.
+- `list_databases` CHỈ trả về DB mà **key đang dùng** được cấp ⇒ thấy ít DB không có nghĩa cổng
+  thiếu connection.
+- `Database '<X>' not found or access denied` = key của mình chưa được cấp `<X>`. Đọc block
+  `sources:` trong config trước khi kết luận "chưa khai báo" — connection của DB đó có thể đã có sẵn
+  cho source khác.
+- Thêm DB cho một source: **không tự sửa** `config.yaml` của Db-Access, **không tự restart**
+  `mcp-db-tools` (kể cả user unit không cần sudo) ⇒ xin Hoàng cho phép → chạy
+  `python3 ~/.hermes/scripts/claude_mcp_preflight.py` → giao Jarvis sửa (backup + diff + giữ đúng
+  read/write).
+- **DB cần mở chưa có entry connection: kiểm TỒN TẠI trước khi xin thông tin kết nối.** Nhiều DB của
+  cùng một dự án nằm chung **một Oracle instance** (mỗi schema một user, cùng host/port/service).
+  Từ connection của DB anh em trong cùng instance, chạy
+  `SELECT COUNT(*) FROM SYS.ALL_USERS WHERE USERNAME='<SCHEMA_CAN_MO>'` — 1 = schema có thật ⇒ chỉ cần
+  thêm entry **mirror đúng cấu trúc entry anh em** (cùng host/port/service, user/pass theo pattern
+  biến môi trường hiện hành); không phải hỏi host/port. Chỉ hỏi Hoàng khi instance/credential khác hẳn.
+  KHÔNG tự bịa host/user.
+
+### Pitfall: session MCP đang mở giữ SNAPSHOT quyền cũ
+
+Server TỰ hot-reload config (`fs.watchFile(CONFIG, {interval:1000})` → `dotenv.config({override})` +
+reloadConfig) nên sửa config **không cần restart service** — NHƯNG session MCP đã mở giữ quyền chụp
+lúc nó khởi tạo:
+
+- Quyền mới chỉ có hiệu lực ở **session MCP MỚI**; phiên Hermes đang chạy vẫn thấy danh sách DB cũ
+  ⇒ cần khởi động lại gateway (Ultron không tự restart gateway từ trong) hoặc mở session mới.
+- Cần tra NGAY mà chưa restart: gọi thẳng cổng bằng key của source đã có quyền — dùng
+  `scripts/mcp_direct_query.py` (đừng tự gõ tay JSON-RPC).
+- Verify thay đổi quyền bằng chính key của mình (`list_databases`), đừng tin báo cáo "đã thêm quyền"
+  của agent đã sửa.
+
 ## Luật query (mỗi luật là một lần mất thời gian thật)
 
 1. **Mỗi `db_name` là MỘT connection/user riêng ⇒ không join chéo schema của DB khác.**
@@ -40,8 +78,19 @@ skill này lo phần **query sao cho ra kết quả đúng ngay lần đầu**.
 4. **Kiểm kiểu dữ liệu trước khi so sánh số.** Cột "trông như số" nhưng là VARCHAR2 (vd cột `AMOUNT`
    của bảng request) → `AMOUNT > 0` lỗi `ORA-01722`; dùng `AMOUNT <> '0'`, hoặc lọc rỗng rồi `TO_NUMBER`.
 5. **Cột trùng từ khoá Oracle (vd `LEVEL`) phải BỌC NHÁY KÉP** — `"LEVEL"`; để trần trong SELECT list → `ORA-01747`, để trần trong danh sách cột của INSERT → `ORA-01788`. Bọc nháy thì SELECT/INSERT đều chạy bình thường ⇒ **đừng bỏ cột** khi câu lệnh buộc phải đủ cột (vd `INSERT ... SELECT` để move bản ghi).
+5b. **Không query được metadata hệ thống khi chưa prefix schema** — `SYS.ALL_TABLES`, `SYS.ALL_USERS`,
+   `SYS.ALL_TAB_COLUMNS` mới chạy; viết trần `ALL_TABLES` bị chặn với lỗi "Rule Violation: Table ...
+   is missing a schema prefix". Đây là công cụ hữu ích nhất để kiểm tồn tại schema/bảng/cột khi chưa có grant.
 6. **Đừng kết luận từ một cột status số.** Enum trong source có thể khác dữ liệu môi trường đang chạy.
    Trình bày *giá trị thực + khác biệt giữa các bản ghi đối chứng*, đánh dấu chỗ chưa kiểm chứng.
+7. **`ORA-00942` khi query chéo schema KHÔNG chứng minh bảng/schema không tồn tại** — thiếu quyền
+   trên bảng của schema khác cũng trả về đúng mã 942 này. Muốn biết có thật hay không thì tra metadata
+   `SYS.ALL_USERS` / `SYS.ALL_TABLES WHERE OWNER='<SCHEMA>'` (chạy được cả khi chưa có grant), rồi mới
+   kết luận.
+8. **Một dự án có thể có nhiều schema, và không phải schema nào cũng đủ bảng.** Trước khi nhận tra một
+   loại dữ liệu (mã lỗi, nhật ký, giao dịch) cho một schema mới, liệt kê bảng của nó
+   (`SYS.ALL_TABLES WHERE OWNER='<SCHEMA>'`) — bảng chuyên biệt (vd bảng mã lỗi) thường chỉ nằm ở
+   schema ONL; nói "tra được" khi chưa kiểm dễ phải rút lại trước mặt tester.
 
 ## Bằng chứng từ sự VẮNG MẶT bản ghi (pattern dùng nhiều lần)
 
@@ -100,3 +149,5 @@ nguồn sự thật nằm ở dữ liệu, không phải source code:
 - `references/vbsme-collect-biometric-tables.md` — bảng + luồng chẩn đoán khi lệnh duyệt bị chặn vì
   "chưa / hết hạn thu thập sinh trắc" (SME ⋈ eKYC ⋈ FacePay).
 - Dự án VBSME: bảng/cột đầy đủ + quy trình gửi SQL cho tester → skill `vbsme-db-lookup`.
+- Cổng DB: source/quyền/snapshot + cách tra trực tiếp → `references/db-access-gateway-access-model.md`
+  và `scripts/mcp_direct_query.py`.

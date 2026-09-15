@@ -32,29 +32,34 @@
       "kb_dir": "references/knowledge/vietbanksme/"
     },
     "vietbankdigital": {
-      "spaces": [],
-      "spaces_note": "Chưa có space id — Ultron chưa được add vào group vietbank-digital (Hoàng xác nhận 15/09). Điền id ngay khi được add.",
+      "spaces": [
+        "AAAAdVOYFwI"
+      ],
+      "spaces_note": "Hoàng chốt 15/09: group dự án vietbank-digital = spaces/AAAAdVOYFwI (Ultron đã ở trong group, đọc được tin). Manager của space: Vi, Nguyễn Hoàng Thúy — K.KDMN, KD&QLDA (users/105892922277794903883, ROLE_MANAGER).",
       "graph_source": "/home/zane/Desktop/work/vietbank/vietbank-digital/.ua",
       "graph_build": {
         "method": "giống vietbanksme (Understand-Anything, project BA MCP đã đăng ký)",
-        "branch_rule": "sinh graph đi từ nhánh dev-sit (Hoàng chốt 15/09)",
+        "branch_rule": "sinh graph đi từ nhánh dev-sit (Hoàng chốt 15/09); ekyc lấy nhánh dev; dvnh-common lấy ĐÚNG common version mà vietbank-omni đang dùng (Hoàng chốt 15/09)",
+        "verified_15_09": {
+          "vietbank-omni": "common_version = 5.0.8 (giống nhau ở local dev-sit và origin/dev-sit)",
+          "viet-bank-omni-ekyc": "common_version = 4.6.11.2 (cả nhánh dev lẫn master) — KHÁC omni, đã báo Hoàng",
+          "dvnh-common": "tag v5.0.8 = commit 1092139e (2026-08-26); HEAD hiện tại là 5.0.9 nên KHÔNG dùng working tree, phải lấy đúng tag"
+        },
         "repos": [
           {
             "path": "vietbank-omni",
             "remote": "https://git.vnpay.vn/dvnh/vietbank/app-backend-omni/vietbank-omni",
-            "branch": "dev-sit"
+            "ref": "dev-sit"
           },
           {
             "path": "viet-bank-omni-ekyc",
             "remote": "https://git.vnpay.vn/dvnh/vietbank/app-backend-omni/viet-bank-omni-ekyc.git",
-            "branch": "master",
-            "note": "repo KHÔNG có nhánh dev-sit (chỉ master/dev/draft/*) — chờ Hoàng chốt nhánh"
+            "ref": "dev"
           },
           {
             "path": "dvnh-common",
             "remote": "https://git.vnpay.vn/dvnh/dvnh-common-lib/java/dvnh-common.git",
-            "branch": "feature/kafka-module",
-            "note": "repo KHÔNG có nhánh dev-sit (chủ yếu dev/dev-spring3/feature/*) — chờ Hoàng chốt nhánh"
+            "ref": "tag v5.0.8 (theo common_version của vietbank-omni)"
           }
         ]
       },
@@ -66,7 +71,7 @@
       "error_code_source": {
         "db": "VBDIGIONL",
         "table": "AD_MESSAGE",
-        "note": "Digital đọc mã lỗi từ AD_MESSAGE (entity MessageEntity trong vietbank-omni/common/base), giống SME. Hoàng chốt 15/09: schema của digital = bản SME đổi SME→DIGI (VBDIGIONL, VBDIGIOFF, VBDIGIFACE, VBDIGISOTP, VBDIGIEKYC). CHƯA tra được: cổng db-access chưa có connection tới VBDIGIONL (báo 'not found or access denied'), và đọc chéo từ VBSMEONL sang VBDIGIONL bị ORA-01031 insufficient privileges ⇒ cần Hoàng cho phép thêm kết nối read-only rồi giao claude sửa cổng DB (Ultron không tự sửa config cổng DB)."
+        "note": "Digital đọc mã lỗi từ AD_MESSAGE (entity MessageEntity trong vietbank-omni/common/base), giống SME nhưng BẢNG KHÁC: tra ở VBDIGIONL.AD_MESSAGE. Đã mở read-only 15/09 cho key default_agent (5 DB digital). CẢNH BÁO đã kiểm chứng: cùng mã nhưng nội dung khác giữa 2 bản (vd 500050 SME=Soft OTP tạm khóa vs Digital=tài khoản nhận không được phép) ⇒ luôn tra đúng bảng dự án. Pitfall: session MCP đang mở giữ snapshot quyền cũ ⇒ cần mở session MCP mới (restart gateway) mới dùng được qua công cụ thường; trước đó tra tạm bằng key source vietbank_omni qua cổng 127.0.0.1:8443/mcp."
       },
       "db_source": {
         "env": "SIT",
@@ -79,7 +84,7 @@
           "VBDIGILOGS",
           "VBEKYCSTORAGE"
         ],
-        "note": "Quy tắc Hoàng chốt 15/09: danh sách schema digital = của SME nhưng thay SME→DIGI. Ngoại lệ (Hoàng nói rõ): KHÔNG có bản RLE cho digital; VBSMELOGS → VBDIGILOGS (mongo, như SME); VBEKYCSTORAGE DÙNG CHUNG với SME (không đổi tên). Chưa có connection nào trong db-access ⇒ tra dữ liệu digital phải chờ mở kết nối."
+        "note": "Quy tắc Hoàng chốt 15/09: danh sách schema digital = của SME nhưng thay SME→DIGI. Ngoại lệ (Hoàng nói rõ): KHÔNG có bản RLE cho digital; VBSMELOGS → VBDIGILOGS (mongo, như SME); VBEKYCSTORAGE DÙNG CHUNG với SME (không đổi tên). 15/09 đã mở read-only cho key default_agent cả 6 DB digital (5 cái đầu + VBDIGIOFF). Lưu ý: VBDIGIOFF KHÔNG có bảng AD_MESSAGE (23 bảng giao dịch OFF/lô/định kỳ) ⇒ mã lỗi luôn tra VBDIGIONL."
       },
       "kb_dir": "references/knowledge/vietbankdigital/"
     }
