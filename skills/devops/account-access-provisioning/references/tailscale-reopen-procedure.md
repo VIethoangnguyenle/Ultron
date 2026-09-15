@@ -13,15 +13,24 @@
 
 ```bash
 # đọc danh tính cũ: state volume `tailscale-state` phải còn (teardown cố ý KHÔNG xoá)
+# `TS_AUTHKEY` là TUỲ CHỌN: volume state đã giữ danh tính node (`down` chứ không `logout`),
+# nên container tự vào lại đúng node + đúng IP mà KHÔNG cần auth key (đo 15/09/2026:
+# dựng lại đúng `ultron` / 100.82.132.36, không truyền TS_AUTHKEY).
 docker run -d --name tailscale --net=host --cap-add NET_ADMIN --cap-add NET_RAW \
   --device=/dev/net/tun \
   -e TS_HOSTNAME=ultron \
   -e TS_STATE_DIR=/var/lib/tailscale \
   -e TS_USERSPACE=false \
-  -e TS_AUTHKEY="$(cat ~/.hermes/state/tailscale_authkey.txt)" \
   -v tailscale-state:/var/lib/tailscale \
   tailscale/tailscale:latest
 ```
+
+> ⚠️ **`state/tailscale_authkey.txt` KHÔNG được bảo vệ khỏi lượt dọn log.** Teardown scrub mọi file
+> đuôi `.txt` chứa marker `tskey-`, mà `PROTECTED_NAMES` chỉ có `webhook_subscriptions.json`,
+> `config.yaml`, `state.db`, `siri_token.txt` ⇒ chạy teardown vài lần là file auth key bị cắt sạch
+> (đã quan sát 15/09: file biến mất). Đừng đi tạo key mới: **cứ dựng container không có authkey** —
+> state volume lo phần danh tính. Chỉ khi node thật sự bị `logout`/state bị xoá mới cần key mới từ admin,
+> và lúc đó thêm `tailscale_authkey.txt` vào `PROTECTED_NAMES` của `tailscale_teardown.py` trước đã.
 
 Thiếu `TS_STATE_DIR` / `TS_USERSPACE=false` ⇒ state nằm trong RAM, node tự tạo machine key mới mỗi
 lần restart (đã từng gây 28 restart + IP đổi). Node vào tailnet xong thì ghi IP mới:

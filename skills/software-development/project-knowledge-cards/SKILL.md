@@ -57,6 +57,22 @@ API liên quan, bẫy đã gặp, phần còn thiếu — thay vì mò cả repo
 - **Nói rõ mốc**: thẻ ghi nhánh/ref + commit; câu trả lời kèm mốc.
 - Thẻ `confidence: medium` phải nói rõ cho người hỏi; phần `gaps` chưa gom thì vẫn phải trace như thường.
 
+## Công cụ đã có (không tự viết lại — dùng cái này)
+- `python3 ~/.hermes/scripts/bizcard.py list | find "<câu hỏi>" | check [--fetch] [--quiet] | verify <id> | stamp <id>`
+  - `find` khớp alias → in kết luận + cổng 2 tầng; MISS ⇒ exit 3, phải trace thường.
+  - `check` exit 1 = có lệch cứng (KHÔNG dùng thẻ làm kết luận); `--quiet` im khi sạch.
+  - `stamp <id>` chỉ cập nhật vân tay + `verified_at` sau khi đã verify tay, KHÔNG sửa nội dung thẻ.
+- `~/.hermes/scripts/bizcard_gate.py` (chỉ nhắn DM khi có việc, chống lặp 1 tin/ngày) gắn ở
+  `schedules.yaml` action `bizcard-gate` — 08:00 mỗi ngày, 0 token.
+
+## Pitfalls đã đo được
+- Tín hiệu `fix|bugfix|hotfix` bắt thừa cả `prefix`/`suffix` ⇒ chỉ dùng để *cảnh báo*, exit code
+  tầng mềm vẫn 0.
+- Khớp alias **không bỏ dấu** (cố ý) ⇒ câu gõ không dấu sẽ MISS; phải gom alias không dấu từ chính
+  cách tester/dev hay gõ.
+- Tầng cứng một mình là **không đủ**: đã gặp thẻ báo 0/4 file lệch nhưng vùng theo dõi có 5 commit
+  sau ngày chốt — nếu chỉ so file bằng chứng thì trả lời với vẻ rất chắc chắn trong khi nền đã đổi.
+
 ## Cổng 2 tầng + theo dõi chủ động (phát hiện "tuần đó có người fix")
 - Mỗi thẻ khai `watch_paths[]` = **vùng nghiệp vụ** (module/thư mục), không chỉ file bằng chứng.
 - **Tầng cứng**: file bằng chứng đổi SHA ⇒ thẻ sai chắc chắn, phải trace lại.

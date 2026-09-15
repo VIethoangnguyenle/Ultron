@@ -58,6 +58,14 @@ actions:
     days: [sun]
     script: lesson_review.py
 
+  # Cổng kiểm hạn "thẻ nghiệp vụ" (vbsme) — mỗi ngày 08:00. 0 token: script tự chạy
+  # `bizcard.py check --fetch` trên nhánh dev-sit, CHỈ nhắn DM Hoàng khi có thẻ lệch cứng
+  # hoặc vùng theo dõi có commit nghi ngờ (fix/bugfix/hotfix). Thẻ = context khởi đầu để vào
+  # đúng vùng/API (Hoàng chốt 15/09), KHÔNG thay việc kiểm chứng.
+  - id: bizcard-gate
+    when: "08:00"
+    script: bizcard_gate.py
+
   # Bản tin email sáng cho Hoàng — 08:00 ngày làm việc, gửi vào DM riêng.
   # Lọc bot JIRA/bản tin/đào tạo, chỉ liệt kê mail NGƯỜI gửi; im lặng nếu không có gì mới.
   # Bản tin email sáng — TẮT 2026-09-12: Hoàng chốt chỉ cần theo dõi + ping mail QUAN TRỌNG

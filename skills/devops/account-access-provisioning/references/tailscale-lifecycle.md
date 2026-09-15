@@ -61,7 +61,11 @@ không riêng cổng mình định mở. Đo bằng `ss -tlnp` rồi tách 2 nh�
 ## Hệ quả cần nhớ trước khi hứa
 - Cổng Siri bridge (`hermes webhook` bind vào IP tailnet) **chết theo** sau 17h30.
 - Đường đọc log UAT/LIVE cho tester ở nhà cũng chết theo.
+- **Cổng Ultron BA MCP (`http://ultron:9450/mcp`, skill `ultron-ba-mcp`)** cũng chỉ vào được khi node mở
+  ⇒ đừng hẹn BA/Tester dùng sau 17h30; bản local `127.0.0.1:9450` vẫn sống.
 - Webhook adapter chỉ log lỗi bind chứ không làm sập gateway → tắt Tailscale an toàn cho Hermes.
+- **Mở node cho một việc là mở cho mọi thứ bind `0.0.0.0`** — mỗi lần mở lại phải chạy `ss -tlnp`
+  và báo Hoàng cả danh sách cổng lộ kèm (không chỉ cổng mình định mở).
 
 ## Bật lại (khi Hoàng yêu cầu)
 Dựng lại container Tailscale theo hướng dẫn ở SKILL.md, `tailscale up` lại, rồi khởi động lại
