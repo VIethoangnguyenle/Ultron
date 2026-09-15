@@ -1,3 +1,10 @@
+## Dev xin bản `.md` của tài liệu (đã gặp 15/09/2026)
+
+Luật "ưu tiên PDF" là cho **mặc định**, không phải cấm: khi dev/tester **xin rõ ràng** file `.md`
+(để sửa, nhúng wiki), gửi **bản `.md` gốc đã dùng để render** — KHÔNG convert ngược từ PDF (mất bảng,
+JSON dài dòng). Vì vậy sau mỗi lần `md2pdf.py`, **giữ nguyên file `.md` nguồn** (đừng xoá/đổi tên),
+để lúc bị hỏi là gửi được ngay.
+
 # Gửi báo cáo log vào ĐÚNG thread, dạng PDF (đã kiểm chứng 2026-09-14)
 
 Tester hỏi trong thread nào ⇒ file báo cáo phải nằm trong thread đó, nếu không họ không thấy.

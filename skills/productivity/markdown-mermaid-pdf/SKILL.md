@@ -25,7 +25,7 @@ Pipeline: markdown → HTML (python-markdown, extensions `fenced_code,tables,san
 → wrap `language-mermaid` code blocks as `<pre class="mermaid">` → inline LOCAL `mermaid.min.js`
 → `google-chrome --headless --print-to-pdf --virtual-time-budget=10000`. Zero network.
 
-## Pitfalls — 4 bẫy đã gặp thật (gộp 2026-09-12)
+## Pitfalls — 9 bẫy đã gặp thật (gộp 2026-09-12, cập nhật 2026-09-15)
 
 1. **mmdc / `npx @mermaid-js/mermaid-cli` KHÔNG chạy được trên box này** — bundle puppeteer-core 25.x
    không launch nổi system Chrome 114 → treo ~30s rồi TimeoutError. Đừng dùng mmdc.
@@ -52,6 +52,15 @@ Pipeline: markdown → HTML (python-markdown, extensions `fenced_code,tables,san
    Bẫy lớn nhất: **SVG của Archify không self-contained** (CSS ở `<head>` của HTML ⇒ tách SVG ra là
    thành khối đen) và **validator layout rất chặt** (phải sửa theo gợi ý `labelDy`/`fromSide`/cột rồi
    render lại 2–4 vòng). Recipe đầy đủ + lệnh kiểm chứng: `references/archify-diagrams.md`.
+
+9. **Diagram cao hơn 1 trang ⇒ sinh TRANG TRẮNG giữa tài liệu** (đã gặp thật 2026-09-15 với
+   sequenceDiagram 5 lifeline + 3 note): text extract của trang trắng ~1 ký tự, exit code vẫn 0.
+   Fix bằng CSS ép mỗi diagram nằm gọn 1 trang và tự sang trang:
+   `pre.mermaid { page-break-inside: avoid; page-break-after: always; }` +
+   `pre.mermaid svg { max-width:100% !important; max-height:230mm !important; height:auto !important; }`
+   → `md2pdf.py in.md -o out.pdf --css "$(cat /tmp/mermaid-fit.css)"`. Verify bằng đếm ký tự từng trang
+   (`for p in $(seq 1 N); do echo page$p $(pdftotext -f $p -l $p out.pdf - | tr -d ' \f\n' | wc -c); done`),
+   KHÔNG chỉ nhìn tổng số trang.
 
 Chi tiết + số đo: agentmemory lesson (context=`markdown-mermaid-pdf`) — gọi `memory_lesson_recall`
 query `markdown-mermaid-pdf`.

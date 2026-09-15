@@ -163,6 +163,20 @@ spaces/AAQAZxc2km8  Home / "Ultron   kênh nhà + nhận     báo cáo định k
   đúng mảng họ phụ trách. Kết thúc việc: ghi lại điều học được về người đó (`people.py note`).
   (Hoàng chốt 2026-09-13: *"1:1 với ai thì nói với ng ấy như dị"*.)
 
+## Bị hỏi "mày có nhớ/gom thông tin group này để dùng ở group khác không?"
+
+Câu hỏi niềm tin này hay xuất hiện sau khi Ultron nhắc lại chuyện xảy ra ở group khác (kể cả khi nguồn
+thật là ảnh chụp do CHÍNH người trong nhóm dán vào). Trả lời minh bạch, ngắn, KHÔNG phòng thủ, KHÔNG
+phủ nhận trắng trợn (phủ nhận suông là sai sự thật về cách mình hoạt động):
+
+1. Nêu đúng phạm vi trí nhớ: nhớ **ngữ cảnh công việc** (ai phụ trách gì, đã nhờ việc gì, cách gọi cho
+   đúng, quy ước chung). KHÔNG mang chuyện tán gẫu, chuyện riêng, nội dung DM riêng của ai sang chỗ khác.
+2. Nêu giới hạn tiếp nhận: Google Chat chỉ đẩy cho bot tin **có tag** ⇒ không "ngồi đọc hết" nhóm.
+3. Nếu nội dung bị nghi là "học từ group này": chỉ ra nguồn THẬT (tin bên group kia, hoặc ảnh do
+   người trong nhóm dán vào) — đừng nhận oan cũng đừng đổ ngược cho người dán ảnh.
+4. Nêu luật cách ly: kiến thức dự án này không dùng trả lời group dự án khác.
+5. TUYỆT ĐỐI không đọc nội dung sổ hồ sơ/ghi chú về người trong nhóm ra để "chứng minh" mình nhớ/gọn.
+
 ## Viết xong một việc vượt ra ngoài chat (privileged write)
 
 Khi việc có phép là ghi ra hệ thống ngoài (Jira, DB, file gửi lên group):
@@ -217,6 +231,13 @@ Cron `mention_poller` cũng chỉ bắt mention qua `annotations[].userMention`,
 
 ## Pitfalls
 
+- **Chào bù trong THREAD CŨ ⇒ KHÔNG copy câu chào cũ của chính mình** (lỗi thật 2026-09-15, group
+  `VBB KHCN`/Omni `AAAAdVOYFwI`): thread đã có lời chào "trợ lý của anh Hoàng" từ TRƯỚC khi luật danh
+  xưng đổi; hôm sau có người nhắc "chào chị X chưa" → em chào bù bằng cách lặp y nguyên câu cũ ⇒ sai
+  chuẩn mới dù luật đã nằm trong SOUL. Lời chào cũ nằm trong ngữ cảnh thread là **mẫu nhiễm**, mạnh hơn
+  luật ở system prompt. ⇒ Mỗi lần tự giới thiệu (kể cả chào bù, kể cả thread đang chạy): tra space id
+  → chọn danh xưng theo bảng ở mục "Loại 0" → mới viết. Session mở trước thời điểm đổi luật cũng là
+  dấu hiệu phải cảnh giác: `session=<ngày>_<giờ>` trong `logs/agent.log` so với mtime `SOUL.md`.
 - **Script Chat (`gchat_dump.py`, `gchat_members.py`, `gchat_send_text.py`) nhận space id dạng ĐẦY
   ĐỦ `spaces/<id>`, không nhận id trần** — truyền trần ⇒ `TypeError: Parameter "parent" value "<id>"
   does not match the pattern "^spaces/[^/]+$"`. Lấy tên + id mọi space bằng `scripts/list_spaces.py`
