@@ -37,3 +37,15 @@ agy --model claude-opus-4-6-thinking --print-timeout 15m --output-format json \
 - Có dấu tiếng Việt (regex `[àáạảãâầấậẩẫă...]`), độ dài ≥ 40 ký tự.
 - Không khớp khuôn câu cũ: `^(Thực thi phương thức|Đóng vai trò là|Xử lý ... trong lớp)`.
 - Số id khớp 100% với danh sách node cần sửa, không id lạ.
+
+## Khi lô bị trả RỖNG (exit 0, size 0) — thứ tự xử lý đã kiểm chứng
+1. **Kiểm size từng lô** (`find out -size 0c`) — đừng tin exit code.
+2. **Chia nhỏ theo mốc `===== FILE:`**: mỗi prompt ≤2 file nguồn, ≤16-18KB. Lô 33-49KB hay fail, lô 3-17KB
+   chạy ~50s/lô. Giữ nguyên header, lọc lại danh sách node theo đúng file có trong prompt.
+3. **Timeout phải rộng hơn cả thang model**: cạn quota thì wrapper đi hết 9 attempt ≈ 8 phút ⇒ dùng
+   `timeout 600`+; đặt 300s là tự cắt ngang (exit 124, công cốc).
+4. **Quota cạn cả 2 account ⇒ đừng đốt thêm**: giao subagent TỰ đọc source và tự viết mô tả (không qua agy).
+   Đã dùng cho 44 node/12 file: 3 subagent song song ~10 phút, chất lượng tương đương. Prompt cho subagent:
+   đưa `list.json` (filePath → [node id]), yêu cầu ghi `out_<k>.json` = mảng `{id, summary}`, CẤM gọi CLI agy/claude.
+5. Với file bảo mật/khóa: dặn subagent chỉ nêu vai trò nghiệp vụ, không mô tả chi tiết thuật toán khóa.
+6. Kiểm chứng cuối bằng MCP `understand_anything` (`get_node_detail`) — graph đã nạp lại mô tả mới chưa.

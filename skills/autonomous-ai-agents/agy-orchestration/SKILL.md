@@ -85,6 +85,18 @@ agy (`--model`), không phải trong config; muốn đổi thì sửa biến `AG
 xoay account bằng tay: cứ gọi `agy`, wrapper lo. Nếu số account trên máy ít hơn con số Hoàng nói thì BÁO
 lại, đừng tự thêm — và **không bao giờ nhận mật khẩu/credential qua chat** (Hoàng tự đăng nhập).
 
+## Đừng in cmdline của tiến trình agy (bài học 2026-09-15)
+Cmdline của `agy`/`timeout` chứa **NGUYÊN prompt** (hàng chục KB) → `ps -eo args`, `ps -o cmd`, hay
+`tr '\0' ' ' </proc/<pid>/cmdline` sẽ đổ cả prompt vào ngữ cảnh. Chỉ dùng `ps -eo pid,etime,comm`
+(hoặc `pgrep -c agy`) khi cần biết còn tiến trình hay không.
+
+## Kill loop nền phải VERIFY (bài học 2026-09-15)
+Loop dạng `bash -lic 'for ... agy ...'` có thể **sống sót sau `kill`** (nhất là khi kill trượt PID, hoặc kill
+vào nhóm sai) — đã dính: 1 loop retry sống thêm ~2 tiếng, tự chạy lại các lô cũ và đốt quota vô ích.
+Sau mọi lần kill: kiểm lại bằng `ps -eo pid,etime,comm --no-headers | grep -E "agy"` (trống mới là sạch),
+và kill theo PID cụ thể — **KHÔNG dùng `pkill -f <chuỗi>`** vì chuỗi đó có thể khớp chính dòng lệnh của
+mình (đã tự bắn mình 2 lần).
+
 ### Cạn quota KHÔNG báo lỗi: stdout RỖNG + exit 0 (đo 2026-09-15)
 Khi hết quota, wrapper tự tụt thang model rồi `hagy next` xoay account; hết cả 9 attempt nó **bỏ cuộc và để
 `stdout` rỗng, `stderr` rỗng, `exit=0`**. Nếu chỉ nhìn exit code sẽ tưởng thành công → mất cả lô dữ liệu mà

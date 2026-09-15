@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Kiem chung DOC LAP cong Ultron BA MCP (15 ca).
-
-Chay: cd /home/zane/Desktop/tools/mcp/Ultron-BA-MCP && .venv/bin/python \
-        ~/.hermes/skills/devops/ultron-ba-mcp/scripts/verify_port.py
-Exit != 0 neu co ca FAIL. Tu cap key tam (verify-scope, verify-rpm2) roi xoa; khong in key tho.
-"""
+"""Kiem chung DOC LAP dot 2+3 cua Ultron BA MCP. Do Ultron tu chay, khong tin bao cao cua agent code."""
 import asyncio, json, subprocess, time
 from pathlib import Path
 from mcp import ClientSession
