@@ -141,6 +141,18 @@ không có cấu hình cho mã đó → xử như nhánh tắt).
 Câu hỏi kèm trạng thái GD (vd "cả 2 GD đều timeout 500069") → ghép luôn phần đối soát ở các mục trên:
 lệnh đã cập nhật trạng thái thành công thì nói rõ, lệnh còn "chờ xử lý" thì đừng mô tả là thất bại.
 
+## Đối soát chốt THẤT BẠI mà hạn mức ngày (RLE) chưa được hoàn
+
+Giao dịch đã tiêu hạn mức ngày rồi mới bị đối soát chốt **thất bại** thì hệ thống phải **trả lại hạn mức** (đường hoàn tiền theo mã tra soát). Kiểm ở **DB hạn mức** (`VBSMERLE`), không phải DB giao dịch — bảng/sổ/cách đọc: skill `vbsme-db-lookup` (mục hạn mức ngày). Dấu hiệu lệch: sổ hạn mức ngày của tài khoản vẫn bao gồm số tiền của giao dịch đã thất bại, và không có dòng hoàn nào.
+
+1. Dựng timeline của chính giao dịch đó từ 2 nguồn: bảng giao dịch + lịch sử bước xử lý (tạo lệnh → duyệt lệnh cuối = lúc hạn mức bị giữ → đối soát chốt kết quả). Đối chiếu cả `CREATED_DATE` (ngày tạo lệnh) và mốc **ngày hạch toán**.
+2. Đối chiếu sổ hạn mức ngày với tổng các giao dịch **thành công** trong ngày của tài khoản — lệch là bằng chứng có GD thất bại chưa được trừ lại.
+3. Tìm dòng hoàn trong bảng giao dịch hạn mức (mã tham chiếu `RFD` + mã tra soát gốc, hoặc dòng mang trạng thái hoàn/huỷ). Thiếu cả hai ⇒ **kết luận LỆCH**, hạn mức đang bị giữ oan.
+
+**Pitfall — mốc "trong ngày" của hai đường hoàn lệch nhau (đã trả giá thật):** đường hoàn tự động chỉ chạy khi giao dịch được coi là "phát sinh trong ngày", nhưng hai đường lấy mốc KHÁC nhau — luồng cập nhật lại trạng thái (nút/tra soát) so theo **ngày tạo lệnh**, còn job đối soát so theo **ngày hạch toán**. Lệnh **tạo hôm trước, duyệt cuối hôm nay** ⇒ hạn mức bị giữ trong sổ của HÔM NAY, mà đường nút coi là "ngoài ngày" nên **bỏ qua hoàn**. Vì vậy trước khi kết luận bug phải xác định giao dịch được chốt bởi đường nào, và so 2 mốc ngày của chính nó — đừng kết luận "hệ thống quên hoàn" khi chưa chỉ ra mốc lọc nào đã chặn.
+
+Khi đã chốt là lệch: **không tự gọi dịch vụ hạn mức để thử hoàn** (ghi dữ liệu SIT) — báo Hoàng qua `~/.hermes/escalations/`, nói tester là đã ghi nhận, và chỉ hứa điều tra tiếp (log đường chốt / job đối soát); không cam kết mốc sửa. Trả lời tester dạng bảng (giờ | số tiền | cộng hay hoàn | trạng thái) + kết luận lệch + nghi vấn mốc ngày, giữ ngôn ngữ nghiệp vụ, không tên class/file.
+
 ## Pitfalls
 
 - **Mã `VBG*` (VBG0408400, VBG040768) không có trong source vbsme và không có trong bảng mã lỗi AD_MESSAGE** — sinh ở tầng lõi/gateway. Đừng grep repo tìm định nghĩa (mất thời gian, không ra) — diễn giải nghiệp vụ: *"lõi báo không có bản ghi"* / *"lõi chưa có kết quả xử lý"*.

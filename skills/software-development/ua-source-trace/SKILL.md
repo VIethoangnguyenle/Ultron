@@ -74,6 +74,23 @@ lần; 2026-09-14 là `5.0.9` → tag `v5.0.9`). Build bằng **agy** (ưu tiên
 claude (claude = code only). Nghiệm thu: đếm nodes/edges, soi summary, `get_graph_metadata` health — **exit 0
 KHÔNG có nghĩa là graph đủ** (đã có lần exit 0 nhưng 0 edge). Nhớ backup `.ua` và trả nhánh về nguyên trạng.
 
+## Dọn dẹp sau rebuild (BẮT BUỘC — Hoàng yêu cầu 2026-09-15)
+Một lượt rebuild để lại rác ở gốc workspace (đã có lần ~300MB: `.ua.good-*`, `.ua.degraded-*`,
+`.ua/.trash-*`, `.ua/intermediate`, `.ua/tmp`, `.ua/*.bak-*`, và 8 file `.cjs` vặt). Luật:
+1. Script vặt (convert / inject / patch JSON trung gian) viết vào `/tmp/ua-<ts>/` — **KHÔNG BAO GIỜ**
+   đặt ở gốc workspace vietbank-sme; chạy xong là hết giá trị.
+2. Chạy xong phải prune: xoá `.ua/tmp`, `.ua/intermediate`, mọi `.ua/.trash-*`, `.ua/*.bak-*`
+   (trừ `.master`), `.ua/domain-graph.json.modules-*`; chỉ giữ **1** bản backup `.ua.backup-<ngày>`.
+3. Giữ nguyên: `knowledge-graph.json`, `fingerprints.json`, `meta.json`, `domain-graph.json`,
+   `domain-graph.json.master`, `config.json` — MCP đang đọc. Xoá nhầm `.master` = mất bản tích luỹ domain graph.
+4. Trước khi xoá backup phải verify: `md5sum .ua/domain-graph.json .ua/domain-graph.json.master`
+   phải trùng nhau, và 3 repo (omni/ekyc/dvnh-common) đã về đúng nhánh cũ.
+5. Rác KHÔNG đến từ 1 lỗi mà **tích tụ theo lượt**: `.ua/.trash-*` là cơ chế chờ 7 ngày của pipeline
+   (chỉ được dọn ở Phase 0 của một lượt `/understand` mới ⇒ lượt nào không chạy full thì nó nằm mãi),
+   `.ua/*.bak-*` do chính mình backup mỗi lượt (giờ ghi ra `/tmp/ua-backup/`), `.ua.good-*`/`.ua.degraded-*`
+   là bản sao an toàn mình tự tạo. ⇒ Prune NGAY sau mỗi lượt rebuild, không để qua ngày; và nhớ rác chỉ
+   ~300MB, trong khi `build/` (gói build) chiếm ~35GB — đừng nhầm thủ phạm khi soi dung lượng.
+
 ## Disclosure
 Trả lời bằng ngôn ngữ nghiệp vụ với mọi người ngoài Hoàng (không nêu class/file/method ngoài DM với Hoàng),
 nhưng trace bên trong vẫn đủ chuỗi: endpoint → handler → client → core banking → bảng DB.

@@ -15,6 +15,10 @@ bọc bảng trong code block; là dev thì được kèm path API (xem "Ranh gi
 
 ## Recipe — chạy theo thứ tự, ĐỪNG đoán tên tiếng Anh
 
+0. **Tra thẻ nghiệp vụ trước, chỉ trace khi MISS.** `python3 ~/.hermes/scripts/bizcard.py find "<câu hỏi>"`
+   (thẻ nằm ở `docs/knowledge/cards/`, mỗi thẻ có sẵn danh sách đường dẫn + bằng chứng + mã lỗi). Câu hỏi
+   "API nào để làm X" hay đã có thẻ rồi — trace lại từ đầu là đốt thời gian vô ích.
+
 1. **Grep mô tả Swagger tiếng Việt.** Field/nghiệp vụ trong code được mô tả bằng tiếng Việt, nên từ khoá
    tiếng Anh hay trượt. Grep chính cách người dùng gọi nghiệp vụ:
    `git grep -n -i "người tạo lệnh" <ref> -- "*.java"`
@@ -29,7 +33,9 @@ bọc bảng trong code block; là dev thì được kèm path API (xem "Ranh gi
    "theo company" thường tưởng phải truyền `companyId` — nhiều endpoint **lấy công ty theo session, không
    nhận tham số**; nói rõ điểm này kẻo họ test sai.
 4. **Đọc source theo REF, không theo working tree**: `git show <ref>:<path>`, `git grep … <ref>`. Working
-   tree có thể đang ở nhánh feature khác ⇒ kết luận theo working tree là sai mốc.
+   tree có thể đang ở nhánh feature khác ⇒ kết luận theo working tree là sai mốc. **Kiểm tra service có
+   source trong checkout chưa** trước khi grep: `find <service> -name '*.java' | wc -l` — service chỉ nằm ở
+   nhánh khác thì thư mục tại chỗ rỗng, grep ra 0 là do THIẾU SOURCE chứ không phải endpoint không tồn tại.
 5. **Kiểm tra biến thể**: cùng nghiệp vụ thường có 3 bản — `app`, `web`, và bản cho đối tác ở
    `integration-service` (ký checksum, tham số định danh nằm trong body). Liệt kê đủ rồi người hỏi tự chọn.
 6. **Nếu không có API "chỉ lấy bản ghi có X"** (vd "chỉ người ĐÃ tạo lệnh") ⇒ nói thẳng là không có API
@@ -55,6 +61,18 @@ chứ không phải API nội bộ ⇒ đi theo cây config, không grep control
    chỉ mình gọi tới; IP mà đối tác thấy và phải whitelist (egress/NAT) **không** nằm trong config app. Trả lời
    theo nghĩa thứ nhất rồi nói rõ chiều còn lại phải lấy từ hạ tầng — đừng gộp thành một số.
 
+## Chốt danh sách đường dẫn theo môi trường (bảng đăng ký SYS_MID)
+
+Cùng họ câu hỏi "service này có những API nào": ngoài source, đọc **bảng đăng ký đường dẫn của chính
+service trên môi trường** — `SYS_MID` trong DB của service (vbsme: `VBSMERLE` cho `rle-service`):
+
+`SELECT ID, DESCRIPTION, SERVICE_NAME, IS_ACTIVE, IS_FINANCE, SECURITY_TYPE FROM <SCHEMA>.SYS_MID WHERE LOWER(ID) LIKE '%<service>%'`
+
+`ID` = đường dẫn, `DESCRIPTION` = mô tả nghiệp vụ tiếng Việt. Đây là bằng chứng mạnh nhất cho câu "môi
+trường đang có đường dẫn nào", đồng thời cho sẵn mô tả nghiệp vụ để trả lời người không đọc code. Đường
+dẫn có trong source mà thiếu dòng `SYS_MID` (và `SYS_USER_ENDPOINT`) thì lời gọi bị chặn ngay ở bước kiểm
+đường dẫn — nhớ nói điểm này khi người hỏi đang truy lỗi gọi API.
+
 ## Trả lời
 - Bảng `endpoint | định danh (session hay body) | trả về gì`, trong code block.
 - Nêu mốc đã đọc (nhánh/ref) — tránh người đọc tin vào bản đã cũ.
@@ -69,6 +87,14 @@ chứ không phải API nội bộ ⇒ đi theo cây config, không grep control
   lại path từ interface controller + impl `@RequestMapping`.
 - **Đừng lẫn "danh sách nhân viên công ty" với "người đã tạo lệnh"**: API nhóm đầu trả toàn bộ nhân viên
   theo công ty; nhóm sau phải suy ra từ danh sách bản ghi.
+- **Thư mục service rỗng trong working tree KHÔNG có nghĩa service không có API**: vbsme `rle-service/` ở
+  nhánh làm việc chỉ còn `build/`, source nằm ở nhánh khác (`origin/dev-sit`). Kết luận "không có endpoint"
+  từ một lần grep trong thư mục rỗng là sai — kiểm `find <service> -name '*.java' | wc -l` trước, rồi grep
+  theo ref (`git grep -n -i "<từ khoá>" origin/dev-sit -- "<service>/*"`).
+- **Nhiều đường dẫn gần giống nhau**: khi một nghiệp vụ có 2 đường cùng nghĩa (vbsme: hoàn hạn mức có
+  `revert-transaction` theo danh sách giao dịch và `refund-transaction` theo mã tra soát) thì liệt kê ĐỦ
+  rồi phân biệt bằng mô tả đăng ký + handler tương ứng — trả lời "API hoàn là X" khi có hai đường là trả
+  lời thiếu, người test sẽ chạy sai luồng.
 - Luôn nói mốc nhánh/ref trong câu trả lời (vbsme: `origin/dev-sit`).
 - **File config đối tác chứa cả `private-key`/`public-key`** ⇒ khi trích chỉ lấy đúng dòng `uri`; không dán
   cả block config, không đưa key sang group.

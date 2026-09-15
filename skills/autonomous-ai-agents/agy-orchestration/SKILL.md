@@ -167,7 +167,8 @@ phải **gom tất cả source về 1 graph duy nhất, đặt ở bên ngoài**
   (MCP chỉ nạp root mới ở **session mới**).
 - Copy `.understandignore` đã tinh chỉnh (lọc build/test/.idea/node_modules) sang thư mục cha trước khi chạy.
 - One domain per invocation (not all at once); the domain-analyzer writes to `.ua/intermediate/domain-analysis.json` then merges into `.ua/domain-graph.json`.
-- Back up `domain-graph.json` before each run: `cp domain-graph.json domain-graph.json.bak-$(date +%Y%m%d-%H%M%S)`.
+- Back up `domain-graph.json` trước mỗi run — nhưng ghi **ra NGOÀI repo**: để trong `.ua/` thì mỗi lượt đẻ 1 file `.bak-<ts>` (~19 lượt ≈ 25MB rác tích tụ, phải dọn tay). Dùng `mkdir -p /tmp/ua-backup && cp .ua/domain-graph.json /tmp/ua-backup/domain-graph-$(date +%Y%m%d-%H%M%S).json` rồi chỉ giữ 2 bản mới nhất.
+- **Engine chết giữa run ⇒ không có bước dọn.** agy cạn quota (429) rồi mất đăng nhập (`not logged into Antigravity`) làm pipeline dừng trước Phase 7 cleanup ⇒ `.ua/intermediate`, `.ua/tmp`, `.ua/.trash-*` nằm lại. Sau mọi lượt rebuild, kiểm tra và prune tay ngay, đừng để sang hôm sau.
 
 ## Đọc ảnh (image reading) — dùng agy, KHÔNG dùng claude
 
