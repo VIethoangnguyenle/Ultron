@@ -196,3 +196,16 @@ actions:
     until: "2026-09-15"
     script: ua_build_progress.py
     args: ["--send", "--space", "spaces/AAQAZxc2km8", "--quiet"]
+
+  # TICK CRON STORE CỦA PROFILE `jira-runner` (Hoàng chốt 2026-09-16, phương án B).
+  # Job `jira-morning-reminder` đã chuyển sang store riêng của profile jira-runner. Gateway đang
+  # chạy có gateway.multiplex_profiles=false nên CHỈ tick store của profile default
+  # (gateway/run.py:5127-5148: ticker chỉ đi nhiều profile khi multiplex bật) → job kia sẽ không bao
+  # giờ tự chạy. jira_runner_tick.py gọi `hermes -p jira-runner cron tick` để bù.
+  # Chọn multiplex sẽ phải restart gateway và đổi cách phục vụ bot của MỌI profile → chọn cách này.
+  # Chỉ cần tick 1 lần ngay sau 09:00; cửa sổ hẹp cho chắc, tick thừa thì vô hại (job không tới hạn
+  # nữa nên script im lặng). 0 token.
+  - id: jira-runner-tick
+    every_minutes: 2
+    between: ["08:58", "09:10"]
+    script: jira_runner_tick.py
