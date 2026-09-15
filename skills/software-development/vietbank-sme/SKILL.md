@@ -10,7 +10,8 @@ metadata:
     tags: [vietbank, vbsme, vnpay, fintech, oracle, database]
 ---
 
-# VietBank SME (vbsme) project
+## Pitfall: worktree mới thiếu .env → gradle fail
+Worktree mới tạo từ repo `vietbank-sme-omni` KHÔNG có file `.env` (file ngoài git) ⇒ `./gradlew` dừng ngay với `Missing DEPLOY_TOKEN_VALUE (env / -P / .env)` — đây là lỗi cấu hình, không phải lỗi code. Cách xử lý: export biến từ `.env` của worktree có sẵn (`export DEPLOY_TOKEN_VALUE=$(grep -m1 '^DEPLOY_TOKEN_VALUE=' ../wt-napas-bugs/.env | cut -d= -f2-)`), KHÔNG tạo thêm `.env` mới. Task compile của module luồng tài chính: `./gradlew :financial-transaction-business:compileJava --offline`. project
 
 Backend monorepo for VietBank SME omnichannel banking (Java/Gradle, Spring Boot, inside VNPay/dvnh infra). Hoang is the backend engineer here.
 

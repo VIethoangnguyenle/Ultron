@@ -56,3 +56,17 @@ Chứng cứ UAT 12/09/2026, trace `006254174594903` (transId 174307, user daivi
   tiền Quý khách vui lòng không thực hiện lại giao dịch và liên hệ tổng đài 1800 1122 để được hỗ trợ"
   (nhóm lỗi core bank, nghiệp vụ chuyển tiền nhanh NAPAS).
 - Chỉ khi bank trả `success=true` / `failed=true` thì nút cập nhật (hoặc job) mới chốt được GD.
+
+## Ca "chốt thất bại nhưng hạn mức không được hoàn" (lỗi, SIT 15/09/2026)
+Chứng cứ SIT, GD 217851 / trace `016257096970082`, STK `000004906006`:
+- Lệnh tạo 14/09 nhưng **duyệt cuối 15/09 15:16:38** ⇒ hạn mức ngày bị giữ trong sổ của ngày 15/09.
+- Napas trả mã 68 → chờ tra soát; 15/09 15:36:55 chốt **THẤT BẠI**.
+- Sổ hạn mức ngày vẫn giữ đủ (100.500.000, không giảm 1.000.000) ⇒ **không có bản ghi hoàn nào**.
+- Nguyên nhân: đường hoàn khi bấm nút "Cập nhật lại trạng thái" chỉ gọi khi GD "trong ngày" và so mốc
+  theo **NGÀY TẠO LỆNH** (14/09) ⇒ lệnh tạo hôm trước duyệt hôm nay bị coi là ngoài ngày, bỏ qua hoàn.
+  Đường job đối soát so theo **NGÀY HẠCH TOÁN** (15/09) nên không dính, nhưng GD này do nút chốt nên job không xử lý.
+- Phân biệt GD bị chốt bởi nút hay job khi tra: bước xử lý do nút tạo để trống mã/nội dung phản hồi nội bộ;
+  job luôn ghi mã "99" + nội dung "Failed after reconciliation" và cập nhật yêu cầu chuyển tiền phía SME.
+- Cách kiểm hoàn cho tester: tìm bản ghi mã tham chiếu `RFD` + mã tra soát gốc, hoặc bản ghi trạng thái REVERSAL;
+  đối chiếu tổng hạn mức ngày phải giảm đúng giá trị GD thất bại.
+- Báo cáo đầy đủ: `/home/zane/.hermes/reports/VBSME_loi-khong-hoan-han-muc_20260915.md` (+ PDF cùng tên).

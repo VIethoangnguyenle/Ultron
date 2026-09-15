@@ -81,8 +81,17 @@ lúc nó khởi tạo:
 5b. **Không query được metadata hệ thống khi chưa prefix schema** — `SYS.ALL_TABLES`, `SYS.ALL_USERS`,
    `SYS.ALL_TAB_COLUMNS` mới chạy; viết trần `ALL_TABLES` bị chặn với lỗi "Rule Violation: Table ...
    is missing a schema prefix". Đây là công cụ hữu ích nhất để kiểm tồn tại schema/bảng/cột khi chưa có grant.
+5c. **Trừ hai mốc thời gian thì `CAST(... AS DATE)` trước.** Cột kiểu TIMESTAMP trừ nhau trả về INTERVAL, nhân
+   với 24 để ra giờ sẽ chết bằng `ORA-00932: inconsistent datatypes: expected NUMBER got INTERVAL DAY TO SECOND`;
+   viết `ROUND((CAST(A AS DATE) - CAST(B AS DATE)) * 24, 2)` là ra số giờ. Cách này cũng dùng để lọc "lệch quá
+   N giờ" trên cột nghi là TIMESTAMP.
 6. **Đừng kết luận từ một cột status số.** Enum trong source có thể khác dữ liệu môi trường đang chạy.
    Trình bày *giá trị thực + khác biệt giữa các bản ghi đối chứng*, đánh dấu chỗ chưa kiểm chứng.
+   Cùng nhóm này là **bảng cấu hình / danh mục** (quyền theo bước, cờ bật/tắt, danh mục phương thức
+   xác thực, ngưỡng): câu trả lời "môi trường cho phép cái gì" phải đọc bảng trên **DB của chính môi
+   trường đang test**, không suy từ file migration trong repo hay enum trong code (migration là ý định
+   thiết kế; môi trường có thể đã sửa). Trả lời kèm môi trường + ngày đọc, và nói rõ danh mục này là
+   cấu hình nên có thể khác giữa SIT/OFF/PROD.
 7. **`ORA-00942` khi query chéo schema KHÔNG chứng minh bảng/schema không tồn tại** — thiếu quyền
    trên bảng của schema khác cũng trả về đúng mã 942 này. Muốn biết có thật hay không thì tra metadata
    `SYS.ALL_USERS` / `SYS.ALL_TABLES WHERE OWNER='<SCHEMA>'` (chạy được cả khi chưa có grant), rồi mới
