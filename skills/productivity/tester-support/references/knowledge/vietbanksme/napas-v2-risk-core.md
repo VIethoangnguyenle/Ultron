@@ -56,6 +56,18 @@ Kiến thức nội bộ (đã kiểm chứng bằng log UAT 09–12/09/2026). T
   mất; trace hành trình duyệt bằng log napas-service.
 - Câu hỏi kiểu "… từ lúc tạo **đến duyệt thành công**" của tester có thể chỉ là *đến bước duyệt*: cứ dựng
   timeline thật, nói rõ kết cục thực tế (duyệt / từ chối), đừng mặc định là đã duyệt.
+- **Cấu hình hành động rủi ro & luật chặn duyệt hàng loạt** (kiểm chứng 15/09/2026): bảng cấu hình
+  `AD_NAPAS_RISK_SCORE` (CODE = mã risk, `ACTION` 0 = NO_ACTION / 1 = WARNING / 2 = STOP, `VI_WARNING` /
+  `EN_WARNING`, `IS_ACTIVE`). Lệnh **chỉ được gắn mã khả nghi** (`beneSuspiciousCode`) khi `ACTION=WARNING`.
+  Màn danh sách lệnh chờ duyệt (`POST /api/v1/app/active-trans-reqs/waiting-approval`) trả cờ
+  `suspicious` = "có mã khả nghi" ⇒ **NO_ACTION: `suspicious=false`, duyệt hàng loạt vẫn qua bình thường**;
+  WARNING: `suspicious=true` ⇒ `POST /api/v1/app/trans-reqs/batch-approve/init` **chặn cả lô với lỗi 501012**
+  ("Không thể phê duyệt hàng loạt các giao dịch có cảnh báo rủi ro…", phải duyệt lẻ); STOP bị chặn ngay
+  lúc tạo lệnh (**500067**), còn tra soát lại ở bước duyệt cuối rơi vào STOP ⇒ **500068**.
+  ⚠️ Bản ghi log rủi ro (NapasRiskTransaction) vẫn được tạo cho cả NO_ACTION ⇒ *"log có rủi ro" KHÔNG
+  đồng nghĩa UI phải có cờ* — phải xem `ACTION` của mã mới kết luận. Hành động rủi ro **chốt tại thời
+  điểm tạo lệnh** ⇒ đổi cấu hình không làm đổi lệnh cũ (hai lệnh cùng mã có thể hành xử khác nhau).
+  Đối chiếu SIT: 260 lệnh NO_ACTION = 0/260 gắn mã khả nghi; 11 lệnh WARNING = 11/11 gắn mã.
 
 ### Ca mẫu: lệnh 016256154595147 (UAT, 13/09/2026)
 
