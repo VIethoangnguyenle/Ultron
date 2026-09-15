@@ -45,6 +45,9 @@ SESSION_ALERT_CALLS = 150            # hoặc quá nhiều lượt API → báo
 DAY_INPUT_ALERT_TOKENS = 60_000_000  # tổng input cả ngày (theo log) vượt mức này → báo
 HIGH_AVG_PER_CALL = 80_000           # ngữ cảnh/lượt quá cao = dấu hiệu session phình
 LONG_LIVED_WINDOW_S = 24 * 3600      # "còn hoạt động" = có hoạt động trong 24h gần đây
+# Chỉ escalate session CÒN ĐANG CHẠY: session nặng nhưng đã nghỉ vài tiếng thì réo chủ máy là
+# chỉ sai chỗ — nó vẫn nằm trong báo cáo để đọc lại, chỉ không bắn escalate nữa.
+ACTIVE_NOW_WINDOW_S = 30 * 60        # "đang chạy" = có hoạt động trong 30 phút gần đây
 TOP_N = 5
 
 # 2026-09-14 17:47:34,385 INFO [20260914_174622_484cc5cb] agent.conversation_loop:
@@ -232,11 +235,15 @@ def render(d: dict) -> str:
     L += ["", "## ⚠️ Session sống quá lâu (nên mở session mới)", ""]
     if not d["long_lived"]:
         L.append("- (không có)")
+    now = dt.datetime.now().timestamp()
     for s in d["long_lived"]:
         seen = dt.datetime.fromtimestamp(s["active_at"]).strftime("%d/%m %H:%M")
-        L.append(f"- {s['input']:,} tok tích luỹ · {s['calls']} lượt · ~{s['avg']:,} tok/lượt · "
-                 f"{label(s)} · hoạt động cuối {seen} · `{s['id']}`")
-        L.append("  - gợi ý: chốt việc rồi gõ `/new` để mở session mới")
+        running = now - s["active_at"] <= ACTIVE_NOW_WINDOW_S
+        mark = "🟢 đang chạy" if running else "⚪ đã nghỉ"
+        L.append(f"- {mark} · {s['input']:,} tok tích luỹ · {s['calls']} lượt · "
+                 f"~{s['avg']:,} tok/lượt · {label(s)} · hoạt động cuối {seen} · `{s['id']}`")
+        L.append("  - gợi ý: chốt việc rồi gõ `/new` để mở session mới" if running
+                 else "  - đã nghỉ, không cần xử lý")
 
     if d["bloat"]:
         L += ["", "## ⚠️ Session có ngữ cảnh phình (trong ngày)", ""]
@@ -277,29 +284,39 @@ def check_alerts(d: dict, dry_run: bool) -> list[str]:
     day = d["day"]
     done = st["alerts"].setdefault(day, [])
     log = d["log"]
+    now = dt.datetime.now().timestamp()
     fired: list[str] = []
 
     limit, overridden = day_threshold(day)
     note = " (ngưỡng riêng của ngày)" if overridden else ""
-    heaviest = log["ranked"][0] if log["ranked"] else None
+    # Điểm nhắm của cảnh báo ngày phải là session CÒN ĐANG CHẠY, không phải session nặng nhất
+    # trong ngày (nó có thể đã nghỉ từ lâu → bảo `/new` là chỉ sai chỗ).
+    running_today = [s for s in log["ranked"]
+                     if s["db"] and now - s["db"]["active_at"] <= ACTIVE_NOW_WINDOW_S]
+    hot = running_today[0] if running_today else None
     if log["input"] > limit and "day" not in done:
-        top = (f" Nặng nhất: {heaviest['input']:,} tok / {heaviest['calls']} lượt — "
-               f"{label(heaviest['db'])}." if heaviest else "")
+        top = (f" Đang đốt: {hot['input']:,} tok / {hot['calls']} lượt — {label(hot['db'])}. "
+               f"Đề xuất: chốt việc rồi gõ `/new` để mở session mới." if hot else
+               " Token rải trên nhiều session, hiện không session nào đang chạy — "
+               "không cần xử lý ngay.")
         msg = (f"⚠️ Token hôm nay ({day}) đã vượt ngưỡng {limit:,}{note}: {log['input']:,} "
-               f"token vào qua {log['calls']:,} lượt API (số theo log, là mức sàn).{top} "
-               f"Đề xuất: chốt việc rồi gõ `/new` để mở session mới.")
+               f"token vào qua {log['calls']:,} lượt API (số theo log, là mức sàn).{top}")
         if not dry_run:
             escalate(msg, f"ngưỡng ngày {limit:,} token{note}")
             done.append("day")
         fired.append("day")
 
     for s in d["long_lived"]:
+        # Đã nghỉ quá ACTIVE_NOW_WINDOW_S → bỏ qua, chỉ để lại trong báo cáo.
+        if now - s["active_at"] > ACTIVE_NOW_WINDOW_S:
+            continue
         key = f"session:{s['id']}"
         if key in done:
             continue
+        mins = int(max(0.0, now - s["active_at"]) // 60)
         msg = (f"⚠️ Session sống quá lâu, đang đốt token: {s['input']:,} token tích luỹ, "
-               f"{s['calls']} lượt API (~{s['avg']:,} token/lượt) — {label(s)}. "
-               f"Đề xuất: chốt việc rồi gõ `/new` để mở session mới.")
+               f"{s['calls']} lượt API (~{s['avg']:,} token/lượt), hoạt động cuối {mins} phút "
+               f"trước — {label(s)}. Đề xuất: chốt việc rồi gõ `/new` để mở session mới.")
         if not dry_run:
             escalate(msg, f"session vượt {SESSION_ALERT_TOKENS:,} token hoặc "
                           f"{SESSION_ALERT_CALLS} lượt")

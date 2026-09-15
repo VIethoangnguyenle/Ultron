@@ -103,5 +103,9 @@ them: `references/cron-run-forensics.md`. Quote the real run time and status bac
 - A wrapper/launcher exiting early fires success notifications for work still in flight; always probe
   the process and the output file.
 - Re-dispatching without inspecting the working tree can duplicate or clobber a partial run.
+- **Run long CLI-agent jobs in the background (with completion notify) and poll their output file**, instead of a
+  foreground call that dies at the tool's time cap: the killed run may already have created a partial deliverable,
+  and the notification you get belongs to the wrapper, not the agent. Always finish by reading the agent's final
+  output and the artifact it claims to have produced.
 - Scheduled jobs deliver their final message themselves: set the job to local delivery **or** have it
   send via script, never both, or the user gets the same report twice.

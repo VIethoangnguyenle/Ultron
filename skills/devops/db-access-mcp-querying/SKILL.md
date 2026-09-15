@@ -24,7 +24,7 @@ skill này lo phần **query sao cho ra kết quả đúng ngay lần đầu**.
 | Xem DB được phép truy cập + quyền | `list_databases` |
 | Liệt kê bảng / cột / khoá | `sql_list_tables`, `sql_get_columns`, `sql_get_constraints` |
 | Đọc dữ liệu (SELECT) | `sql_read` |
-| Ghi (INSERT/UPDATE/DELETE) | `sql_write` (2 bước, có `confirmation_token`) |
+| Ghi (INSERT/UPDATE/DELETE) | `sql_write` (2 bước, có `confirmation_token`). ⚠️ Bước preview **KHÔNG validate SQL**: câu sai hẳn tên cột vẫn trả `success: PREVIEW` + `shadow_preview: []` ⇒ "preview OK" KHÔNG chứng minh cú pháp/tên cột đúng. Muốn chắc, đối chiếu tên cột/bảng bằng `SYS.USER_TAB_COLUMNS` (hoặc `sql_get_columns`) trước khi tin script. |
 | Script SQL | `sql_execute_script` — **không dùng cho DDL**, xem SOUL.md |
 | Mongo | `mongo_list_collections`, `mongo_get_schema`, `mongo_read`, `mongo_write` |
 
@@ -91,6 +91,35 @@ lúc nó khởi tạo:
    loại dữ liệu (mã lỗi, nhật ký, giao dịch) cho một schema mới, liệt kê bảng của nó
    (`SYS.ALL_TABLES WHERE OWNER='<SCHEMA>'`) — bảng chuyên biệt (vd bảng mã lỗi) thường chỉ nằm ở
    schema ONL; nói "tra được" khi chưa kiểm dễ phải rút lại trước mặt tester.
+9. **`sql_write` preview KHÔNG phải máy kiểm cú pháp.** Preview chỉ phân loại "đây là câu ghi" + liệt kê dòng
+   sẽ đổi: một câu cố tình sai tên cột vẫn trả `success: PREVIEW` với `shadow_preview: []` (đã kiểm bằng câu
+   đối chứng) ⇒ **`shadow_preview: []` nghĩa là "0 dòng / không rõ", KHÔNG phải "câu lệnh hợp lệ"**. Trước khi
+   soạn hay gửi đi một câu UPDATE/INSERT, đối chiếu **từng bảng/cột** với catalog (`sql_get_columns`, hoặc 1 câu
+   `SYS.ALL_TAB_COLUMNS`), và kiểm chứng câu SELECT tương ứng bằng `sql_read` trên DB test.
+
+## Sửa trạng thái LỆCH giữa bảng nghiệp vụ và bảng yêu cầu duyệt
+
+Yêu cầu kiểu *"các bản ghi bị mất đồng bộ, đưa trạng thái về huỷ giúp"* là **fix dữ liệu** — đừng đoán một
+cột status, phải bám đúng luồng huỷ của app:
+
+1. **Định nghĩa "lệch" bằng truy vấn, không bằng cảm giác.** Cha giữ trạng thái "chờ duyệt" nhưng khoá trỏ tới
+   bảng yêu cầu đang mở không còn ở đó:
+   `WHERE t.STATUS = <chờ duyệt> AND t.REQ_ID IS NOT NULL AND NOT EXISTS (SELECT 1 FROM <SCHEMA>.<ACTIVE_REQ> a WHERE a.ID = t.REQ_ID)`.
+   Đếm riêng nhóm `REQ_ID IS NULL` (loại khác, đừng gộp vào cùng một UPDATE).
+2. **Đọc luồng huỷ trong source để lấy ĐÚNG tập cột/bản ghi con phải đổi** (thường: cha → trạng thái đã huỷ,
+   toàn bộ bản ghi con → đã huỷ, đôi khi cả giao dịch gốc + dòng phase). Chỉ đổi status của cha là tạo ra lệch thứ hai.
+3. **Đo ảnh hưởng bằng chính câu SELECT đó trên DB test** (số dòng + vài dòng đầu): vừa là con số để trình người
+   ra lệnh, vừa là cách duy nhất kiểm chứng câu lệnh chạy được (luật 9).
+4. **DB đích không có entry trong `list_databases`** (UAT/LIVE) ⇒ sản phẩm giao đi là **file script**, không phải
+   lệnh chạy: báo cáo trước → backup → update → kiểm chứng lại, mỗi bước COMMIT riêng. Phải nói rõ phần nào đã
+   chạy thật ở môi trường nào, phần nào chưa từng chạy — không trình bày như đã kiểm chứng trên môi trường đích.
+5. **Backup trước khi UPDATE và lấy danh sách ID của bước update TỪ chính bảng backup** — sau khi cha đổi trạng
+   thái, tiêu chí "đang chờ duyệt" không tìm lại được chúng nữa. Số dòng update phải khớp số dòng backup (để còn
+   cửa ROLLBACK nếu lệch).
+6. **Bẫy cú pháp Oracle khi viết script cho người khác chạy:**
+   - Không định danh alias ở vế trái `SET` — viết `SET STATUS = ...`, không `SET t.STATUS = ...`; alias chỉ để trong `WHERE`.
+   - Tên bảng backup ≤ 30 ký tự (nối hậu tố ngày vào tên bảng gốc rất dễ vượt) ⇒ viết tắt tiền tố.
+   - Để `COMMIT` là lệnh RIÊNG sau khối PL/SQL, sau khi đã in số dòng đã update.
 
 ## Bằng chứng từ sự VẮNG MẶT bản ghi (pattern dùng nhiều lần)
 
@@ -148,6 +177,8 @@ nguồn sự thật nằm ở dữ liệu, không phải source code:
 - `templates/vbsme-move-customer-to-cancel.sql` — câu lệnh mẫu điền sẵn theo đúng thứ tự an toàn.
 - `references/vbsme-collect-biometric-tables.md` — bảng + luồng chẩn đoán khi lệnh duyệt bị chặn vì
   "chưa / hết hạn thu thập sinh trắc" (SME ⋈ eKYC ⋈ FacePay).
+- `references/vbsme-batch-payroll-status-sync.md` — VBSME: cặp bảng lô/lương ↔ bảng yêu cầu duyệt, giá trị
+  trạng thái số, điều kiện "lệch", luồng huỷ thật của app và script dọn dữ liệu kèm theo.
 - Dự án VBSME: bảng/cột đầy đủ + quy trình gửi SQL cho tester → skill `vbsme-db-lookup`.
 - Cổng DB: source/quyền/snapshot + cách tra trực tiếp → `references/db-access-gateway-access-model.md`
   và `scripts/mcp_direct_query.py`.

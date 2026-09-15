@@ -91,3 +91,16 @@ transfer-service         worker-service
 - Trace thật: `[VBB_OMNI13243678706058423] [] [POST:/api/v1/face-pay/payment]`.
 - Phân biệt với SME (tên file log eKYC GIỐNG NHAU, không dùng được): dùng đường dẫn portal,
   tiền tố requestId (`VBB_OMNI` vs `VBB`), và profile (digital KHÔNG có tiền tố `ekyc-`).
+
+## 9. Phủ môi trường của cổng log digital (kiểm chứng 15/09/2026)
+- Cổng log `omni-digital/` phục vụ **UAT** (log đang chạy) + `live/` (bản lưu LIVE).
+  Bằng chứng trong log: `[Digital-UAT-v1.0.0]` (bo), `uat-omnidigital-bucket-02` (media/onboard/appserver/internal),
+  banner `{ UAT version 1.4.14 ... }` (napas). KHÔNG thấy bucket/khai báo nào mang nhãn SIT.
+- **KHÔNG có nguồn log SIT** trên cổng này (đã thử `/omni-digital/sit/` 404; các path top-level khác đều 403 blanket
+  nên không suy ra được gì — đừng probe thêm).
+- **Đối chiếu chéo log ↔ DB (15/09):** giao dịch trong DB test (`VBDIGIONL.OMNI_TRANSACTION`, user 0975316905,
+  trace `016258090019401`, 09:14) KHÔNG có trong log UAT; ngược lại trace trong log UAT (`016257170009890`,
+  `016247140009636`, ...) KHÔNG có trong DB ⇒ **log UAT và DB test là 2 môi trường khác nhau** (giống SME).
+  ⇒ Khi tester hỏi ca trên SIT: log chi tiết phải xin file; dữ liệu thì tra được ở DB.
+- Log có đủ trường để tra theo **username** (`"username":"0xxxxxxxxx"`), `traceNo`, `requestId`, `cif` ⇒
+  tester chỉ cần đưa username + mốc giờ là tra được (không cần file log).

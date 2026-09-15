@@ -46,6 +46,12 @@ còn lại những gì chạy tiếp.
   lần chạy tay). Khi thấy 2 tin giống nhau trong group, kiểm cả 3 nguồn trước khi kết luận.
 - **Đừng tắt hẳn báo cáo khi bị than.** Người dùng phàn nàn *tần suất*, không phải sự tồn tại của báo
   cáo: hạ xuống bậc thấp hơn và nói rõ cách bật lại (một dòng trong `schedules.yaml`) là đủ.
+- **Cảnh báo phải nhắm thứ ĐANG chạy, không nhắm thứ nặng nhất trong ngày.** Cảnh báo ngưỡng theo
+  "session nặng nhất" sẽ chỉ vào một thread người dùng đã bỏ từ lâu, kèm đề xuất vô nghĩa (`/new` cho
+  thread đã nghỉ) — đúng kiểu bị than là réo nhầm. Cách chữa: chỉ escalate session có hoạt động trong
+  cửa sổ ngắn (`ACTIVE_NOW_WINDOW_S`, ~30 phút); cái đã nghỉ thì để lại trong báo cáo kèm nhãn
+  "đã nghỉ/không cần xử lý", không ghi escalate. Cửa sổ này nên CÙNG CỠ hoặc nhỏ hơn chu kỳ cron,
+  không thì session vừa ngừng vẫn lọt vào lần chạy kế.
 - **Không tự hứa "chỉ báo khi bất thường" nếu chưa có cờ đó.** Muốn script tự lọc bất thường phải sửa
   code ⇒ giao Jarvis/claude; nói rõ với Hoàng là việc code, đừng nhận rồi để đó.
 - **Mọi thay đổi tần suất phải để lại lý do ngay trong file cấu hình** (comment cạnh action): người

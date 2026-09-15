@@ -1,6 +1,6 @@
 ---
 name: cross-environment-query-handoff
-description: "Use when handing a query another env's owner will run."
+description: "Use when handing a query to another env, or proving which env a log/DB source covers."
 version: 1.0.0
 author: Ultron
 license: MIT
@@ -83,6 +83,10 @@ Khi kết luận dựa trên log/nhật ký mà nguồn **không ghi con số b�
 - **Không suy hành vi của môi trường mình có quyền sang môi trường đích.** Cùng một bản ghi ở trạng thái trung gian
   có thể *có* bản ghi hạ nguồn ở env này mà *không có* ở env kia ⇒ nhờ người có quyền chạy 1 câu đếm tồn tại, và
   ghi rõ kết luận đã kiểm ở env nào.
+- **Cột ngày/giờ kiểu `modifiedDate` có thể là cột chết cho một số chuyển trạng thái.** Trước khi dùng nó để
+  định thời điểm sự kiện (kiểu "bị huỷ ngay lúc tạo"), **kiểm trên mẫu**: lọc toàn bộ bản ghi cùng trạng thái
+  trong một payload danh sách rồi so `createdDate` với `modifiedDate`. Nếu 100% bằng nhau ⇒ cột không được cập
+  nhật cho chuyển trạng thái đó ⇒ không suy ra được thời điểm; phải viết "xảy ra trước mốc dữ liệu còn giữ".
 - **Người dùng sẽ replay từng câu của bạn** (nhất là tester leader). Sai thì **đính chính thẳng + phát hành
   bản cập nhật (v2)** kèm 1 câu nói rõ điểm sửa; không bảo vệ câu cũ, không im lặng sửa ngầm.
 - Báo cáo kiểu "các bước đầy đủ" vẫn phải giữ nguyên: nguồn dữ liệu, các bước tra, trích nguồn, kết luận,
@@ -99,6 +103,29 @@ Chi tiết bảng/cột và query mẫu của ca trên (VietBank SME, bảng l�
 `references/vbsme-lenh-tables.md` — đọc khi cần dựng câu query theo CIF doanh nghiệp + ngày soạn lệnh; file này
 còn có câu quét một lượt tìm mã lệnh trong mọi bảng giao dịch, và ghi chú DB online vs DB offline là hai DB riêng.
 
+## Chứng minh một nguồn log/DB thuộc môi trường NÀO (trước khi hứa với tester)
+
+Dùng khi tester/dev hỏi "em đọc được log môi trường X không?", hoặc khi bạn sắp trả lời dựa trên một nguồn
+log/DB mà mình chỉ biết tên thư mục / tên kết nối. **Không suy môi trường từ tên thư mục.**
+
+1. **Nhãn thư mục/kết nối không phải bằng chứng.** Thư mục kiểu `/omni-<dự án>/` có thể phục vụ bất kỳ env nào.
+   Đọc nội dung log tìm dấu vết env: banner version lúc khởi động (`<App>-UAT-v1.0.0`, `{ UAT version x.y.z }`),
+   tên bucket/đường dẫn storage (`uat-<dự án>-bucket-0N`), host hệ thống lõi mà service gọi (dev/test vs uat/live).
+   Nhãn profile (`[sit]`, `[uat]`) thường **không còn** trong pattern log đã deploy ⇒ grep không thấy không có nghĩa
+   "không xác định được"; phải soi banner/bucket/host.
+2. **Đối chiếu chéo HAI CHIỀU log ↔ DB theo khoá giao dịch** (`traceNo` / `requestId` / `REF_NO`). Trace có trong DB
+   mà không có trong log, và trace trong log không có trong DB ⇒ **hai môi trường khác nhau**: log phục vụ env A,
+   DB là env B. Nói kết luận này ra cho tester, kèm chú thích "dữ liệu mình đọc là env test".
+3. **Đừng probe cây thư mục log để tìm env còn thiếu.** Trên server log autoindex, path top-level không tồn tại trả
+   **403 blanket** (không suy ra được gì), còn path lạ nằm dưới thư mục có thật trả **404**. Kết luận "env X không có
+   log" phải đến từ nội dung log + đối chiếu dữ liệu, không phải từ việc thử vài path.
+4. **Mẫu trả lời tester: chắc / cần gì / đường lui.** "*Log em đọc được là <env A> (thêm bản lưu <env B>). Với
+   <env C> em tra được dữ liệu, log chi tiết thì cần file — chị gửi file hoặc chỉ chỗ lấy.*" Khi nguồn log đọc trực
+   tiếp được, nói thẳng **"chị không cần gửi file log"** và liệt kê thứ cần đưa: môi trường, username/mã đăng nhập,
+   mốc thời gian (ngày + giờ), mã giao dịch/mã tham chiếu.
+5. **Thiếu nguồn log cho một env ⇒ DM người có trách nhiệm (Hoàng) xin đường log**, đừng để tester tự đi tìm hạ tầng
+   và đừng im lặng nhận việc mình không làm được; trong group chỉ nói 1 câu "em đã hỏi anh Hoàng xin đường log env đó".
+
 ## Pitfalls
 
 - Đừng bảo "em đã test rồi" khi test khác môi trường đích — đó là nói quá mức chứng cứ.
@@ -107,3 +134,5 @@ còn có câu quét một lượt tìm mã lệnh trong mọi bảng giao dịch
 - Đừng để người chạy tự đoán cách đọc kết quả; viết sẵn "thấy dòng nào ⇒ kết luận gì".
 - Đừng trả lời "cùng tên bảng, chỉ khác kết nối" — ghi hẳn `SCHEMA.BẢNG` (và tên DB/link nếu chéo instance);
   người chạy không có ngữ cảnh của bạn và sẽ chạy y nguyên câu đó.
+- Đừng hứa "chỉ cần username là tra được" cho mọi môi trường — kiểm tra nguồn log có phủ đúng env tester đang test trước.
+- Đừng dùng nhãn thư mục/tên kết nối làm bằng chứng môi trường; soi banner/bucket/host trong chính nội dung log.

@@ -47,6 +47,32 @@ Phép đối chiếu biến câu trả lời từ "đoán" thành "kiểm chứn
 Nếu báo cáo thiếu bản ghi ở trạng thái trung gian mà BA muốn có → đó là **yêu cầu nghiệp vụ mới** (ticket riêng),
 không phải bug hiện hữu.
 
+## Biến thể: bản ghi CÓ trong danh sách nhưng VẮNG ở màn trạng thái, mở chi tiết thì báo lỗi
+
+Cùng bản ghi hiện bình thường ở màn danh sách (kèm trạng thái trung gian) nhưng màn "chờ duyệt/chờ xử lý" không
+có nó, mở chi tiết thì lỗi ⇒ **hai nguồn dữ liệu đang nói khác nhau**, không phải bản ghi bị mất:
+
+1. Màn danh sách đọc **bảng nghiệp vụ** (trạng thái nằm trên chính bản ghi giao dịch); màn trạng thái đọc **bảng
+yêu cầu/phiên đang mở**. Một bên còn "chờ duyệt" trong khi bên kia đã bị huỷ/kết thúc ⇒ bản ghi không thể xuất
+   hiện ở màn trạng thái; màn chi tiết thấy "chờ duyệt" nên đi tìm yêu cầu tương ứng và thất bại ở đúng bước đó.
+2. Trong log, bước hỏng nằm ở **kiểm quyền với yêu cầu đang chờ** và exception kèm **NOT_FOUND** (không tìm thấy
+   bản ghi yêu cầu) — đó mới là nguyên nhân. Mã lỗi hiển thị cho người dùng thường là **mã dùng chung** của hệ
+   thống (kiểu "hệ thống đang bảo trì") ⇒ đọc nội dung thông báo mà kết luận là đi sai hướng.
+3. Đối chiếu với bản ghi **đối chứng** (cùng lô/cùng màn, đã duyệt xong): bản ghi tốt có yêu cầu duyệt còn sống,
+   bản ghi hỏng có yêu cầu đã ở trạng thái kết thúc/huỷ.
+4. Kết luận nghiệp vụ: *yêu cầu duyệt đã bị huỷ (hoặc không tạo được) nhưng trạng thái giao dịch không được đồng
+   bộ về* ⇒ màn chờ duyệt trống + chi tiết lỗi. Hướng xử lý là **fix dữ liệu/đồng bộ**, không phải bảo người dùng
+   thao tác lại; nếu nhiều bản ghi cùng kiểu thì đếm bằng truy vấn chứ đừng liệt kê tay.
+
+### Sự cố cũ hơn pod đang chạy: moi log đã xoay vòng
+
+- Pod mới = log cũ đã xoay: đọc **dòng khởi động** (`head -c 400 <file>`) để biết log hiện tại phủ từ mốc nào;
+  sự cố trước mốc đó thì phải tìm bản log đã xoay, đừng kết luận "không có dấu vết".
+- Bản xoay nằm ở **thư mục con theo tháng** của service: `…/<service>/YYYY-MM/<pod>-YYYY-MM-DD.0.log.gz` —
+  chỉ một số service/pod có, service khác có thể 404 ⇒ ghi rõ giới hạn này trong báo cáo thay vì đoán.
+- Yêu cầu duyệt có thể được xử lý ở **service khác** với service của màn hỏng ⇒ khi log service chính không chứa
+  mã giao dịch, tải log của service nghiệp vụ tương ứng (duyệt/đối soát/worker) trước khi kết luận.
+
 ## Pitfalls khi parse log để truy vết
 
 - `grep -o -E ".{0,100}<ID>.{0,120}"` **làm mất tiền tố thời gian** của dòng log ⇒ mất timeline. Grep cả dòng
@@ -57,6 +83,10 @@ không phải bug hiện hữu.
   hiện cuối + trạng thái của nó** làm mốc, và ghi rõ "mốc cuối cùng tra được" nếu log bị cắt trang.
 - Log monitor thường **không ghi số bản ghi trả về**, và DB môi trường UAT/LIVE có thể không truy cập được ⇒
   nói rõ trong báo cáo cái gì KHÔNG kiểm chứng được thay vì suy đoán.
+- **Grep không thấy mã trong log của một service KHÔNG chứng minh bản ghi không có trong danh sách**: nhiều
+  service chỉ ghi metadata request/response (path, mã kết quả) mà **không ghi payload** ⇒ muốn chứng minh
+  "danh sách có/không có bản ghi" thì phải tìm dòng log CÓ ghi nội dung bản ghi (màn overview/detail), không suy
+  từ việc thiếu dấu vết.
 - Grep repo local không ra code của màn hình báo cáo: màn hình/báo cáo có thể thuộc service khác (BO) — kết luận
   bằng log + dữ liệu, đừng đào repo tiếp.
 - **Đừng suy hành vi giữa môi trường.** Cùng một bản ghi ở trạng thái trung gian có thể *có* bản ghi hạ nguồn ở SIT
