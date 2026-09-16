@@ -209,3 +209,14 @@ actions:
     every_minutes: 2
     between: ["08:58", "09:10"]
     script: jira_runner_tick.py
+
+  # CHECK sau khi job jira-runner đã chạy xong (Hoàng chốt 2026-09-16).
+  # 3 điều kiện: (1) `cron doctor` của profile sạch, (2) last_run_at phải là HÔM NAY,
+  # (3) lượt chạy cuối phải kết thúc reason=text_response (bắt guardrail_halt / max_iterations...).
+  # Đặt 09:15 chứ không nhét vào cửa sổ 08:58-09:10 — check sớm quá sẽ báo động giả trong lúc job
+  # còn trong cửa sổ catch-up (~2h). Fail -> exit != 0 -> daily_dispatch.escalate() ghi
+  # ~/.hermes/escalations/ -> cron ultron-escalate forward về DM (dedupe 1 lần/ngày). 0 token.
+  - id: jira-runner-check
+    when: "09:15"
+    script: jira_runner_tick.py
+    args: ["--check"]
